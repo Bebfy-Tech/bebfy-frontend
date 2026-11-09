@@ -63,3 +63,23 @@ O workflow de frontend executa `npm ci` e `npm run build`. O backend executa
 testes automatizados e integração com PostgreSQL 16. Antes do lançamento real,
 executar homologação cruzada de API e UI com dados de teste, política de
 precificação e migração segura do banco de produção.
+
+
+## Telas iniciais implementadas
+
+- `/dashboard` consulta `GET /relatorios/dashboard` e exibe faturamento, vendas,
+  fiado, produtos mais vendidos e caixas abertos, com estados de carregamento/erro.
+- `/pdv` obtém produtos da empresa, consulta/abre o caixa do operador, pesquisa
+  por código de barras ou nome, monta carrinho, registra venda com pagamento
+  simples e recupera o comprovante **não fiscal** para impressão pelo navegador.
+- `/login` já usa `x-tenant` e o serviço de autenticação.
+
+**Limites do primeiro PDV:** não suporta pagamentos divididos, fiado (requer
+seleção de cliente), fardos, descontos aprovados por supervisor, cancelamento,
+fechamento de caixa ou impressoras térmicas ESC/POS diretamente. Esses fluxos
+precisam das interfaces específicas e de homologação de ponta a ponta.
+No momento PIX e cartão representam registros de pagamento informados pelo
+operador; **não há integração com adquirentes nem confirmação automática**.
+
+Os workflows validam compilação TypeScript/Vite, mas ainda não realizam testes
+automatizados de interface em navegador real.
