@@ -19,50 +19,62 @@ Edite o `.env.local`:
 
 ```env
 VITE_API_URL=http://localhost:3000
-VITE_TENANT_SLUG=bebfybdteste
 ```
 
-O slug `bebfybdteste` é apenas o identificador previsto para a distribuidora
-de homologação. **Só funciona após o cadastro ser executado no banco de
-homologação correspondente.** O cadastro não é aplicado automaticamente
-pelo deploy deste frontend.
+## Endereços públicos definidos
 
-Para produção com subdomínios individuais, configure
-`VITE_TENANT_BASE_DOMAIN=seudominio.com.br`, hospede o frontend
-em `*.seudominio.com.br` com HTTPS e **não configure um
-`VITE_TENANT_SLUG` fixo**, pois ele tem prioridade sobre o hostname.
+- `https://bebfy.com.br/`: landing page principal.
+- `https://bebfy.com.br/acessar`: campo para localizar uma distribuidora.
+- `https://bebfy.com.br/bebfybdteste`: login da distribuidora de homologação.
+- `https://bebfy.com.br/bebfybdteste/dashboard`: painel de sua loja depois do login.
+- `https://bebfy.com.br/SaaS/admin`: login da administração SaaS.
+- `https://bebfy.com.br/SaaS/painel`: painel global protegido por superadmin.
+
+Uma nova empresa com slug `distribuidora-nova` recebe o acesso
+`https://bebfy.com.br/distribuidora-nova` sem configurar DNS individual.
+A navegação interna sempre inclui o slug no caminho, e as requisições para
+NestJS enviam `x-tenant` derivado desse caminho. A autorização do
+administrador SaaS continua protegida pelo backend.
+
+**A hospedagem deve permitir fallback SPA para `index.html` em todas
+as rotas React e apontar `bebfy.com.br` para o frontend.** O DNS,
+o certificado HTTPS, a API e o banco de dados ainda devem ser
+configurados no serviço de hospedagem escolhido. Esta alteração no código
+não publica o domínio nem cria a empresa no banco real.
+
+`VITE_TENANT_SLUG` não deve ser configurada na hospedagem central.
 
 ## Telas e rotas
 
 | Área | Rota | Funcionalidades |
 | --- | --- | --- |
 | Página inicial | `/` | Landing premium responsiva com animações e painel demonstrativo |
-| Acesso loja | `/login` | Autenticação por operador/CPF |
-| Primeiro acesso | `/primeiro-acesso` | Troca obrigatória da senha inicial |
-| Painel da loja | `/dashboard` | KPIs, ranking e atalhos |
-| Frente de caixa | `/pdv` | Pesquisa, fardos, pagamento dividido, fiado, delivery e recibo não fiscal |
-| Vendas | `/vendas` | Histórico, detalhes, comprovantes e cancelamentos autorizados |
-| Controle de caixas | `/caixas` | Abertura, extrato, sangria, suprimento e fechamento |
-| Entregas | `/delivery` | Pedidos aguardando acerto |
-| Produtos | `/produtos` | Cadastro, edição, preços, estoque e lotes por ficha |
-| Categorias | `/categorias` | Cadastro e classificação |
-| Lotes | `/lotes` | Entrada, datas de validade e histórico |
-| Estoque | `/estoque` | Posição, alerta, entradas, ajustes e perdas |
-| Clientes | `/clientes` | Cadastro, edição, limite de crédito |
-| Fiados | `/fiados` | Histórico, saldo devedor e recebimentos |
-| Vasilhames | `/vasilhames` | Empréstimo, devolução e extrato por cliente |
-| Fornecedores | `/fornecedores` | Cadastro comercial |
-| Financeiro | `/financeiro` | Contas a pagar/receber, conciliação manual e previsão |
-| Relatórios | `/relatorios` | Indicadores e produtos mais vendidos |
-| Funcionários | `/funcionarios` | Cadastro, código, senha inicial e permissões |
-| Minha conta | `/configuracoes` | Perfil e alteração da própria senha |
-| Acesso SaaS | `/saas/acesso` | Login de superadministrador autorizado pelo backend |
-| Gestão SaaS | `/saas/painel` | Empresas, planos, status e módulos por cliente |
+| Acesso loja | `/{loja}` | Autenticação por operador/CPF |
+| Primeiro acesso | `/{loja}/primeiro-acesso` | Troca obrigatória da senha inicial |
+| Painel da loja | `/{loja}/dashboard` | KPIs, ranking e atalhos |
+| Frente de caixa | `/{loja}/pdv` | Pesquisa, fardos, pagamento dividido, fiado, delivery e recibo não fiscal |
+| Vendas | `/{loja}/vendas` | Histórico, detalhes, comprovantes e cancelamentos autorizados |
+| Controle de caixas | `/{loja}/caixas` | Abertura, extrato, sangria, suprimento e fechamento |
+| Entregas | `/{loja}/delivery` | Pedidos aguardando acerto |
+| Produtos | `/{loja}/produtos` | Cadastro, edição, preços, estoque e lotes por ficha |
+| Categorias | `/{loja}/categorias` | Cadastro e classificação |
+| Lotes | `/{loja}/lotes` | Entrada, datas de validade e histórico |
+| Estoque | `/{loja}/estoque` | Posição, alerta, entradas, ajustes e perdas |
+| Clientes | `/{loja}/clientes` | Cadastro, edição, limite de crédito |
+| Fiados | `/{loja}/fiados` | Histórico, saldo devedor e recebimentos |
+| Vasilhames | `/{loja}/vasilhames` | Empréstimo, devolução e extrato por cliente |
+| Fornecedores | `/{loja}/fornecedores` | Cadastro comercial |
+| Financeiro | `/{loja}/financeiro` | Contas a pagar/receber, conciliação manual e previsão |
+| Relatórios | `/{loja}/relatorios` | Indicadores e produtos mais vendidos |
+| Funcionários | `/{loja}/funcionarios` | Cadastro, código, senha inicial e permissões |
+| Minha conta | `/{loja}/configuracoes` | Perfil e alteração da própria senha |
+| Acesso SaaS | `/SaaS/admin` | Login de superadministrador autorizado pelo backend |
+| Gestão SaaS | `/SaaS/painel` | Empresas, planos, status e módulos por cliente |
 
 ## Segurança e multi-tenant
 
 - A API identifica a distribuidora pelo cabeçalho `x-tenant`, derivado do
-  subdomínio, da configuração local ou de um login SaaS explicitamente informado.
+  primeiro segmento da URL ou de um login SaaS explicitamente informado.
 - Sessões JWT são verificadas no servidor, com uma sessão válida por usuário.
   Havendo sessão ativa, o segundo login exige confirmação para expulsar a anterior.
 - Funcionários com senha inicial são obrigados a trocá-la no primeiro acesso.
