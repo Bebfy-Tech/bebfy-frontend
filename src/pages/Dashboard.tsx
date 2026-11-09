@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, Boxes, CreditCard, Package, ShoppingCart,
-  Users, TrendingUp, Clock3, CircleDollarSign, ShieldCheck, CheckCircle2, ArrowUpRight,
+  Users, TrendingUp, Clock3, CircleDollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, FileUp,
 } from 'lucide-react';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
@@ -36,6 +36,7 @@ export function Dashboard() {
     { to: '/pdv', nome: 'Abrir frente de caixa', descricao: 'Começar a vender agora', Icon: ShoppingCart, color: 'bg-emerald-500 text-[#052015]' },
     { to: '/produtos', nome: 'Gerenciar produtos', descricao: 'Cadastros, preços e lotes', Icon: Boxes, color: 'bg-blue-600 text-white' },
     { to: '/fiados', nome: 'Receber fiado', descricao: 'Abater saldo de cliente', Icon: Users, color: 'bg-[#1a293e] text-slate-100' },
+    { to: '/estoque/importar-xml', nome: 'Importar nota XML', descricao: 'Entrada de mercadorias em minutos', Icon: FileUp, color: 'bg-[#142536] text-slate-100' },
   ];
 
   return <div className="space-y-6">
@@ -74,7 +75,7 @@ export function Dashboard() {
           </Link>)}
         </div>
       </section>
-      <section className="grid gap-4 md:grid-cols-3" aria-label="Ações rápidas">
+      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4" aria-label="Ações rápidas">
         {actions.map(({to,nome,descricao,Icon,color})=>
           <Link key={to} to={tenantPath(to)} className={`flex min-h-24 items-center gap-4 rounded-2xl px-5 py-5 shadow-lg transition hover:-translate-y-0.5 hover:brightness-110 ${color}`}>
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10"><Icon size={23}/></span>
