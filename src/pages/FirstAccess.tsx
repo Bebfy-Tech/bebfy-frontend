@@ -49,7 +49,7 @@ export function FirstAccess() {
       <div className="max-w-md text-center"><LockKeyhole className="mx-auto text-emerald-300" size={44}/>
         <h1 className="mt-4 text-2xl font-bold">Primeiro acesso expirado</h1>
         <p className="mt-2 text-slate-400">Entre novamente para configurar sua senha.</p>
-        <Link to={dados?.retorno==='saas'?saasLoginPath:tenantPath()} className="mt-5 inline-block rounded-xl bg-emerald-300 px-5 py-3 font-bold text-[#062e2c]">Ir para login</Link>
+        <Link to={dados?.retorno==='saas'||window.location.pathname.toLowerCase().startsWith('/saas/')?saasLoginPath:tenantPath()} className="mt-5 inline-block rounded-xl bg-emerald-300 px-5 py-3 font-bold text-[#062e2c]">Ir para login</Link>
       </div>
     </main>;
   }
