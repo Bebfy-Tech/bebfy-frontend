@@ -11,8 +11,12 @@ export const validSlug = (s:string)=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s) &&
   !RESERVED_PATHS.includes(s);
 
 export const tenantFromPath = (pathname = window.location.pathname): string => {
-  const first = decodeURIComponent(pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
-  return validSlug(first) ? first : '';
+  try {
+    const first = decodeURIComponent(pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
+    return validSlug(first) ? first : '';
+  } catch {
+    return '';
+  }
 };
 
 export const tenantPath = (path = '', slug = tenantFromPath()): string => {
