@@ -10,6 +10,8 @@ const CHAVE_CATEGORIA=(r:Linha)=>String(r.nome??r.razaoSocial??r.id??'');
 const PERMISSOES=[
   ['VENDAS_CANCELAR','Cancelar vendas'],['CAIXA_MOVIMENTAR','Fazer sangrias e suprimentos'],
   ['CAIXA_FECHAR','Fechar caixa'],['ESTOQUE_AJUSTAR','Ajustar estoque'],
+  ['PRODUTOS_GERENCIAR','Cadastrar e editar produtos/categorias'],
+  ['FORNECEDORES_GERENCIAR','Cadastrar e editar fornecedores'],
   ['LOTES_REMOVER','Remover lotes'],['FIADOS_LANCAR','Lançar fiados'],
   ['FIADOS_RECEBER','Receber fiados'],['VASILHAMES_MOVIMENTAR','Movimentar vasilhames'],
   ['DELIVERY_ACERTAR','Acertar entregas'],
@@ -40,6 +42,17 @@ export function CadastroPage({resource}:{resource:Recurso}){
   const cfg=definicoes[resource];
   const {user}=useAuth();
   const isManager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
+  const permissao=(chave:string)=>isManager||Boolean(user?.permissoes?.includes(chave));
+  const canCreate=resource==='produtos'||resource==='categorias'?permissao('PRODUTOS_GERENCIAR')
+    :resource==='fornecedores'?permissao('FORNECEDORES_GERENCIAR')
+    :resource==='lotes'?permissao('ESTOQUE_AJUSTAR'):true;
+  const canEdit=Boolean(cfg.canEdit && (resource==='produtos'||resource==='categorias'
+    ?permissao('PRODUTOS_GERENCIAR'):resource==='fornecedores'
+    ?permissao('FORNECEDORES_GERENCIAR'):true));
+  const canDelete=Boolean(cfg.canDelete && (resource==='produtos'||resource==='categorias'
+    ?permissao('PRODUTOS_GERENCIAR'):resource==='fornecedores'
+    ?permissao('FORNECEDORES_GERENCIAR'):resource==='lotes'
+    ?permissao('LOTES_REMOVER'):resource==='clientes'?isManager:true));
   const [items,setItems]=useState<Linha[]>([]);
   const [refData,setRefData]=useState<Partial<Record<Recurso,Linha[]>>>({});
   const [busca,setBusca]=useState('');
@@ -84,6 +97,7 @@ export function CadastroPage({resource}:{resource:Recurso}){
     setBusy(true);setErro('');setSuccess('');
     try{
       const dados=montarDados(cfg.fields,draft,!!editing);
+      if(resource==='clientes'&&!isManager)delete dados.limiteCredito;
       if(editing){
         if(resource==='fornecedores'){
           delete dados.cnpj; // Immutability and optional fields not supported by certain legacy service updates.
@@ -129,7 +143,7 @@ export function CadastroPage({resource}:{resource:Recurso}){
 
   if(cfg.managerOnly&&!isManager)return <div className={`${card} p-10 text-center text-sm text-slate-600`}><Shield className="mx-auto mb-4 text-teal-700" size={35}/>Apenas gestores podem acessar esta área.</div>;
   return <>
-    <PageTitle title={cfg.title} subtitle={cfg.description} action={openNew} onReload={()=>void reload()} loading={loading}/>
+    <PageTitle title={cfg.title} subtitle={cfg.description} action={canCreate?openNew:undefined} onReload={()=>void reload()} loading={loading}/>
     <Notice message={erro} onClose={()=>setErro('')}/><Notice message={success} success onClose={()=>setSuccess('')}/>
     <section className={`${card} overflow-hidden`}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
@@ -140,13 +154,13 @@ export function CadastroPage({resource}:{resource:Recurso}){
       <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-[#f7faf8] text-xs uppercase tracking-wide text-slate-500"><tr>{cfg.columns.map(c=><th className="px-4 py-4" key={c.key}>{c.label}</th>)}<th className="px-4 py-4 text-right">Ações</th></tr></thead>
       <tbody className="divide-y divide-slate-100">{filtered.map(row=><tr key={String(row.id)} className="hover:bg-slate-50">{cfg.columns.map(c=><td key={c.key} className="max-w-[240px] truncate px-4 py-4"><FormatCell row={row} keyName={c.key} format={c.format}/></td>)}
       <td className="px-4 py-3"><div className="flex justify-end gap-1"><button type="button" onClick={()=>void view(row)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="Ver detalhes" aria-label="Ver detalhes"><Eye size={17}/></button>
-      {cfg.canEdit&&<button onClick={()=>openEdit(row)} className="rounded-lg p-2 text-teal-700 hover:bg-teal-50" title="Editar" aria-label="Editar"><Pencil size={17}/></button>}
+      {canEdit&&<button onClick={()=>openEdit(row)} className="rounded-lg p-2 text-teal-700 hover:bg-teal-50" title="Editar" aria-label="Editar"><Pencil size={17}/></button>}
       {resource==='funcionarios'&&<button onClick={()=>openAcesso(row)} className="rounded-lg p-2 text-indigo-700 hover:bg-indigo-50" title="Senha, código e permissões" aria-label="Configurar acesso"><KeyRound size={17}/></button>}
-      {cfg.canDelete&&<button onClick={()=>setDeleteTarget(row)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50" title="Remover" aria-label="Remover"><Trash2 size={17}/></button>}</div></td></tr>)}</tbody></table></div>}
+      {canDelete&&<button onClick={()=>setDeleteTarget(row)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50" title="Remover" aria-label="Remover"><Trash2 size={17}/></button>}</div></td></tr>)}</tbody></table></div>}
     </section>
 
     {draft&&<Modal title={editing?`Editar ${cfg.singular}`:`Cadastrar ${cfg.singular}`} onClose={()=>setDraft(null)}>
-      <form onSubmit={e=>void save(e)} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">{cfg.fields.map(c=><Field key={c.key} campo={c} value={draft[c.key]} disabled={busy||Boolean(editing&&resource==='produtos'&&c.key==='estoqueAtual')} options={c.resource?(refData[c.resource]||[]).map(item=>({value:String(item.id),label:CHAVE_CATEGORIA(item)})):undefined} onChange={v=>setDraft(p=>({...p!,[c.key]:v}))}/>)}</div>
+      <form onSubmit={e=>void save(e)} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">{cfg.fields.map(c=><Field key={c.key} campo={c} value={draft[c.key]} disabled={busy||Boolean(editing&&resource==='produtos'&&c.key==='estoqueAtual')||Boolean(resource==='clientes'&&!isManager&&c.key==='limiteCredito')} options={c.resource?(refData[c.resource]||[]).map(item=>({value:String(item.id),label:CHAVE_CATEGORIA(item)})):undefined} onChange={v=>setDraft(p=>({...p!,[c.key]:v}))}/>)}</div>
       <p className="text-xs text-slate-500">{resource==='produtos'&&editing?'Para modificar o estoque, utilize Movimentações de estoque. ':''}Os campos enviados seguem o contrato da API.</p>
       {erro&&<Notice message={erro}/>}
       <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" onClick={()=>setDraft(null)} className={secondary}>Cancelar</button><button type="submit" disabled={busy} className={btn}>{busy?'Salvando...':'Salvar cadastro'}</button></div></form>
