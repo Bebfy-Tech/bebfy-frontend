@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, ChevronDown, CircleAlert, CircleCheck, CreditCard, Filter, LayoutDashboard, Layers3, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, Layers3, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MODULOS, saasApi } from '../services/saas';
-import type { CriarEmpresaSaas, EmpresaSaas, NomeModulo, PlanoSaas, StatusEmpresa } from '../services/saas';
+import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, StatusEmpresa } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'planos' | 'modulos';
 
