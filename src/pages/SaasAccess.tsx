@@ -33,10 +33,10 @@ export function SaasAccess() {
       navigate('/saas/painel', { replace: true });
     } catch (error: unknown) {
       const err = error as {
-        response?: { status?: number; data?: { error?: { codigo?: string; message?: string }; message?: string } };
+        response?: { status?: number; data?: { codigo?: string; error?: { codigo?: string; message?: string }; message?: string } };
         message?: string;
       };
-      if (err.response?.status === 409 && err.response?.data?.error?.codigo === 'SESSAO_ATIVA') {
+      if (err.response?.status === 409 && (err.response?.data?.error?.codigo ?? err.response?.data?.codigo) === 'SESSAO_ATIVA') {
         setConflitoSessao(true);
       } else {
         logout();
