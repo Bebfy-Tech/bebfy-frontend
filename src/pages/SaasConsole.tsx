@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, Layers3, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useSaasAuth } from '../contexts/SaasAuthContext';
+import { SaasFuncionarios } from './SaasFuncionarios';
 import { MODULOS, saasApi } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa } from '../services/saas';
 
-type Section = 'visao' | 'empresas' | 'planos' | 'modulos';
+type Section = 'visao' | 'empresas' | 'planos' | 'modulos' | 'funcionarios';
 
 const statusText: Record<StatusEmpresa,string> = { ATIVA: 'Ativa', EM_TESTE: 'Em teste', SUSPENSA: 'Suspensa', CANCELADA: 'Cancelada' };
 const statusStyle: Record<StatusEmpresa,string> = {
@@ -34,7 +35,7 @@ function StatCard({icon:Icon,label,value,subtitle}:{icon:typeof Activity;label:s
 }
 
 export function SaasConsole() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useSaasAuth();
   const navigate = useNavigate();
   const [section,setSection] = useState<Section>('visao');
   const [empresas,setEmpresas] = useState<EmpresaSaas[]>([]);
@@ -135,6 +136,7 @@ export function SaasConsole() {
     {key:'empresas',icon:Building2,title:'Distribuidoras',desc:'Clientes e acessos'},
     {key:'planos',icon:CreditCard,title:'Planos e assinaturas',desc:'Planos cadastrados'},
     {key:'modulos',icon:Boxes,title:'Módulos da plataforma',desc:'Recursos por empresa'},
+    {key:'funcionarios',icon:Users,title:'Funcionários do SaaS',desc:'Equipe e permissões'},
   ];
 
   if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#081d24] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
@@ -168,6 +170,7 @@ export function SaasConsole() {
         {ok&&<div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200"><Check size={17}/>{ok}<button className="ml-auto" onClick={()=>setOk('')} aria-label="Fechar aviso"><X size={17}/></button></div>}
         {loading?<div className={`${card} p-12 text-center text-slate-400`}>Carregando dados da plataforma…</div>:<>
 
+          {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
           {section==='visao'&&<>
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Bom trabalho! <span className="text-emerald-300">Tudo sob controle.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-300 px-4 py-3 text-sm font-extrabold text-[#073c36]"><Plus size={18}/> Nova distribuidora</button></div>
             <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
