@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Eye, LockKeyhole, Pencil, Search, Trash2, Shield, Package, Boxes, KeyRound } from 'lucide-react';
+import { Eye, LockKeyhole, Pencil, Search, Trash2, Shield, Package, KeyRound } from 'lucide-react';
 import { api } from '../services/api';
 import { definicoes, montarDados, recursoApi, valor } from '../services/operacional';
 import type { Campo, Linha, Recurso, Valores } from '../services/operacional';
