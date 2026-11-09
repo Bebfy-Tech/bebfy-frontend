@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Boxes, CreditCard, Minus, Plus, Printer, RefreshCcw, Search, ShoppingCart, Trash2, Truck, Wallet } from 'lucide-react';
+import { Boxes, CreditCard, Minus, Plus, Printer, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { bebfy } from '../services/bebfy';
 import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
-import { btn, card, dinheiro, input, mensagemErro, Notice, secondary } from '../components/ui';
+import { btn, card, dinheiro, Empty, input, mensagemErro, Notice, secondary } from '../components/ui';
 
 type ItemCarrinho={produto:Produto;quantidade:number;isFardo:boolean};
 type Pagamento={forma:FormaPagamento;valor:string};
