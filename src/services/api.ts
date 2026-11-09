@@ -8,6 +8,8 @@ const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
  * resolve it from the authenticated company. Never send a numeric empresaId.
  */
 export const getTenantSlug = (): string => {
+  const override = localStorage.getItem('@Bebfy:tenantOverride');
+  if (override && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(override)) return override;
   const configured = String(import.meta.env.VITE_TENANT_SLUG || '').trim().toLowerCase();
   if (configured) return configured;
 
