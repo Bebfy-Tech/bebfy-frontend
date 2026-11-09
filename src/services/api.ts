@@ -42,7 +42,7 @@ api.interceptors.request.use((config) => {
   if (tenant) config.headers.set('x-tenant', tenant);
 
   const token = localStorage.getItem('@Bebfy:token');
-  if (token) config.headers.set('Authorization', `Bearer ${token}`);
+  if (token && !config.headers.has('Authorization')) config.headers.set('Authorization', `Bearer ${token}`);
   return config;
 });
 
