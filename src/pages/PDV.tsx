@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Boxes, CreditCard, Minus, Plus, Printer, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,6 +36,8 @@ function Comprovante({dados}:{dados:ComprovanteNaoFiscal}){
 
 export function PDV(){
   const {user,empresa}=useAuth();
+  const searchRef=useRef<HTMLInputElement>(null);
+  const finalizeRef=useRef<()=>void>(()=>{});
   const [produtos,setProdutos]=useState<Produto[]>([]);
   const [clientes,setClientes]=useState<Cliente[]>([]);
   const [carrinho,setCarrinho]=useState<ItemCarrinho[]>([]);
@@ -155,18 +157,27 @@ export function PDV(){
       catch{setComprovante(null);setErro(`Venda #${venda.codigoVenda} concluída, mas o comprovante não carregou. Abra o histórico de vendas para imprimir. Não repita a venda.`);}
     }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
   }
+  finalizeRef.current=()=>void finalizar();
+  useEffect(()=>{
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==='F9') { event.preventDefault(); finalizeRef.current(); }
+      if(event.key==='F2') { event.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener('keydown',onKey);
+    return ()=>window.removeEventListener('keydown',onKey);
+  },[]);
   return <main className="space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-widest text-teal-700">Frente de caixa</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">PDV Bebfy</h1><p className="mt-1 text-sm text-slate-500">{empresa?.nomeFantasia} · Operador {user?.nome}</p></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-widest text-blue-400">Frente de caixa</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white">PDV Bebfy</h1><p className="mt-1 text-sm text-slate-400">{empresa?.nomeFantasia} · Operador {user?.nome} · F2 buscar · F9 finalizar</p></div>
       <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${caixa?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>{caixa?'● Caixa aberto':'● Caixa fechado'}</span><button onClick={()=>void carregar()} disabled={loading} className={secondary}><RefreshCcw size={16}/> Atualizar</button><Link to={tenantPath("vendas")} className={secondary}>Histórico</Link></div></div>
     <Notice message={erro}/><Notice message={sucesso} success/>
     {loading&&!produtos.length?<div className={`${card} p-12 text-center text-slate-500`}>Carregando PDV...</div>:!caixa?
       <section className={`${card} mx-auto max-w-md p-7`}><Wallet className="text-teal-700" size={35}/><h2 className="mt-4 text-xl font-extrabold">Abra o caixa para começar</h2><p className="mt-2 text-sm text-slate-500">Informe o valor inicial disponível em espécie.</p><label className="mt-6 block text-sm font-semibold">Saldo inicial (R$)<input className={`${input} mt-2`} type="number" min={0} step=".01" value={saldoInicial} onChange={e=>setSaldoInicial(e.target.value)}/></label><button disabled={busy} className={`${btn} mt-5 w-full`} onClick={()=>void abrirCaixa()}>{busy?'Abrindo...':'Abrir meu caixa'}</button></section>
-    :<div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_415px]">
+    :<div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_445px]">
       <section className={`${card} min-w-0 p-4 sm:p-5`}><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="font-extrabold">Catálogo de produtos</h2><span className="text-xs text-slate-500">{filtrados.length} produto(s)</span></div>
-        <div className="relative mb-4"><Search className="absolute left-3 top-3.5 text-slate-400" size={18}/><input autoFocus className={`${input} pl-10`} placeholder="Nome ou código de barras" value={busca} onChange={e=>setBusca(e.target.value)}/></div>
-        <div className="grid max-h-[70vh] gap-3 overflow-y-auto sm:grid-cols-2">{filtrados.map(p=><div key={p.id} className="rounded-xl border border-slate-200 p-4 transition hover:border-teal-500">
+        <div className="relative mb-4"><Search className="absolute left-3 top-3.5 text-slate-400" size={18}/><input autoFocus className={`${input} pl-10`} ref={searchRef} placeholder="Buscar produto ou bipar código (F2)" value={busca} onChange={e=>setBusca(e.target.value)}/></div>
+        <div className="grid max-h-[70vh] gap-3 overflow-y-auto sm:grid-cols-2 2xl:grid-cols-3">{filtrados.map(p=><div key={p.id} className="rounded-xl border border-slate-200 p-4 transition hover:border-teal-500">
           <div className="flex justify-between gap-2"><div className="min-w-0"><strong className="text-sm">{p.nome}</strong><p className="mt-1 text-xs text-slate-500">EAN: {p.codigoBarras||'—'} · {p.estoqueAtual} un.</p></div><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal-50 text-teal-700"><ShoppingCart size={19}/></span></div>
-          <p className="mt-3 text-xl font-extrabold text-teal-800">{dinheiro(p.precoVendaVarejo)}</p>
+          <p className="mt-3 text-xl font-extrabold text-emerald-300">{dinheiro(p.precoVendaVarejo)}</p>
           <div className="mt-3 flex flex-wrap gap-2"><button onClick={()=>inserir(p)} disabled={p.estoqueAtual<1} className={`${btn} flex-1 !py-2`}><Plus size={16}/> Unidade</button>
           {Number(p.fardoQuantidade)>1&&<button title="Adicionar fardo" onClick={()=>fardo(p)} disabled={p.estoqueAtual<Number(p.fardoQuantidade)} className={`${secondary} !py-2`}><Boxes size={16}/> Fardo</button>}</div>
         </div>)}{!filtrados.length&&<div className="sm:col-span-2"><Empty>Nenhum produto encontrado.</Empty></div>}</div>
@@ -179,12 +190,12 @@ export function PDV(){
           <div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Entrega<select className={`${input} mt-1`} value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option><option value="DELIVERY">Delivery</option></select></label><label className="block text-xs font-bold text-slate-600">Desconto (R$)<input className={`${input} mt-1`} type="number" min={0} step=".01" value={desconto} onChange={e=>setDesconto(e.target.value)}/></label></div>
           {entrega==='DELIVERY'&&<div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Taxa de entrega<input className={`${input} mt-1`} type="number" min={0} step=".01" value={taxaEntrega} onChange={e=>setTaxaEntrega(e.target.value)}/></label><label className="block text-xs font-bold text-slate-600">Endereço<input className={`${input} mt-1`} required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
           {clienteId&&<label className="block text-xs font-bold text-slate-600">Cascos devolvidos<input className={`${input} mt-1`} type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
-          <div className="flex justify-between text-sm"><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div><div className="flex justify-between text-xl font-black"><span>Total da venda</span><span className="text-teal-800">{dinheiro(total)}</span></div>
+          <div className="flex justify-between text-sm"><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div><div className="flex justify-between text-xl font-black"><span>Total da venda</span><span className="text-emerald-300">{dinheiro(total)}</span></div>
           <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
             <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><input aria-label={`Valor ${i+1}`} type="number" min=".01" step=".01" className={input} value={p.valor} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:e.target.value}:x))} placeholder="Valor R$"/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
-            <div className="mt-3 flex justify-between text-xs text-slate-500"><span>{diferenca>0?'Faltam':troco>0?'Troco':'Pagamentos completos'}</span><strong>{dinheiro(Math.abs(diferenca))}</strong></div>
+            <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
           </div>
-          <button className={`${btn} w-full`} onClick={()=>void finalizar()} disabled={busy||!carrinho.length||total<=0}>{busy?'Registrando venda...':'Finalizar venda'}</button><p className="text-center text-[11px] leading-relaxed text-slate-500">PIX e cartão são recebimentos informados pelo operador. Não existe confirmação automática da instituição financeira. O comprovante não tem valor fiscal.</p>
+          <button className={`${btn} w-full`} onClick={()=>void finalizar()} disabled={busy||!carrinho.length||total<=0}>{busy?'Registrando venda...':'Finalizar venda · F9'}</button><p className="text-center text-[11px] leading-relaxed text-slate-500">PIX e cartão são recebimentos informados pelo operador. Não existe confirmação automática da instituição financeira. O comprovante não tem valor fiscal.</p>
         </div>
       </section>
     </div>}
