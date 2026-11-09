@@ -29,7 +29,7 @@ export function ImportarXmlPage() {
  const complete=useMemo(()=>Boolean(preview)&&preview!.itens.every(item=>Number(associacoes[item.indice])>0),[preview,associacoes]);
  async function fileSelected(file?:File){
    if(!file)return;
-   setErro('');setPreview(null);setResultado(null);setAssociacoes({});
+   setErro('');setPreview(null);setResultado(null);setAssociacoes({});setXml('');setNomeArquivo('');
    if(!/\.xml$/i.test(file.name)||file.size>1000000||!file.size){setErro('Selecione um arquivo XML de até 1 MB.');return;}
    try {setXml(await file.text());setNomeArquivo(file.name);}
    catch {setErro('Não foi possível abrir o arquivo selecionado.');}
@@ -74,7 +74,7 @@ export function ImportarXmlPage() {
     <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#304660] bg-[#101829] px-5 py-8 text-center transition hover:border-blue-500">
      <FileCode2 size={31} className="text-blue-300"/>
      <strong className="text-sm">{nomeArquivo||'Clique para escolher o arquivo XML'}</strong>
-     <span className="text-xs text-slate-400">O conteúdo só será importado após sua confirmação.</span>
+     <span className="text-xs text-slate-400">O conteúdo só será importado após sua confirmação. Não há consulta à SEFAZ.</span>
      <input aria-label="Selecionar arquivo XML" type="file" accept=".xml,text/xml,application/xml" className="sr-only" onChange={e=>void fileSelected(e.target.files?.[0])}/>
     </label>
     <button type="button" className={`${btn} mt-5 w-full sm:w-auto`} disabled={!xml||busy} onClick={()=>void analisar()}>
