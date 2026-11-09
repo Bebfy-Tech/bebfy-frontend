@@ -75,21 +75,21 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 relative overflow-x-hidden transition-colors duration-500 dark:bg-linear-to-br dark:from-slate-950 dark:via-[#06181a] dark:to-slate-950 bg-linear-to-br from-slate-200 via-slate-100 to-[#e2f0f2]">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 relative overflow-x-hidden transition-colors duration-500 dark:bg-linear-to-br dark:from-[#07090d] dark:via-[#0a0f1d] dark:to-[#07090d] bg-linear-to-br from-slate-200 via-slate-100 to-[#e2f0f2]">
       
       {/* Esferas de Iluminação de Fundo */}
       <div className="absolute top-1/4 left-1/4 w-125 h-125 bg-petrol-500/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-100 h-100 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* ================= PAINEL RETANGULAR 3D ================= */}
-      <div className="box-3d w-full max-w-6xl min-h-150 rounded-3xl border flex flex-col md:flex-row overflow-hidden relative z-10 backdrop-blur-xl dark:bg-slate-900/90 dark:border-slate-800/80 bg-white/95 border-slate-300">
+      <div className="box-3d w-full max-w-6xl min-h-150 rounded-3xl border flex flex-col md:flex-row overflow-hidden relative z-10 backdrop-blur-xl dark:bg-[#0a0f1d]/95 dark:border-[#1f2937]/80 bg-white/95 border-slate-300">
         
         {/* ---------------- METADE ESQUERDA (50%): APRESENTAÇÃO & LOGO ---------------- */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-between dark:bg-slate-900/80 bg-slate-50/70 border-b md:border-b-0 md:border-r dark:border-slate-800/80 border-slate-200">
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-between dark:bg-[#0b1324]/90 bg-slate-50/70 border-b md:border-b-0 md:border-r dark:border-[#1f2937]/80 border-slate-200">
           
           {/* Topo: Logo + Tag Versão */}
           <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-sm shrink-0">
+            <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#26334a]/60 shadow-sm shrink-0">
               <img
                 src="/logo.png"
                 alt="Bebfy"
@@ -101,7 +101,7 @@ export const Login: React.FC = () => {
                 <h1 className="text-2xl font-black tracking-wider dark:text-white text-slate-900">
                   BEBFY
                 </h1>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md dark:bg-amber-500/20 bg-amber-100 dark:text-amber-400 text-amber-800 border dark:border-amber-500/30 border-amber-300">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md dark:bg-amber-500/20 bg-amber-100 dark:text-blue-400 text-amber-800 border dark:border-amber-500/30 border-amber-300">
                   v2.4 Enterprise
                 </span>
               </div>
@@ -114,26 +114,26 @@ export const Login: React.FC = () => {
           {/* Centro: Chamada e Grid de Módulos com Animação no Hover */}
           <div className="space-y-6 my-auto pt-8 pb-8">
             
-            <div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full dark:bg-petrol-900/90 dark:text-petrol-300 dark:border dark:border-petrol-600/60 bg-petrol-100 text-petrol-900 border border-petrol-300 shadow-sm">
-              <Sparkles size={14} className="text-amber-500 shrink-0" />
+            <div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full dark:bg-emerald-500/10/90 dark:text-emerald-300 dark:border dark:border-petrol-600/60 bg-petrol-100 text-petrol-900 border border-petrol-300 shadow-sm">
+              <Sparkles size={14} className="text-blue-400 shrink-0" />
               <span>Desenvolvido para Distribuidoras & Conveniências</span>
             </div>
 
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight dark:text-white text-slate-900 leading-snug">
               Controle total do balcão <br />
-              ao <span className="text-amber-500">financeiro em tempo real.</span>
+              ao <span className="text-blue-400">financeiro em tempo real.</span>
             </h2>
 
             {/* Grid Retangular com Efeito Hover 3D nos Cards */}
             <div className="grid grid-cols-2 gap-3.5">
               
               {/* Card 1 */}
-              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-petrol-500/60 hover:border-petrol-400/60 dark:bg-slate-950/70 bg-white dark:border-slate-800 border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
-                <div className="p-2 rounded-lg dark:bg-petrol-900/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
-                  <ShoppingBag size={18} className="dark:text-petrol-300 text-petrol-700" />
+              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-blue-500/60 hover:border-petrol-400/60 dark:bg-[#07090d]/70 bg-white dark:border-[#1f2937] border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
+                <div className="p-2 rounded-lg dark:bg-emerald-500/10/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
+                  <ShoppingBag size={18} className="dark:text-emerald-300 text-petrol-700" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-amber-500 dark:group-hover:text-amber-400">
+                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-blue-400 dark:group-hover:text-amber-400">
                     Frente de Caixa
                   </h3>
                   <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-tight mt-0.5">Bipagem EAN e atalhos.</p>
@@ -141,12 +141,12 @@ export const Login: React.FC = () => {
               </div>
 
               {/* Card 2 */}
-              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-petrol-500/60 hover:border-petrol-400/60 dark:bg-slate-950/70 bg-white dark:border-slate-800 border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
-                <div className="p-2 rounded-lg dark:bg-petrol-900/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
-                  <CreditCard size={18} className="dark:text-petrol-300 text-petrol-700" />
+              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-blue-500/60 hover:border-petrol-400/60 dark:bg-[#07090d]/70 bg-white dark:border-[#1f2937] border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
+                <div className="p-2 rounded-lg dark:bg-emerald-500/10/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
+                  <CreditCard size={18} className="dark:text-emerald-300 text-petrol-700" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-amber-500 dark:group-hover:text-amber-400">
+                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-blue-400 dark:group-hover:text-amber-400">
                     Caderneta Fiado
                   </h3>
                   <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-tight mt-0.5">Limites e histórico.</p>
@@ -154,12 +154,12 @@ export const Login: React.FC = () => {
               </div>
 
               {/* Card 3 */}
-              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-petrol-500/60 hover:border-petrol-400/60 dark:bg-slate-950/70 bg-white dark:border-slate-800 border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
-                <div className="p-2 rounded-lg dark:bg-petrol-900/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
-                  <Package size={18} className="dark:text-petrol-300 text-petrol-700" />
+              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-blue-500/60 hover:border-petrol-400/60 dark:bg-[#07090d]/70 bg-white dark:border-[#1f2937] border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
+                <div className="p-2 rounded-lg dark:bg-emerald-500/10/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
+                  <Package size={18} className="dark:text-emerald-300 text-petrol-700" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-amber-500 dark:group-hover:text-amber-400">
+                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-blue-400 dark:group-hover:text-amber-400">
                     Lotes & Cascos
                   </h3>
                   <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-tight mt-0.5">Validade e vasilhames.</p>
@@ -167,12 +167,12 @@ export const Login: React.FC = () => {
               </div>
 
               {/* Card 4 */}
-              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-petrol-500/60 hover:border-petrol-400/60 dark:bg-slate-950/70 bg-white dark:border-slate-800 border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
-                <div className="p-2 rounded-lg dark:bg-petrol-900/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
-                  <FileText size={18} className="dark:text-petrol-300 text-petrol-700" />
+              <div className="group p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:border-blue-500/60 hover:border-petrol-400/60 dark:bg-[#07090d]/70 bg-white dark:border-[#1f2937] border-slate-200/80 shadow-sm flex items-start gap-3 cursor-default">
+                <div className="p-2 rounded-lg dark:bg-emerald-500/10/60 bg-petrol-50 shrink-0 transition-transform duration-300 group-hover:scale-110">
+                  <FileText size={18} className="dark:text-emerald-300 text-petrol-700" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-amber-500 dark:group-hover:text-amber-400">
+                  <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-blue-400 dark:group-hover:text-amber-400">
                     Comprovantes internos
                   </h3>
                   <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-tight mt-0.5">Sem emissão fiscal nesta fase.</p>
@@ -189,20 +189,20 @@ export const Login: React.FC = () => {
         </div>
 
         {/* ---------------- METADE DIREITA (50%): FORMULÁRIO DE LOGIN ---------------- */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-between dark:bg-slate-950 bg-white">
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-between dark:bg-[#07090d] bg-white">
           
           {/* Topo Direita: Alternador de Tema */}
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-extrabold dark:text-white text-slate-900">Acessar Sistema</h2>
-              <ShieldCheck size={20} className="text-amber-500" />
+              <ShieldCheck size={20} className="text-blue-400" />
             </div>
 
             <button
               onClick={toggleTheme}
               type="button"
               title="Alternar Tema"
-              className="p-2.5 rounded-2xl border transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 dark:bg-slate-900 dark:border-slate-800 dark:text-amber-400 bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+              className="p-2.5 rounded-2xl border transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 dark:bg-[#101829] dark:border-[#1f2937] dark:text-blue-400 bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
             >
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -236,7 +236,7 @@ export const Login: React.FC = () => {
                     placeholder="Ex: 1, 10"
                     value={loginInput}
                     onChange={(e) => setLoginInput(e.target.value)}
-                    className="w-full rounded-xl pl-10 pr-4 py-3.5 text-sm font-semibold transition-all focus:outline-none border bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-petrol-600 dark:bg-slate-900 dark:border-slate-800 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-950 dark:focus:border-petrol-500 shadow-inner"
+                    className="w-full rounded-xl pl-10 pr-4 py-3.5 text-sm font-semibold transition-all focus:outline-none border bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-petrol-600 dark:bg-[#101829] dark:border-[#1f2937] dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-950 dark:focus:border-blue-500 shadow-inner"
                   />
                 </div>
               </div>
@@ -247,7 +247,7 @@ export const Login: React.FC = () => {
                   <label className="block text-xs font-semibold uppercase tracking-wider dark:text-slate-300 text-slate-700">
                     Senha de Acesso
                   </label>
-                  <a href="#esqueceu" className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline">
+                  <a href="#esqueceu" className="text-xs font-semibold text-amber-600 dark:text-blue-400 hover:underline">
                     Esqueceu a senha?
                   </a>
                 </div>
@@ -261,7 +261,7 @@ export const Login: React.FC = () => {
                     placeholder="••••••••"
                     value={senhaInput}
                     onChange={(e) => setSenhaInput(e.target.value)}
-                    className="w-full rounded-xl pl-10 pr-11 py-3.5 text-sm font-semibold transition-all focus:outline-none border bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-petrol-600 dark:bg-slate-900 dark:border-slate-800 dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-950 dark:focus:border-petrol-500 shadow-inner"
+                    className="w-full rounded-xl pl-10 pr-11 py-3.5 text-sm font-semibold transition-all focus:outline-none border bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-petrol-600 dark:bg-[#101829] dark:border-[#1f2937] dark:text-white dark:placeholder-slate-500 dark:focus:bg-slate-950 dark:focus:border-blue-500 shadow-inner"
                   />
                   <button
                     type="button"
