@@ -30,6 +30,21 @@ export interface AuthResponse {
 export interface LoginCredentials {
   login: string;
   senha: string;
+  assumirSessao?: boolean;
+}
+
+export interface PrimeiroAcessoResponse {
+  trocaSenhaObrigatoria: true;
+  tokenTroca: string;
+}
+
+export type LoginResponse = AuthResponse | PrimeiroAcessoResponse;
+
+export interface TrocaSenhaPrimeiroAcesso {
+  tokenTroca: string;
+  senhaAtual: string;
+  novaSenha: string;
+  confirmarNovaSenha: string;
 }
 
 export interface ValidarGerenteDto {
