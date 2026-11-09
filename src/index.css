@@ -41,3 +41,26 @@ html, body, #root {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+/* Only the explicitly requested commercial receipt is printed. */
+@media print {
+  body, html, #root { background: white !important; overflow: visible !important; }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: black !important;
+  }
+  @page { margin: 0; }
+}
