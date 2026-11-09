@@ -41,6 +41,9 @@ export interface EmpresaSaas {
   slug: string;
   subdominio: string | null;
   status: StatusEmpresa;
+  inadimplente: boolean;
+  liberacaoFinanceiraAte: string | null;
+  historicoLiberacoes?: Array<{ id: string; operadorId: string; dias: number; motivo: string; liberadoAte: string; criadoEm: string }>;
   planoId: number | null;
   plano: PlanoSaas | null;
   modulosAtivos: ModuloEmpresa[];
@@ -76,6 +79,10 @@ export const saasApi = {
   criarPlano: (dados: PlanoEntrada) => saasClient.post<PlanoSaas>('/saas/admin/planos', dados).then(r => r.data),
   editarPlano: (id: number, dados: PlanoEntrada) => saasClient.patch<PlanoSaas>(`/saas/admin/planos/${id}`, dados).then(r => r.data),
   criarEmpresa: (dados: CriarEmpresaSaas) => saasClient.post('/saas/admin/empresas', dados).then(r => r.data),
+  definirInadimplencia: (id: number, inadimplente: boolean) =>
+    saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/inadimplencia`, { inadimplente }).then(r => r.data),
+  liberarTemporariamente: (id: number, dias: number, motivo: string) =>
+    saasClient.post<EmpresaSaas>(`/saas/admin/empresas/${id}/liberar-acesso`, { dias, motivo }).then(r => r.data),
   alterarStatus: (id: number, status: StatusEmpresa) =>
     saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status }).then(r => r.data),
   alterarPlano: (id: number, planoId: number) =>
