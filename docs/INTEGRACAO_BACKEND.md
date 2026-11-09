@@ -142,3 +142,29 @@ cadastro de planos e empresas, alterações de módulo, acesso negado
 para operadores comuns, bloqueio real de módulos e migrações em banco
 de homologação. O pipeline atual cobre build e integrações de backend,
 mas não substitui testes visuais em navegador.
+
+
+## Primeiro acesso e proteção contra login simultâneo
+
+A autenticação agora pode retornar `{ trocaSenhaObrigatoria: true, tokenTroca }`.
+O frontend encaminha para `/primeiro-acesso`, onde o funcionário informa
+a senha temporária atual, a nova senha e a confirmação. A API valida e,
+após alterar a senha, entrega o primeiro JWT de sessão normal.
+
+Se um login retornar HTTP **409** com código `SESSAO_ATIVA`, as telas
+`/login` e `/saas/acesso` apresentam os botões **Não** e **Sim, acessar**.
+Não mantém a sessão anterior; Sim envia `assumirSessao: true` com
+credenciais verificadas. O backend invalida imediatamente o JWT anterior.
+
+O cliente valida o JWT a cada 15 segundos e ao retornar à aba; quando
+o servidor retornar 401, volta ao login. Nenhuma senha temporária é salva
+no localStorage. Antes de publicar, valide o fluxo em dois computadores.
+
+Para testes, o subdomínio planejado é `bebfybdteste`. É um slug de
+homologação, não um domínio DNS publicado automaticamente. Veja o script
+de cadastro do backend e as orientações de infraestrutura em
+`docs/EMPRESA_TESTE.md` do repositório backend.
+
+**A credencial inicial curta 12345 só é permitida por opção explícita
+em banco de testes isolado**, nunca automaticamente para todos os
+clientes reais.
