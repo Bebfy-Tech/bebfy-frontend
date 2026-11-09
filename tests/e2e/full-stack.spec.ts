@@ -287,7 +287,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   const conflict = b.getByRole('dialog', { name: /já existe um acesso/i });
   await expect(conflict).toBeVisible();
   await b.getByRole('button', { name: 'Sim, acessar' }).click();
-  await expect(b).toHaveURL(/saas\/painel/);
+  await expect(b).toHaveURL(/SaaS.*painel/);
   await expect(b.locator('body')).toContainText('bebfyBDteste');
   // URL namespace is reserved: a platform client must never take /SaaS.
   const adminToken = await b.evaluate(() => localStorage.getItem('@Bebfy:token'));
@@ -304,7 +304,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
 
   // A token belonging to bebfybdteste cannot render another tenant's dashboard.
   await b.goto('/outra-loja/dashboard');
-  await expect(b).toHaveURL(/outra-loja\\/?/);
+  await expect(b).toHaveURL(/outra-loja/);
   await expect(b.getByRole('heading', { name: 'Visão geral' })).toHaveCount(0);
 
   await contextA.close();
