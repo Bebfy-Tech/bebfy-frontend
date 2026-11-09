@@ -12,6 +12,19 @@
   --color-petrol-400: #2698a3;
   --color-petrol-300: #4fc3ce; /* Tom brilhante para alto contraste no dark mode */
   --color-amber-500: #f59e0b;
+  --color-bebfy-bg: #07090d;
+  --color-bebfy-surface: #0a0f1d;
+  --color-bebfy-border: #1f2937;
+  --color-bebfy-primary: #10b981;
+  --color-bebfy-blue: #2563eb;
+}
+
+:root {
+  --bebfy-bg: #07090d;
+  --bebfy-surface: #0a0f1d;
+  --bebfy-border: #1f2937;
+  --bebfy-emerald: #10b981;
+  --bebfy-electric-blue: #2563eb;
 }
 
 body {
