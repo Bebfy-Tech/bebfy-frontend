@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, getTenantSlug } from '../services/api';
 
 // Adicionada a palavra-chave 'type' antes das chaves para respeitar o verbatimModuleSyntax
 import type {
@@ -40,12 +40,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       setEmpresa(JSON.parse(storedEmpresa));
+      void api.get('/auth/perfil').catch(() => {
+        // The interceptor expires rejected sessions and returns to login.
+      });
     }
     setLoading(false);
   }, []);
 
   // Efetua o login do operador na API NestJS
   const login = async (credentials: LoginCredentials) => {
+    if (!getTenantSlug()) {
+      throw new Error('Loja não identificada. Configure VITE_TENANT_SLUG antes de acessar o Bebfy.');
+    }
     const response = await api.post<AuthResponse>('/auth/login', credentials);
     const { access_token, usuario, empresa: empresaData } = response.data;
 
