@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, CircleHelp, FileUp, Package, Search, ShoppingCart, Users, Wallet, Keyboard, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, CircleHelp, FileUp, Package, Search, ShoppingCart, Wallet, Keyboard, ShieldCheck } from 'lucide-react';
 import { tenantPath } from '../services/tenantUrls';
 import { card, input } from '../components/ui';
 
