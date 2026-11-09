@@ -49,8 +49,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isLogin = String(error.config?.url || '').includes('/auth/login');
-    if (error.response?.status === 401 && !isLogin) {
+    const url = String(error.config?.url || '');
+    // Wrong initial password, manager authorization, or rejected login must stay
+    // on their respective forms; these 401s do not invalidate the active session.
+    const isCredentialCheck = [
+      '/auth/login', '/auth/primeiro-acesso/alterar-senha',
+      '/auth/validar-gerente',
+    ].some(endpoint => url.includes(endpoint));
+    if (error.response?.status === 401 && !isCredentialCheck) {
       localStorage.removeItem('@Bebfy:token');
       localStorage.removeItem('@Bebfy:user');
       localStorage.removeItem('@Bebfy:empresa');
