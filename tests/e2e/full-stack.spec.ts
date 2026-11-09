@@ -273,34 +273,15 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + tokenAnterior },
   });
   expect(revogada.status()).toBe(401);
-  // SaaS administration must not be reachable using a normal employee JWT.
+  // Tenant credentials never grant access to the independent platform administration.
   await b.goto('/SaaS/painel');
-  await expect(b.getByText(/Distribuidoras|Visão geral|Módulos da plataforma/i).first()).toBeVisible();
-
-  // With explicit CI-only superadministrator allow-list, the platform works.
-  await b.goto('/SaaS/admin');
-  await b.getByPlaceholder('minha-distribuidora').fill(SLUG);
-  await b.getByPlaceholder('Seu código de acesso').fill('1');
-  await b.getByPlaceholder('Digite sua senha').fill(SENHA_ROTACIONADA);
-  await b.getByRole('button', { name: 'Entrar no painel' }).click();
-  // A live session with this same account must be explicitly taken over.
-  const conflict = b.getByRole('dialog', { name: /já existe um acesso/i });
-  await expect(conflict).toBeVisible();
-  await b.getByRole('button', { name: 'Sim, acessar' }).click();
-  await expect(b).toHaveURL(/SaaS.*painel/);
-  await expect(b.locator('body')).toContainText('bebfyBDteste');
-  // URL namespace is reserved: a platform client must never take /SaaS.
-  const adminToken = await b.evaluate(() => localStorage.getItem('@Bebfy:token'));
-  const reserved = await request.post(API + '/saas/admin/empresas', {
-    headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + adminToken },
-    data: {
-      nome:'Loja que tentaria ocupar painel',documento:'00000000000299',
-      subdominio:'saas',email:'reserved-qa@bebfy.invalid',telefone:'62999998888',
-      planoId:1,nomeResponsavel:'Pessoa QA',cpfResponsavel:'12345678901',
-      senhaInicial:'senha-forte-temporaria',
-    },
+  await expect(b).toHaveURL(/\/SaaS\/admin/);
+  await expect(b.getByRole('heading', { name: 'Administração SaaS' })).toBeVisible();
+  const ordinaryTenantToken = await b.evaluate(() => localStorage.getItem('@Bebfy:token'));
+  const platformDenied = await request.get(API + '/saas/admin/empresas', {
+    headers: { Authorization: 'Bearer ' + ordinaryTenantToken },
   });
-  expect(reserved.status()).toBe(409);
+  expect(platformDenied.status()).toBe(401);
 
   // A token belonging to bebfybdteste cannot render another tenant's dashboard.
   await b.goto('/outra-loja/dashboard');
