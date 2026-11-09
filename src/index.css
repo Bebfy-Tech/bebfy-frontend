@@ -55,6 +55,51 @@ html, body, #root {
   html { scroll-behavior: auto; }
 }
 
+
+/* Bebfy 4.0: migration layer for legacy operational pages. Global tokens live
+   here while each page is progressively refined. Scoped to the tenant app. */
+.bebfy-workspace { color-scheme: dark; }
+.bebfy-workspace [class~="bg-white"] { background-color: #0a0f1d; }
+.bebfy-workspace [class~="bg-slate-50"],
+.bebfy-workspace [class~="bg-slate-100"],
+.bebfy-workspace [class~="bg-[#f5faf7]"],
+.bebfy-workspace [class~="bg-[#f7faf8]"] { background-color: #111a2a; }
+.bebfy-workspace [class~="text-slate-900"],
+.bebfy-workspace [class~="text-slate-800"],
+.bebfy-workspace [class~="text-slate-700"],
+.bebfy-workspace [class~="text-[#10353a]"] { color: #e2e8f0; }
+.bebfy-workspace [class~="text-teal-700"],
+.bebfy-workspace [class~="text-teal-800"] { color: #6ee7b7; }
+.bebfy-workspace [class~="text-slate-600"] { color: #a8b4c6; }
+.bebfy-workspace [class~="text-slate-500"] { color: #94a3b8; }
+.bebfy-workspace [class~="border-slate-200"],
+.bebfy-workspace [class~="border-slate-100"],
+.bebfy-workspace [class~="border-slate-300"] { border-color: #253247; }
+.bebfy-workspace [class~="bg-teal-50"],
+.bebfy-workspace [class~="bg-emerald-50"],
+.bebfy-workspace [class~="bg-amber-50"] { background-color: #152537; }
+.bebfy-workspace [class~="text-emerald-800"],
+.bebfy-workspace [class~="text-emerald-900"],
+.bebfy-workspace [class~="text-emerald-700"] { color: #6ee7b7; }
+.bebfy-workspace [class~="text-amber-700"],
+.bebfy-workspace [class~="text-amber-800"] { color: #fcd34d; }
+.bebfy-workspace [class~="text-rose-600"] { color: #fda4af; }
+.bebfy-workspace table { border-collapse: separate; border-spacing: 0; }
+.bebfy-workspace table thead { background: #101a2a; }
+.bebfy-workspace table thead th { color: #a7b5c8; font-size: .69rem; letter-spacing: .08em; }
+.bebfy-workspace table tbody tr { transition: background-color .15s ease; }
+.bebfy-workspace table tbody tr:hover { background-color: #111d30; }
+.bebfy-workspace input,
+.bebfy-workspace select,
+.bebfy-workspace textarea { accent-color: #10b981; }
+.bebfy-workspace input:focus-visible,
+.bebfy-workspace button:focus-visible,
+.bebfy-workspace select:focus-visible,
+.bebfy-workspace textarea:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .bebfy-workspace .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
+
 /* Only the explicitly requested commercial receipt is printed. */
 @media print {
   body, html, #root { background: white !important; overflow: visible !important; }
