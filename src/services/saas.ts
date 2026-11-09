@@ -1,4 +1,4 @@
-import { api } from './api';
+import { saasClient } from './saasAuth';
 
 export type TipoPlanoSaas = 'VAREJO_BASICO' | 'VAREJO_PRO' | 'ATACADO_FULL' | 'PERSONALIZADO';
 export interface PlanoEntrada { nome: string; tipo: TipoPlanoSaas; precoMensal: number; }
@@ -70,16 +70,16 @@ export interface CriarEmpresaSaas {
 }
 
 export const saasApi = {
-  empresas: () => api.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
-  empresa: (id: number) => api.get<EmpresaSaas>(`/saas/admin/empresas/${id}`).then(r => r.data),
-  planos: () => api.get<PlanoSaas[]>('/saas/admin/planos').then(r => r.data),
-  criarPlano: (dados: PlanoEntrada) => api.post<PlanoSaas>('/saas/admin/planos', dados).then(r => r.data),
-  editarPlano: (id: number, dados: PlanoEntrada) => api.patch<PlanoSaas>(`/saas/admin/planos/${id}`, dados).then(r => r.data),
-  criarEmpresa: (dados: CriarEmpresaSaas) => api.post('/saas/admin/empresas', dados).then(r => r.data),
+  empresas: () => saasClient.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
+  empresa: (id: number) => saasClient.get<EmpresaSaas>(`/saas/admin/empresas/${id}`).then(r => r.data),
+  planos: () => saasClient.get<PlanoSaas[]>('/saas/admin/planos').then(r => r.data),
+  criarPlano: (dados: PlanoEntrada) => saasClient.post<PlanoSaas>('/saas/admin/planos', dados).then(r => r.data),
+  editarPlano: (id: number, dados: PlanoEntrada) => saasClient.patch<PlanoSaas>(`/saas/admin/planos/${id}`, dados).then(r => r.data),
+  criarEmpresa: (dados: CriarEmpresaSaas) => saasClient.post('/saas/admin/empresas', dados).then(r => r.data),
   alterarStatus: (id: number, status: StatusEmpresa) =>
-    api.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status }).then(r => r.data),
+    saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status }).then(r => r.data),
   alterarPlano: (id: number, planoId: number) =>
-    api.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/plano`, { planoId }).then(r => r.data),
+    saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/plano`, { planoId }).then(r => r.data),
   alternarModulo: (id: number, modulo: NomeModulo, ativo: boolean) =>
-    api.patch<ModuloEmpresa>(`/saas/admin/empresas/${id}/modulos`, { modulo, ativo }).then(r => r.data),
+    saasClient.patch<ModuloEmpresa>(`/saas/admin/empresas/${id}/modulos`, { modulo, ativo }).then(r => r.data),
 };
