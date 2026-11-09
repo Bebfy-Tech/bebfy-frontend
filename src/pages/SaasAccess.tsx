@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Building2, Eye, EyeOff, KeyRound, Layers3, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { saasApi } from '../services/saas';
+import { saasPanelPath, saasFirstAccessPath } from '../services/tenantUrls';
 
 export function SaasAccess() {
   const navigate = useNavigate();
@@ -23,14 +24,14 @@ export function SaasAccess() {
       const resultado = await login({ login: operador, senha, assumirSessao }, empresa);
       setConflitoSessao(false);
       if ('trocaSenhaObrigatoria' in resultado) {
-        navigate('/primeiro-acesso', {
+        navigate(saasFirstAccessPath, {
           replace: true,
           state: { tokenTroca: resultado.tokenTroca, retorno: 'saas' },
         });
         return;
       }
       await saasApi.empresas();
-      navigate('/saas/painel', { replace: true });
+      navigate(saasPanelPath, { replace: true });
     } catch (error: unknown) {
       const err = error as {
         response?: { status?: number; data?: { codigo?: string; error?: { codigo?: string; message?: string }; message?: string } };
