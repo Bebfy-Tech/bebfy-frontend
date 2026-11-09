@@ -133,13 +133,13 @@ export function SaasConsole() {
   }
   function nav(s:Section){setSection(s);setSelected(null);setCreating(false);setAlert('');setMobileMenu(false);}
 
-  const tabs:{key:Section;icon:typeof Activity;title:string;desc:string}[]=[
+  const tabs=([
     {key:'visao',icon:LayoutDashboard,title:'Visão geral',desc:'Indicadores do SaaS'},
     {key:'empresas',icon:Building2,title:'Distribuidoras',desc:'Clientes e acessos'},
     {key:'planos',icon:CreditCard,title:'Planos e assinaturas',desc:'Planos cadastrados'},
     {key:'modulos',icon:Boxes,title:'Módulos da plataforma',desc:'Recursos por empresa'},
     {key:'funcionarios',icon:Users,title:'Funcionários do SaaS',desc:'Equipe e permissões'},
-  ].filter(tab => {
+  ] as {key:Section;icon:typeof Activity;title:string;desc:string}[]).filter(tab => {
     if(user?.cargo==='SUPER_ADMIN') return true;
     const necessary:Partial<Record<Section,string>>={
       empresas:'EMPRESAS',planos:'PLANOS',modulos:'MODULOS',funcionarios:'FUNCIONARIOS',
