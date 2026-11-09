@@ -60,14 +60,16 @@ export function SaasConsole() {
   const refresh=useCallback(async()=>{
     setLoading(true);setAlert('');
     try {
-      const [companies,allPlans]=await Promise.all([saasApi.empresas(),saasApi.planos()]);
-      setEmpresas(companies);setPlanos(allPlans);setForbidden(false);
+      const [companies,allPlans]=await Promise.allSettled([saasApi.empresas(),saasApi.planos()]);
+      if(companies.status==='fulfilled')setEmpresas(companies.value);
+      if(allPlans.status==='fulfilled')setPlanos(allPlans.value);
+      setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')));
     } catch (e) {
       const status=(e as {response?:{status?:number}}).response?.status;
       if(status===401||status===403) setForbidden(true);
       else setAlert(errorMessage(e));
     } finally {setLoading(false);}
-  },[]);
+  },[user?.cargo,user?.permissoes]);
 
   useEffect(()=>{void refresh();},[refresh]);
 
