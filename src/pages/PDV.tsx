@@ -167,12 +167,18 @@ export function PDV() {
           ...(troco > 0 ? { troco } : {}),
         }],
       });
-      setComprovante(await bebfy.vendas.comprovante(venda.id));
+      // A venda já está persistida: falha de impressão não deve repetir a cobrança.
       setCarrinho([]);
       setDesconto('0');
       setValorRecebido('');
       setSucesso(`Venda #${venda.codigoVenda} registrada com sucesso.`);
       void carregar();
+      try {
+        setComprovante(await bebfy.vendas.comprovante(venda.id));
+      } catch {
+        setComprovante(null);
+        setErro(`Venda #${venda.codigoVenda} registrada, mas não foi possível carregar o comprovante. Consulte o histórico para imprimir depois; não repita a venda.`);
+      }
     } catch {
       setErro('A venda não foi concluída. Confira estoque, caixa e permissões antes de tentar novamente.');
     } finally {
