@@ -88,9 +88,7 @@ jobs:
             --request OPTIONS --header 'Origin: https://loja.qa.bebfy.invalid' \
             --header 'Access-Control-Request-Method: POST' http://localhost:3000/auth/login)"
           printf '%s' "$allowed" | grep -qi 'access-control-allow-origin: https://loja.qa.bebfy.invalid'
-          apex="$(curl --silent --show-error --dump-header - --output /dev/null \\
-            --request OPTIONS --header 'Origin: https://qa.bebfy.invalid' \\
-            --header 'Access-Control-Request-Method: POST' http://localhost:3000/auth/login)"
+          apex="$(curl --silent --show-error --dump-header - --output /dev/null --request OPTIONS --header 'Origin: https://qa.bebfy.invalid' --header 'Access-Control-Request-Method: POST' http://localhost:3000/auth/login)"
           printf '%s' "$apex" | grep -qi 'access-control-allow-origin: https://qa.bebfy.invalid'
           for blocked_origin in 'https://evil.example.net' 'http://loja.qa.bebfy.invalid' 'https://a.b.qa.bebfy.invalid'; do
             blocked="$(curl --silent --show-error --dump-header - --output /dev/null \
