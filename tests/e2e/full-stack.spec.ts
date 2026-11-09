@@ -102,9 +102,8 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await b.getByRole('button', { name: 'Entrar no painel' }).click();
   // A live session with this same account must be explicitly taken over.
   const conflict = b.getByRole('dialog', { name: /já existe um acesso/i });
-  if (await conflict.isVisible().catch(() => false)) {
-    await b.getByRole('button', { name: 'Sim, acessar' }).click();
-  }
+  await expect(conflict).toBeVisible();
+  await b.getByRole('button', { name: 'Sim, acessar' }).click();
   await expect(b).toHaveURL(/saas\/painel/);
   await expect(b.locator('body')).toContainText('bebfyBDteste');
   await contextA.close();
@@ -115,9 +114,8 @@ test('interface em celular: login, navegação, consulta de produtos e PDV', asy
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Jornada mobile executada após a ativação desktop.');
   await entrar(page, SENHA_ROTACIONADA);
   const modal = page.getByRole('dialog', { name: /já está conectado/i });
-  if (await modal.isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: 'Sim, acessar' }).click();
-  }
+  await expect(modal).toBeVisible();
+  await page.getByRole('button', { name: 'Sim, acessar' }).click();
   await expect(page).toHaveURL(/dashboard/);
   await page.getByRole('button', { name: 'Abrir navegação' }).click();
   await page.getByRole('link', { name: /Produtos/i }).first().click();
