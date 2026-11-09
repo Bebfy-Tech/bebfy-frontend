@@ -68,7 +68,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('#cadastro-precoVendaVarejo').fill('12.50');
   await a.locator('#cadastro-estoqueAtual').fill('30');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
-  await expect(a.getByText('Cerveja Teste Playwright 350ml')).toBeVisible();
+  await expect(a.locator('table').getByText('Cerveja Teste Playwright 350ml')).toBeVisible();
 
   await a.goto('/'+SLUG+'/clientes');
   await expect(a.getByRole('heading', { name: 'Clientes' })).toBeVisible();
@@ -76,7 +76,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('#cadastro-nome').fill('Cliente QA Playwright');
   await a.locator('#cadastro-limiteCredito').fill('250');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
-  await expect(a.getByText('Cliente QA Playwright')).toBeVisible();
+  await expect(a.locator('table').getByText('Cliente QA Playwright')).toBeVisible();
 
   // Exercise backend/frontend suppliers contract including previously missing
   // inscrição estadual and address columns; check edit round-trip.
@@ -88,7 +88,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('#cadastro-inscricaoEstadual').fill('IE-TESTE-001');
   await a.locator('#cadastro-endereco').fill('Rua QA, 123');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
-  await expect(a.getByText('Distribuidora Fornecedor QA')).toBeVisible();
+  await expect(a.locator('table').getByText('Distribuidora Fornecedor QA')).toBeVisible();
   const suppliersResponse = await request.get(API+'/fornecedores', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
   });
@@ -108,7 +108,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await lotForm.locator('#cadastro-quantidade').fill('12');
   await lotForm.locator('#cadastro-dataVencimento').fill('2027-10-15');
   await lotForm.getByRole('button', { name: 'Salvar cadastro' }).click();
-  await expect(a.getByText('LOTE-QA-2026')).toBeVisible();
+  await expect(a.locator('table').getByText('LOTE-QA-2026')).toBeVisible();
   const lotResponse = await request.get(API+'/lotes', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
   });
@@ -158,7 +158,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('#cadastro-cpf').fill('77799911122');
   await a.locator('#cadastro-cargo').selectOption('OPERADOR_CAIXA');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
-  await expect(a.getByText('Operador Cadastro QA')).toBeVisible();
+  await expect(a.locator('table').getByText('Operador Cadastro QA')).toBeVisible();
   const employees = await request.get(API+'/funcionarios', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
   });
@@ -176,11 +176,11 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await expect(a.getByRole('heading', { name: 'PDV Bebfy' })).toBeVisible();
   await a.locator('input[type="number"]').first().fill('20');
   await a.getByRole('button', { name: 'Abrir meu caixa' }).click();
-  await expect(a.getByPlaceholder('Nome ou código de barras')).toBeVisible();
-  await a.getByPlaceholder('Nome ou código de barras').fill('Cerveja Teste Playwright 350ml');
+  await expect(a.getByPlaceholder('Buscar produto ou bipar código (F2)')).toBeVisible();
+  await a.getByPlaceholder('Buscar produto ou bipar código (F2)').fill('Cerveja Teste Playwright 350ml');
   await a.getByRole('button', { name: 'Unidade' }).click();
   await a.getByLabel('Valor 1').fill('12.50');
-  await a.getByRole('button', { name: 'Finalizar venda' }).click();
+  await a.getByRole('button', { name: /Finalizar venda/ }).click();
   await expect(a.getByRole('status')).toContainText(/Venda #.*registrada com sucesso/);
   await expect(a.getByText('COMPROVANTE NÃO FISCAL').first()).toBeVisible();
 
@@ -188,7 +188,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('select').first().selectOption({ index: 1 });
   await a.getByLabel('Forma 1').selectOption('FIADO');
   await a.getByLabel('Valor 1').fill('12.50');
-  await a.getByRole('button', { name: 'Finalizar venda' }).click();
+  await a.getByRole('button', { name: /Finalizar venda/ }).click();
   await expect(a.getByRole('status')).toContainText(/Venda #.*registrada com sucesso/);
 
   const clients = await request.get(API + '/clientes', {
@@ -253,7 +253,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await fin.locator('input[type="number"]').fill('89.90');
   await fin.locator('input[type="date"]').fill('2027-03-01');
   await fin.getByRole('button', { name: 'Cadastrar conta' }).click();
-  await expect(a.getByText('Conta financeira QA Playwright')).toBeVisible();
+  await expect(a.locator('table').getByText('Conta financeira QA Playwright')).toBeVisible();
 
   // A second session cannot silently evict the first.
   const contextB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
