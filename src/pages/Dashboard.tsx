@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, Boxes, CreditCard, Package, ShoppingCart,
-  Users, TrendingUp, Clock3, CircleDollarSign, ShieldCheck,
+  Users, TrendingUp, Clock3, CircleDollarSign, ShieldCheck, CheckCircle2, ArrowUpRight,
 } from 'lucide-react';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
@@ -56,6 +56,23 @@ export function Dashboard() {
             <strong className="block text-[clamp(1.4rem,2.5vw,2rem)] font-black tracking-tight text-white">{valor}</strong>
             <p className="mt-2 text-xs text-slate-500">{desc}</p>
           </article>)}
+      </section>
+      <section className="rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-500/[.08] to-emerald-500/[.035] p-5 sm:p-7" aria-label="Guia de primeiros passos">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">COMECE POR AQUI</p><h2 className="mt-2 text-xl font-extrabold text-white">Sua operação, pronta em poucos passos</h2><p className="mt-1 text-sm text-slate-400">Se é seu primeiro acesso, siga esta sequência. Você pode voltar aqui quando quiser.</p></div>
+          <span className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300"><CheckCircle2 size={16}/> Guia rápido</span>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {n:'01',title:'Cadastre seus produtos',description:'Itens, preços e código de barras',to:'/produtos'},
+            {n:'02',title:'Adicione mercadorias',description:'Entrada de estoque ou XML de compra',to:'/estoque'},
+            {n:'03',title:'Abra seu caixa',description:'Informe o valor inicial de troco',to:'/caixas'},
+            {n:'04',title:'Faça sua primeira venda',description:'Use o PDV com atalhos F2 e F9',to:'/pdv'},
+          ].map(step=><Link key={step.n} to={tenantPath(step.to)} className="group flex flex-col justify-between gap-3 rounded-xl border border-[#2a3b54] bg-[#0b1220]/80 p-4 transition hover:-translate-y-0.5 hover:border-blue-500/50 hover:bg-[#111d32]">
+            <div className="flex items-start justify-between"><span className="text-xs font-black text-blue-300">{step.n}</span><ArrowUpRight size={16} className="text-slate-500 group-hover:text-blue-300"/></div>
+            <div><strong className="text-sm text-slate-100">{step.title}</strong><p className="mt-1 text-xs leading-5 text-slate-400">{step.description}</p></div>
+          </Link>)}
+        </div>
       </section>
       <section className="grid gap-4 md:grid-cols-3" aria-label="Ações rápidas">
         {actions.map(({to,nome,descricao,Icon,color})=>
