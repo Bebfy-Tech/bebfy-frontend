@@ -69,8 +69,52 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
   await expect(a.getByText('Cliente QA Playwright')).toBeVisible();
 
+  // Complete real counter sales through the React checkout (cash and fiado).
+  await a.goto('/pdv');
+  await expect(a.getByRole('heading', { name: 'PDV Bebfy' })).toBeVisible();
+  await a.locator('input[type="number"]').first().fill('20');
+  await a.getByRole('button', { name: 'Abrir meu caixa' }).click();
+  await expect(a.getByPlaceholder('Nome ou código de barras')).toBeVisible();
+  await a.getByPlaceholder('Nome ou código de barras').fill('Cerveja Teste Playwright 350ml');
+  await a.getByRole('button', { name: 'Unidade' }).click();
+  await a.getByLabel('Valor 1').fill('12.50');
+  await a.getByRole('button', { name: 'Finalizar venda' }).click();
+  await expect(a.getByRole('status')).toContainText(/Venda #.*registrada com sucesso/);
+  await expect(a.getByText('COMPROVANTE NÃO FISCAL').first()).toBeVisible();
+
+  await a.getByRole('button', { name: 'Unidade' }).click();
+  await a.locator('select').first().selectOption({ index: 1 });
+  await a.getByLabel('Forma 1').selectOption('FIADO');
+  await a.getByLabel('Valor 1').fill('12.50');
+  await a.getByRole('button', { name: 'Finalizar venda' }).click();
+  await expect(a.getByRole('status')).toContainText(/Venda #.*registrada com sucesso/);
+
+  const clients = await request.get(API + '/clientes', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + tokenAnterior },
+  });
+  expect(clients.status()).toBe(200);
+  const clienteQa = (await clients.json() as Array<{id:string;nome:string;saldoDevedor:number|string}>)
+    .find(c=>c.nome==='Cliente QA Playwright');
+  expect(clienteQa).toBeDefined();
+  expect(Number(clienteQa!.saldoDevedor)).toBe(12.5);
+
+  await a.goto('/fiados');
+  await expect(a.getByRole('heading', { name: 'Fiados e recebimentos' })).toBeVisible();
+  await a.getByRole('button', { name: 'Registrar recebimento' }).click();
+  await a.getByRole('dialog').locator('select').first().selectOption(clienteQa!.id);
+  await a.getByRole('dialog').locator('input[type="number"]').fill('12.50');
+  await a.getByRole('dialog').getByRole('button', { name: 'Confirmar' }).click();
+  await expect(a.getByRole('status')).toContainText('Pagamento registrado');
+
   await a.goto('/financeiro');
   await expect(a.getByRole('heading', { name: 'Financeiro' })).toBeVisible();
+  await a.getByRole('button', { name: 'Nova conta' }).click();
+  const fin = a.getByRole('dialog');
+  await fin.getByPlaceholder('Ex.: aluguel do galpão').fill('Conta financeira QA Playwright');
+  await fin.locator('input[type="number"]').fill('89.90');
+  await fin.locator('input[type="date"]').fill('2027-03-01');
+  await fin.getByRole('button', { name: 'Cadastrar conta' }).click();
+  await expect(a.getByText('Conta financeira QA Playwright')).toBeVisible();
 
   // A second session cannot silently evict the first.
   const contextB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
