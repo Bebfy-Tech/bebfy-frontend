@@ -289,6 +289,24 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await b.getByRole('button', { name: 'Sim, acessar' }).click();
   await expect(b).toHaveURL(/saas\/painel/);
   await expect(b.locator('body')).toContainText('bebfyBDteste');
+  // URL namespace is reserved: a platform client must never take /SaaS.
+  const adminToken = await b.evaluate(() => localStorage.getItem('@Bebfy:token'));
+  const reserved = await request.post(API + '/saas/admin/empresas', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + adminToken },
+    data: {
+      nome:'Loja que tentaria ocupar painel',documento:'00000000000299',
+      subdominio:'saas',email:'reserved-qa@bebfy.invalid',telefone:'62999998888',
+      planoId:1,nomeResponsavel:'Pessoa QA',cpfResponsavel:'12345678901',
+      senhaInicial:'senha-forte-temporaria',
+    },
+  });
+  expect(reserved.status()).toBe(409);
+
+  // A token belonging to bebfybdteste cannot render another tenant's dashboard.
+  await b.goto('/outra-loja/dashboard');
+  await expect(b).toHaveURL(/outra-loja\\/?/);
+  await expect(b.getByRole('heading', { name: 'Visão geral' })).toHaveCount(0);
+
   await contextA.close();
   await contextB.close();
 });
