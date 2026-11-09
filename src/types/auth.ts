@@ -38,10 +38,8 @@ export interface ValidarGerenteDto {
 }
 
 export interface ValidarGerenteResponse {
-  valido: boolean;
-  gerente: {
-    id: string;
-    nome: string;
-    cargo: Cargo;
-  };
+  autorizado: boolean;
+  gerenteId: string;
+  codigoGerente: number | null;
+  nomeGerente: string;
 }
