@@ -170,6 +170,18 @@ export function CadastroPage({resource}:{resource:Recurso}){
 
     {draft&&<Modal title={editing?`Editar ${cfg.singular}`:`Cadastrar ${cfg.singular}`} onClose={()=>setDraft(null)}>
       <form onSubmit={e=>void save(e)} className="space-y-5"><div className="grid gap-4 sm:grid-cols-2">{cfg.fields.map(c=><Field key={c.key} campo={c} value={draft[c.key]} disabled={busy||Boolean(editing&&resource==='produtos'&&c.key==='estoqueAtual')||Boolean(resource==='clientes'&&!isManager&&c.key==='limiteCredito')} options={c.resource?(refData[c.resource]||[]).map(item=>({value:String(item.id),label:CHAVE_CATEGORIA(item)})):undefined} onChange={v=>setDraft(p=>({...p!,[c.key]:v}))}/>)}</div>
+      {resource==='produtos'&&draft&&<div className="rounded-2xl border border-blue-500/20 bg-[#101a2a] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-blue-300">Calculadora de preço</strong><span className="text-xs text-slate-400">Acréscimo sobre custo</span></div>
+        <div className="mt-3 grid items-end gap-3 sm:grid-cols-[1fr_1fr]">
+          <label className="text-xs font-semibold text-slate-300">Acréscimo desejado (%)
+            <input className={`${input} mt-2`} type="number" step="0.01" min="-100" max="100000" disabled={busy||!(Number(draft.precoCusto)>0)}
+              value={Number(draft.precoCusto)>0&&Number.isFinite(Number(draft.precoVendaVarejo))?(((Number(draft.precoVendaVarejo)||0)/Number(draft.precoCusto)-1)*100).toFixed(2):''}
+              placeholder="Informe primeiro o custo"
+              onChange={e=>{const percent=Number(e.target.value);const custo=Number(draft.precoCusto);if(Number.isFinite(percent)&&custo>0){setDraft(d=>d?{...d,precoVendaVarejo:Math.max(0,Math.round(custo*(1+percent/100)*100)/100)}:d);}}}/>
+          </label>
+          <p className="pb-2 text-xs leading-relaxed text-slate-400">Digite o custo e ajuste o percentual para calcular o preço automaticamente. Se preferir, informe o preço manualmente e o percentual será atualizado.</p>
+        </div>
+      </div>}
       <p className="text-xs text-slate-500">{resource==='produtos'&&editing?'Para modificar o estoque, utilize Movimentações de estoque. ':''}Os campos enviados seguem o contrato da API.</p>
       {erro&&<Notice message={erro}/>}
       <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" onClick={()=>setDraft(null)} className={secondary}>Cancelar</button><button type="submit" disabled={busy} className={btn}>{busy?'Salvando...':'Salvar cadastro'}</button></div></form>
