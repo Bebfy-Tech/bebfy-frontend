@@ -4,7 +4,7 @@ import {
   BarChart3, Boxes, Building2, ChevronRight, ClipboardList, CreditCard,
   FileBarChart, HandCoins, Layers3, LogOut, Menu, Package, ReceiptText,
   Settings, ShoppingCart, Truck, UserRound, Users, Wallet, Warehouse,
-  X, ShieldCheck, ArrowLeft,
+  X, ShieldCheck, ArrowLeft, FileUp,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { tenantPath } from '../services/tenantUrls';
@@ -25,6 +25,7 @@ const groups: { title: string; items: MenuItem[] }[] = [
     { to: '/categorias', label: 'Categorias', icon: Layers3 },
     { to: '/lotes', label: 'Lotes e validade', icon: Boxes },
     { to: '/estoque', label: 'Movimentações de estoque', icon: Warehouse },
+    { to: '/estoque/importar-xml', label: 'Importar NF-e XML', icon: FileUp, manager: true },
     { to: '/clientes', label: 'Clientes', icon: Users },
     { to: '/fiados', label: 'Fiados e recebimentos', icon: HandCoins },
     { to: '/vasilhames', label: 'Vasilhames', icon: ClipboardList },
