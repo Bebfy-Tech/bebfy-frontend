@@ -25,7 +25,7 @@ export function FiadosPage(){
   const load=useCallback(async()=>{
     setLoading(true);setErro('');
     try{
-      const [c,h,cx]=await Promise.all([bebfy.clientes.listar(),api.get<Linha[]>('/fiados'),bebfy.caixa.listar()]);setClientes(c);setHistorico(h.data);setCaixas(cx.filter(x=>x.status==='ABERTO'));
+      const [c,h,cx]=await Promise.all([bebfy.clientes.listar(),api.get<Linha[]>('/fiados'),bebfy.caixa.listar().catch(()=>[])]);setClientes(c);setHistorico(h.data);setCaixas(cx.filter(x=>x.status==='ABERTO'));
     }catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}
   },[]);
   useEffect(()=>{void load();},[load]);
