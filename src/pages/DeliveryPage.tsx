@@ -11,7 +11,7 @@ export function DeliveryPage(){
   const [busy,setBusy]=useState(false);
   const [erro,setErro]=useState('');
   const [sucesso,setSucesso]=useState('');
-  const load=useCallback(async()=>{setLoading(true);setErro('');try{const r=await api.get<Venda[]>('/vendas/pendentes-acerto-delivery');setPendentes(r.data);setSelecionadas([]);}catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}},[]);
+  const load=useCallback(async()=>{setLoading(true);setErro('');try{const r=await api.get<{quantidade:number;totalPendentes:number;vendas:Venda[]}>('/vendas/pendentes-acerto-delivery');setPendentes(r.data.vendas);setSelecionadas([]);}catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}},[]);
   useEffect(()=>{void load();},[load]);
   async function acertar(){
     if(!selecionadas.length||busy)return;setBusy(true);setErro('');
