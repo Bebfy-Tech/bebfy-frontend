@@ -150,9 +150,18 @@ export function CadastroPage({resource}:{resource:Recurso}){
         <div className="relative max-w-lg flex-1"><Search size={18} className="absolute left-3 top-3.5 text-slate-400"/><input aria-label="Pesquisar cadastros" className={`${input} pl-10`} placeholder="Buscar nos registros..." value={busca} onChange={e=>setBusca(e.target.value)}/></div>
         <span className="text-xs font-semibold text-slate-500">{filtered.length} registro(s)</span>
       </div>
-      {loading?<div className="p-10 text-center text-sm text-slate-500">Carregando {cfg.title.toLowerCase()}...</div>:filtered.length===0?<div className="p-5"><Empty>Nenhum cadastro encontrado. Use “Novo cadastro” para começar.</Empty></div>:
-      <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-[#f7faf8] text-xs uppercase tracking-wide text-slate-500"><tr>{cfg.columns.map(c=><th className="px-4 py-4" key={c.key}>{c.label}</th>)}<th className="px-4 py-4 text-right">Ações</th></tr></thead>
-      <tbody className="divide-y divide-slate-100">{filtered.map(row=><tr key={String(row.id)} className="hover:bg-slate-50">{cfg.columns.map(c=><td key={c.key} className="max-w-[240px] truncate px-4 py-4"><FormatCell row={row} keyName={c.key} format={c.format}/></td>)}
+      {loading?<div className="p-10 text-center text-sm text-slate-500">Carregando {cfg.title.toLowerCase()}...</div>:filtered.length===0?<div className="p-5"><Empty>Nenhum cadastro encontrado. Comece usando “Novo cadastro” acima.</Empty></div>:
+      <div className="space-y-3 p-3 sm:hidden">{filtered.map(row=><article key={String(row.id)} className="rounded-2xl border border-[#29374c] bg-[#101a2a] p-4">
+        <div className="space-y-3">{cfg.columns.slice(0,6).map(c=><div key={c.key} className="flex items-start justify-between gap-3 text-sm"><span className="max-w-[42%] text-xs font-semibold text-slate-400">{c.label}</span><span className="max-w-[58%] break-words text-right font-bold text-slate-100"><FormatCell row={row} keyName={c.key} format={c.format}/></span></div>)}</div>
+        <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[#29374c] pt-3">
+          <button type="button" onClick={()=>void view(row)} className={secondary} aria-label="Ver detalhes"><Eye size={17}/> Detalhes</button>
+          {canEdit&&<button type="button" onClick={()=>openEdit(row)} className={secondary}><Pencil size={17}/> Editar</button>}
+          {resource==='funcionarios'&&<button type="button" onClick={()=>openAcesso(row)} className={secondary}><KeyRound size={17}/> Acesso</button>}
+          {canDelete&&<button type="button" onClick={()=>setDeleteTarget(row)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-500/30 px-3 text-sm text-rose-300"><Trash2 size={17}/> Remover</button>}
+        </div>
+      </article>)}</div>
+      <div className="hidden overflow-x-auto sm:block"><thead className="bg-[#f7faf8] text-xs uppercase tracking-wide text-slate-500"><tr>{cfg.columns.map(c=><th className="px-4 py-4" key={c.key}>{c.label}</th>)}<th className="px-4 py-4 text-right">Ações</th></tr></thead>
+      <tbody className="divide-y divide-slate-100">{filtered.map(row=><tr key={String(row.id)} className="hover:bg-[#151f32]">{cfg.columns.map(c=><td key={c.key} className="max-w-[240px] truncate px-4 py-4"><FormatCell row={row} keyName={c.key} format={c.format}/></td>)}
       <td className="px-4 py-3"><div className="flex justify-end gap-1"><button type="button" onClick={()=>void view(row)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="Ver detalhes" aria-label="Ver detalhes"><Eye size={17}/></button>
       {canEdit&&<button onClick={()=>openEdit(row)} className="rounded-lg p-2 text-teal-700 hover:bg-teal-50" title="Editar" aria-label="Editar"><Pencil size={17}/></button>}
       {resource==='funcionarios'&&<button onClick={()=>openAcesso(row)} className="rounded-lg p-2 text-indigo-700 hover:bg-indigo-50" title="Senha, código e permissões" aria-label="Configurar acesso"><KeyRound size={17}/></button>}
