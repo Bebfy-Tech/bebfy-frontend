@@ -30,6 +30,7 @@ jobs:
       JWT_SECRET: ci-browser-test-only-not-a-production-secret-with-32-characters
       NODE_ENV: development
       FRONTEND_URL: http://localhost:4173
+      TENANT_BASE_DOMAIN: qa.bebfy.invalid
       BEBFY_ALLOW_TEST_COMPANY: 'true'
       BEBFY_ALLOW_WEAK_DEMO_PASSWORD: 'true'
       BEBFY_TEST_CNPJ: '00000000000999'
@@ -82,6 +83,21 @@ jobs:
           done
           tail -100 /tmp/bebfy-api.log
           exit 1
+      - name: Verify CORS only permits the configured tenant origin
+        run: |
+          allowed="$(curl --silent --show-error --dump-header - --output /dev/null \
+            --request OPTIONS --header 'Origin: https://loja.qa.bebfy.invalid' \
+            --header 'Access-Control-Request-Method: POST' http://localhost:3000/auth/login)"
+          printf '%s' "$allowed" | grep -qi 'access-control-allow-origin: https://loja.qa.bebfy.invalid'
+          for blocked_origin in 'https://evil.example.net' 'http://loja.qa.bebfy.invalid' 'https://a.b.qa.bebfy.invalid'; do
+            blocked="$(curl --silent --show-error --dump-header - --output /dev/null \
+              --request OPTIONS --header "Origin: $blocked_origin" \
+              --header 'Access-Control-Request-Method: POST' http://localhost:3000/auth/login)"
+            if printf '%s' "$blocked" | grep -qi 'access-control-allow-origin:'; then
+              echo "CORS erroneously approved a disallowed origin" >&2
+              exit 1
+            fi
+          done
       - name: Install and build frontend
         working-directory: frontend
         run: |
