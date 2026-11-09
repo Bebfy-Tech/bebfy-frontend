@@ -1,5 +1,8 @@
 import { api } from './api';
 
+export type TipoPlanoSaas = 'VAREJO_BASICO' | 'VAREJO_PRO' | 'ATACADO_FULL' | 'PERSONALIZADO';
+export interface PlanoEntrada { nome: string; tipo: TipoPlanoSaas; precoMensal: number; }
+
 export type StatusEmpresa = 'ATIVA' | 'EM_TESTE' | 'SUSPENSA' | 'CANCELADA';
 export type NomeModulo = 'CAIXA_PDV' | 'FIADOS' | 'VASILHAMES_RETORNAVEIS' | 'ENTREGAS_DELIVERY' | 'PEDIDOS_ATACADO' | 'TABELA_PRECO_VOLUME' | 'ROTAS_CAMINHOES' | 'CREDITO_B2B' | 'ESTOQUE_LOTES' | 'COMPRAS_FORNECEDORES' | 'RELATORIOS_AVANCADOS';
 
@@ -20,7 +23,7 @@ export const MODULOS: { key: NomeModulo; nome: string; descricao: string }[] = [
 export interface PlanoSaas {
   id: number;
   nome: string;
-  tipo: string;
+  tipo: TipoPlanoSaas;
   precoMensal: string | number;
   criadoEm: string;
 }
@@ -70,6 +73,8 @@ export const saasApi = {
   empresas: () => api.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
   empresa: (id: number) => api.get<EmpresaSaas>(`/saas/admin/empresas/${id}`).then(r => r.data),
   planos: () => api.get<PlanoSaas[]>('/saas/admin/planos').then(r => r.data),
+  criarPlano: (dados: PlanoEntrada) => api.post<PlanoSaas>('/saas/admin/planos', dados).then(r => r.data),
+  editarPlano: (id: number, dados: PlanoEntrada) => api.patch<PlanoSaas>(`/saas/admin/planos/${id}`, dados).then(r => r.data),
   criarEmpresa: (dados: CriarEmpresaSaas) => api.post('/saas/admin/empresas', dados).then(r => r.data),
   alterarStatus: (id: number, status: StatusEmpresa) =>
     api.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status }).then(r => r.data),
