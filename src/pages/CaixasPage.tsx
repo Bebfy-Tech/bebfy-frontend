@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, CheckCircle, Eye, Lock, PlusCircle, Wallet } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Eye, Lock, PlusCircle, Wallet } from 'lucide-react';
 import { api } from '../services/api';
 import { bebfy } from '../services/bebfy';
 import type { Caixa } from '../services/bebfy';
