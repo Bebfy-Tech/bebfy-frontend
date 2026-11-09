@@ -1,0 +1,117 @@
+name: Bebfy Full-stack Browser Integration
+
+on:
+  push:
+    branches: [refactor/conexao-backend-chatgpt]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  full-stack-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bebfy_test
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: bebfy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bebfy_test -d bebfy_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://bebfy_test:test-only-password@localhost:5432/bebfy_test?schema=public
+      JWT_SECRET: ci-browser-test-only-not-a-production-secret-with-32-characters
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:4173
+      BEBFY_ALLOW_TEST_COMPANY: 'true'
+      BEBFY_ALLOW_WEAK_DEMO_PASSWORD: 'true'
+      BEBFY_TEST_CNPJ: '00000000000999'
+      BEBFY_TEST_OWNER_CPF: '11122233344'
+      BEBFY_TEST_OWNER_EMAIL: qa@bebfy.invalid
+      BEBFY_TEST_OWNER_PASSWORD: '12345'
+      BEBFY_TEST_OWNER_NAME: Operador QA
+      BEBFY_TEST_PHONE: '62999999999'
+      VITE_API_URL: http://localhost:3000
+      VITE_TENANT_SLUG: bebfybdteste
+      E2E_API_URL: http://localhost:3000
+      E2E_BASE_URL: http://localhost:4173
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+      - name: Checkout backend integration branch
+        uses: actions/checkout@v4
+        with:
+          repository: Bebfy-Tech/bebfy-backend
+          ref: refactor/codigo-chatgpt
+          path: backend
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and build backend
+        working-directory: backend
+        run: |
+          npm ci
+          npx prisma validate
+          npx prisma migrate deploy
+          npm run build
+          npm run dev:create-test-company
+      - name: Authorize isolated QA platform administrator for this CI job
+        working-directory: backend
+        run: |
+          ADMIN_ID="$(node -e 'const {PrismaClient}=require("@prisma/client"); const db=new PrismaClient(); db.usuario.findUnique({where:{email:"qa@bebfy.invalid"}}).then(u=>{if(!u)process.exitCode=1;else process.stdout.write(u.id)}).finally(()=>db.$disconnect())')"
+          test -n "$ADMIN_ID"
+          echo "SAAS_ADMIN_USER_IDS=$ADMIN_ID" >> "$GITHUB_ENV"
+      - name: Boot NestJS API
+        working-directory: backend
+        run: |
+          (if test -f dist/src/main.js; then node dist/src/main.js; else node dist/main.js; fi) > /tmp/bebfy-api.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl --silent --fail http://localhost:3000/health > /dev/null; then exit 0; fi
+            if curl --silent --fail http://localhost:3000/api-json > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          tail -100 /tmp/bebfy-api.log
+          exit 1
+      - name: Install and build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          npm install --no-save @playwright/test@1.56.1
+      - name: Install Chromium for browser tests
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Boot Vite preview
+        working-directory: frontend
+        run: |
+          (npm run dev -- --host 0.0.0.0 --port 4173) > /tmp/bebfy-ui.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl --silent --fail http://localhost:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          tail -100 /tmp/bebfy-ui.log
+          exit 1
+      - name: Run real desktop/mobile browser integration
+        working-directory: frontend
+        run: npx playwright test --config playwright.config.ts
+      - name: Upload browser reports if tests fail
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bebfy-full-stack-browser-evidence
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            /tmp/bebfy-api.log
+            /tmp/bebfy-ui.log
+          retention-days: 7
