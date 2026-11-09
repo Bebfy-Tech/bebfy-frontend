@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, CalendarDays, CheckCircle, CreditCard, Wallet, XCircle } from 'lucide-react';
 import { api } from '../services/api';
-import type { Linha } from '../services/operacional';
 import { btn, card, dataBR, dinheiro, Empty, input, mensagemErro, Modal, Notice, PageTitle, secondary } from '../components/ui';
 
 type TipoConta='pagar'|'receber';
