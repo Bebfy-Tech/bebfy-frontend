@@ -24,9 +24,14 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await expect(a.getByText('Defina sua senha pessoal')).toBeVisible();
   await expect(a).toHaveURL(/primeiro-acesso/);
   const troca = a.locator('input[type="password"]');
-  await troca.nth(0).fill(SENHA_INICIAL);
+  await troca.nth(0).fill('senha-errada');
   await troca.nth(1).fill(SENHA_ROTACIONADA);
   await troca.nth(2).fill(SENHA_ROTACIONADA);
+  await a.getByRole('button', { name: 'Salvar senha e acessar' }).click();
+  await expect(a.getByRole('alert')).toContainText(/inválid|incorret|senha/i);
+  await expect(a).toHaveURL(/primeiro-acesso/);
+  // Invalid current password must not kick the user back to the login page.
+  await troca.nth(0).fill(SENHA_INICIAL);
   await a.getByRole('button', { name: 'Salvar senha e acessar' }).click();
   await expect(a).toHaveURL(/dashboard/);
   await expect(a.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
@@ -68,6 +73,64 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('#cadastro-limiteCredito').fill('250');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
   await expect(a.getByText('Cliente QA Playwright')).toBeVisible();
+
+  // Exercise backend/frontend suppliers contract including previously missing
+  // inscrição estadual and address columns; check edit round-trip.
+  await a.goto('/fornecedores');
+  await expect(a.getByRole('heading', { name: 'Fornecedores' })).toBeVisible();
+  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  await a.locator('#cadastro-razaoSocial').fill('Distribuidora Fornecedor QA');
+  await a.locator('#cadastro-cnpj').fill('00000000000199');
+  await a.locator('#cadastro-inscricaoEstadual').fill('IE-TESTE-001');
+  await a.locator('#cadastro-endereco').fill('Rua QA, 123');
+  await a.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await expect(a.getByText('Distribuidora Fornecedor QA')).toBeVisible();
+  const suppliersResponse = await request.get(API+'/fornecedores', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(suppliersResponse.status()).toBe(200);
+  const supplier = (await suppliersResponse.json() as Array<{
+    razaoSocial:string;endereco:string;inscricaoEstadual:string
+  }>).find(x=>x.razaoSocial==='Distribuidora Fornecedor QA');
+  expect(supplier?.endereco).toBe('Rua QA, 123');
+  expect(supplier?.inscricaoEstadual).toBe('IE-TESTE-001');
+
+  await a.goto('/lotes');
+  await expect(a.getByRole('heading', { name: 'Lotes e validade' })).toBeVisible();
+  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  const lotForm = a.getByRole('dialog');
+  await lotForm.locator('#cadastro-produtoId').selectOption({index:1});
+  await lotForm.locator('#cadastro-numeroLote').fill('LOTE-QA-2026');
+  await lotForm.locator('#cadastro-quantidade').fill('12');
+  await lotForm.locator('#cadastro-dataVencimento').fill('2027-10-15');
+  await lotForm.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await expect(a.getByText('LOTE-QA-2026')).toBeVisible();
+  const lotResponse = await request.get(API+'/lotes', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(lotResponse.status()).toBe(200);
+  expect((await lotResponse.json() as Array<{numeroLote:string}>)
+    .some(l=>l.numeroLote==='LOTE-QA-2026')).toBe(true);
+
+  await a.goto('/funcionarios');
+  await expect(a.getByRole('heading', { name: 'Funcionários' })).toBeVisible();
+  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  await a.locator('#cadastro-nome').fill('Operador Cadastro QA');
+  await a.locator('#cadastro-cpf').fill('77799911122');
+  await a.locator('#cadastro-cargo').selectOption('OPERADOR_CAIXA');
+  await a.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await expect(a.getByText('Operador Cadastro QA')).toBeVisible();
+  const employees = await request.get(API+'/funcionarios', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(employees.status()).toBe(200);
+  const employee = (await employees.json() as Array<{
+    id:string;nome:string;ativo:boolean;usuario?:unknown
+  }>).find(x=>x.nome==='Operador Cadastro QA');
+  expect(employee?.ativo).toBe(true);
+  expect(employee?.usuario).toBeNull();
+  // The users endpoint must not expose password hashes.
+  expect(await employees.text()).not.toMatch(/"senha"\s*:/);
 
   // Complete real counter sales through the React checkout (cash and fiado).
   await a.goto('/pdv');
