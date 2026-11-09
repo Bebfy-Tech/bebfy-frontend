@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, HandCoins, Search } from 'lucide-react';
 import { api } from '../services/api';
 import { bebfy } from '../services/bebfy';
-import type { Cliente } from '../services/bebfy';
+import type { Caixa, Cliente } from '../services/bebfy';
 import type { Linha } from '../services/operacional';
 import { btn, card, dataBR, dinheiro, Empty, input, mensagemErro, Modal, Notice, PageTitle, secondary } from '../components/ui';
 
 export function FiadosPage(){
   const [clientes,setClientes]=useState<Cliente[]>([]);
+  const [caixas,setCaixas]=useState<Caixa[]>([]);
+  const [caixaId,setCaixaId]=useState('');
   const [historico,setHistorico]=useState<Linha[]>([]);
   const [busca,setBusca]=useState('');
   const [loading,setLoading]=useState(true);
@@ -23,16 +25,16 @@ export function FiadosPage(){
   const load=useCallback(async()=>{
     setLoading(true);setErro('');
     try{
-      const [c,h]=await Promise.all([bebfy.clientes.listar(),api.get<Linha[]>('/fiados')]);setClientes(c);setHistorico(h.data);
+      const [c,h,cx]=await Promise.all([bebfy.clientes.listar(),api.get<Linha[]>('/fiados'),bebfy.caixa.listar()]);setClientes(c);setHistorico(h.data);setCaixas(cx.filter(x=>x.status==='ABERTO'));
     }catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}
   },[]);
   useEffect(()=>{void load();},[load]);
   const filtrados=useMemo(()=>clientes.filter(c=>c.nome.toLowerCase().includes(busca.toLowerCase())),[clientes,busca]);
-  function abrir(t:'DEBITO'|'CREDITO',cliente?:Cliente){setTipo(t);setClienteId(cliente?.id||'');setModal(true);setValor('');setDescricao('');setErro('');}
+  function abrir(t:'DEBITO'|'CREDITO',cliente?:Cliente){setTipo(t);setClienteId(cliente?.id||'');setModal(true);setValor('');setDescricao('');setCaixaId('');setErro('');}
   async function registrar(e:React.FormEvent){
     e.preventDefault();if(busy||!clienteId)return;setBusy(true);setErro('');
     try{
-      if(tipo==='CREDITO')await api.post('/fiados/pagar/'+encodeURIComponent(clienteId),{valor:Number(valor),formaPagamento:forma});
+      if(tipo==='CREDITO')await api.post('/fiados/pagar/'+encodeURIComponent(clienteId),{valor:Number(valor),formaPagamento:forma,...(caixaId?{caixaId}:{})});
       else await api.post('/fiados',{clienteId,tipo:'DEBITO',valor:Number(valor),descricao});
       setModal(false);setSucesso(tipo==='CREDITO'?'Pagamento registrado.':'Débito registrado.');await load();
     }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
@@ -48,7 +50,8 @@ export function FiadosPage(){
     {modal&&<Modal title={tipo==='DEBITO'?'Lançar débito de fiado':'Receber pagamento de fiado'} onClose={()=>setModal(false)}><form onSubmit={e=>void registrar(e)} className="space-y-4"><label className="block text-sm font-semibold">Cliente<select required value={clienteId} className={`${input} mt-2`} onChange={e=>setClienteId(e.target.value)}><option value="">Selecione...</option>{clientes.filter(c=>c.ativo).map(c=><option key={c.id} value={c.id}>{c.nome} · Saldo {dinheiro(c.saldoDevedor)}</option>)}</select></label>
       <label className="block text-sm font-semibold">Valor (R$)<input type="number" required min=".01" step=".01" className={`${input} mt-2`} value={valor} onChange={e=>setValor(e.target.value)}/></label>
       {tipo==='DEBITO'?<label className="block text-sm font-semibold">Motivo<input className={`${input} mt-2`} value={descricao} onChange={e=>setDescricao(e.target.value)} placeholder="Ex.: ajuste ou venda anterior"/></label>:<label className="block text-sm font-semibold">Forma de pagamento<select className={`${input} mt-2`} value={forma} onChange={e=>setForma(e.target.value)}><option value="DINHEIRO">Dinheiro</option><option value="PIX">PIX</option><option value="CARTAO_DEBITO">Débito</option><option value="CARTAO_CREDITO">Crédito</option></select></label>}
-      <p className="text-xs text-slate-500">Não vincule pagamentos ao caixa automaticamente. Quando for necessário contabilizar dinheiro no caixa, selecione a operação específica de recebimento ou suprimento.</p>
+      {tipo==='CREDITO'&&forma==='DINHEIRO'&&<label className="block text-sm font-semibold">Vincular recebimento ao caixa (opcional)<select className={`${input} mt-2`} value={caixaId} onChange={e=>setCaixaId(e.target.value)}><option value="">Sem vinculação de caixa</option>{caixas.map(c=><option key={c.id} value={c.id}>Caixa {c.id.slice(0,8)} · Saldo inicial {dinheiro(c.saldoInicial)}</option>)}</select></label>}
+      <p className="text-xs text-slate-500">Dinheiro vinculado a um caixa aberto gera suprimento automático no extrato. PIX e cartões não geram movimentação física de dinheiro.</p>
       {erro&&<Notice message={erro}/>}<div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={()=>setModal(false)}>Cancelar</button><button type="submit" disabled={busy} className={btn}>{busy?'Registrando...':'Confirmar'}</button></div></form></Modal>}
   </>;
 }
