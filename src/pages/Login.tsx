@@ -48,7 +48,7 @@ export const Login: React.FC = () => {
       navigate('/pdv');
     } catch (err: any) {
       const mensagemErro =
-        err.response?.data?.message || 'Erro ao conectar com o servidor.';
+        err.response?.data?.message || err.response?.data?.error?.message || err.message || 'Erro ao conectar com o servidor.';
       setErro(mensagemErro);
     } finally {
       setCarregando(false);
@@ -154,9 +154,9 @@ export const Login: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xs font-bold dark:text-white text-slate-900 transition-colors duration-200 group-hover:text-amber-500 dark:group-hover:text-amber-400">
-                    Entrada XML
+                    Comprovantes internos
                   </h3>
-                  <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-tight mt-0.5">NF-e automatizada.</p>
+                  <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-tight mt-0.5">Sem emissão fiscal nesta fase.</p>
                 </div>
               </div>
 
