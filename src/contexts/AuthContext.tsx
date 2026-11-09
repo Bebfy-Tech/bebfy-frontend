@@ -17,7 +17,7 @@ interface AuthContextData {
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials, tenantSlug?: string) => Promise<void>;
   logout: () => void;
   validarGerente: (credentials: ValidarGerenteDto) => Promise<ValidarGerenteResponse>;
 }
@@ -48,11 +48,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Efetua o login do operador na API NestJS
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials, tenantSlug?: string) => {
+    if (tenantSlug) {
+      const normalized = tenantSlug.trim().toLowerCase();
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) {
+        throw new Error('Identificador da empresa inválido.');
+      }
+      localStorage.setItem('@Bebfy:tenantOverride', normalized);
+    }
     if (!getTenantSlug()) {
       throw new Error('Loja não identificada. Configure VITE_TENANT_SLUG antes de acessar o Bebfy.');
     }
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
+    let response;
+    try {
+      response = await api.post<AuthResponse>('/auth/login', credentials);
+    } catch (error) {
+      if (tenantSlug) localStorage.removeItem('@Bebfy:tenantOverride');
+      throw error;
+    }
     const { access_token, usuario, empresa: empresaData } = response.data;
 
     // Guarda os dados no localStorage para manter a sessão ativa
@@ -76,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('@Bebfy:token');
     localStorage.removeItem('@Bebfy:user');
     localStorage.removeItem('@Bebfy:empresa');
+    localStorage.removeItem('@Bebfy:tenantOverride');
     setToken(null);
     setUser(null);
     setEmpresa(null);
