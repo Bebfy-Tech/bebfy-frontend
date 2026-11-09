@@ -40,7 +40,6 @@ jobs:
       BEBFY_TEST_OWNER_NAME: Operador QA
       BEBFY_TEST_PHONE: '62999999999'
       VITE_API_URL: http://localhost:3000
-      VITE_TENANT_SLUG: bebfybdteste
       E2E_API_URL: http://localhost:3000
       E2E_BASE_URL: http://localhost:4173
     steps:
