@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { tenantPath } from '../services/tenantUrls';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   Sun,
@@ -39,13 +40,13 @@ export const Login: React.FC = () => {
       });
       setConflitoSessao(false);
       if ('trocaSenhaObrigatoria' in resultado) {
-        navigate('/primeiro-acesso', {
+        navigate(tenantPath('primeiro-acesso'), {
           replace: true,
           state: { tokenTroca: resultado.tokenTroca, retorno: 'pdv' },
         });
       } else {
         const gestores = ['PROPRIETARIO','ADMINISTRADOR','GERENTE'];
-        navigate(gestores.includes(resultado.usuario.cargo) ? '/dashboard' : '/pdv', { replace: true });
+        navigate(tenantPath(gestores.includes(resultado.usuario.cargo) ? 'dashboard' : 'pdv'), { replace: true });
       }
     } catch (err: unknown) {
       const error = err as {
