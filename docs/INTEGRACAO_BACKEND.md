@@ -14,6 +14,12 @@ branch `refactor/codigo-chatgpt`.
 4. Instale dependências com `npm ci` e inicie o frontend com `npm run dev`.
 5. O frontend usa `VITE_API_URL=http://localhost:3000` por padrão.
 
+Para um único frontend atendendo várias distribuidoras, configure também
+`VITE_TENANT_BASE_DOMAIN=bebfy.com.br`. O slug passa a ser reconhecido
+automaticamente em `loja.bebfy.com.br`. Os hosts reservados `api`, `app` e
+`www` não são interpretados como lojas. Em desenvolvimento, mantenha
+`VITE_TENANT_SLUG` para escolher a empresa de teste.
+
 O cliente HTTP `src/services/api.ts` envia automaticamente o JWT em
 `Authorization: Bearer ...` e o slug no cabeçalho `x-tenant`. Na primeira
 autenticação, não existe JWT: portanto o `x-tenant` deve ser definido antes
