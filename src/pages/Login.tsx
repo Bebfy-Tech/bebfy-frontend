@@ -44,7 +44,8 @@ export const Login: React.FC = () => {
           state: { tokenTroca: resultado.tokenTroca, retorno: 'pdv' },
         });
       } else {
-        navigate('/pdv', { replace: true });
+        const gestores = ['PROPRIETARIO','ADMINISTRADOR','GERENTE'];
+        navigate(gestores.includes(resultado.usuario.cargo) ? '/dashboard' : '/pdv', { replace: true });
       }
     } catch (err: unknown) {
       const error = err as {
