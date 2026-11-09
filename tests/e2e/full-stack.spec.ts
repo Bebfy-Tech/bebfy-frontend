@@ -112,6 +112,41 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   expect((await lotResponse.json() as Array<{numeroLote:string}>)
     .some(l=>l.numeroLote==='LOTE-QA-2026')).toBe(true);
 
+  // Real manual inventory adjustment must persist a tenant-scoped movement
+  // AND update the product stock atomically.
+  const stockBeforeResponse = await request.get(API+'/produtos', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(stockBeforeResponse.status()).toBe(200);
+  const stockBefore = (await stockBeforeResponse.json() as Array<{
+    id:number;nome:string;estoqueAtual:number
+  }>).find(x=>x.nome==='Cerveja Teste Playwright 350ml');
+  expect(stockBefore).toBeDefined();
+  await a.goto('/estoque');
+  await expect(a.getByRole('heading', { name: 'Movimentações de estoque' })).toBeVisible();
+  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  const movement = a.getByRole('dialog');
+  await movement.locator('select').first().selectOption(String(stockBefore!.id));
+  await movement.locator('select').nth(1).selectOption('AJUSTE_ENTRADA');
+  await movement.locator('input[type="number"]').fill('3');
+  await movement.getByPlaceholder('Ex.: inventário da loja').fill('Ajuste QA integração');
+  await movement.getByRole('button', { name: 'Registrar' }).click();
+  await expect(a.getByRole('status')).toContainText('Movimentação lançada');
+  const stockAfterResponse = await request.get(API+'/produtos', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(stockAfterResponse.status()).toBe(200);
+  const stockAfter = (await stockAfterResponse.json() as Array<{
+    id:number;estoqueAtual:number
+  }>).find(x=>x.id===stockBefore!.id);
+  expect(stockAfter?.estoqueAtual).toBe(stockBefore!.estoqueAtual+3);
+  const movementsResponse = await request.get(API+'/movimentacoes-estoque', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(movementsResponse.status()).toBe(200);
+  expect((await movementsResponse.json() as Array<{produtoId:number;quantidade:number}>)
+    .some(x=>x.produtoId===stockBefore!.id&&x.quantidade===3)).toBe(true);
+
   await a.goto('/funcionarios');
   await expect(a.getByRole('heading', { name: 'Funcionários' })).toBeVisible();
   await a.getByRole('button', { name: 'Novo cadastro' }).click();
