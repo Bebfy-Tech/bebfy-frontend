@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, KeyRound, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react';
 import { api } from '../services/api';
+import { tenantPath } from '../services/tenantUrls';
 import { useAuth } from '../contexts/AuthContext';
 import { btn, card, input, mensagemErro, Notice, PageTitle } from '../components/ui';
 
@@ -24,7 +25,7 @@ export function ConfiguracoesPage(){
       await api.post('/auth/alterar-senha',{senhaAtual,novaSenha,confirmarNovaSenha:confirmar});
       setSenhaAtual('');setNovaSenha('');setConfirmar('');
       setSucesso('Senha alterada. Faça login com a nova senha.');
-      logout();navigate('/login',{replace:true});
+      logout();navigate(tenantPath(),{replace:true});
     }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
   }
   return <>
