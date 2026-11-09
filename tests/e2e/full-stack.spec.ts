@@ -204,6 +204,43 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.getByRole('dialog').getByRole('button', { name: 'Confirmar' }).click();
   await expect(a.getByRole('status')).toContainText('Pagamento registrado');
 
+  // Delivery API returns a summary envelope: verify that React reads
+  // response.vendas and can settle the exact queued sale.
+  const caixasResponse = await request.get(API+'/caixa', {
+    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
+  });
+  expect(caixasResponse.status()).toBe(200);
+  const aberto = (await caixasResponse.json() as Array<{
+    id:string;operadorId:string;status:string
+  }>).find(c=>c.status==='ABERTO');
+  expect(aberto).toBeDefined();
+  const headers = {
+    'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior,
+    'Content-Type':'application/json',
+  };
+  const vendaDelivery = await request.post(API+'/vendas', {
+    headers,
+    data: {
+      caixaId:aberto!.id,funcionarioId:aberto!.operadorId,
+      tipoEntrega:'DELIVERY',enderecoEntrega:'Rua teste 123',
+      taxaEntrega:3,
+      itens:[{produtoId:stockBefore!.id,quantidade:1,precoUnitario:12.5}],
+      pagamentos:[{formaPagamento:'PIX',valor:15.5}],
+    },
+  });
+  expect(vendaDelivery.status()).toBe(201);
+  const deliveryId=(await vendaDelivery.json() as {id:string}).id;
+  await a.goto('/delivery');
+  await expect(a.getByRole('heading', { name:'Entregas e acertos' })).toBeVisible();
+  await expect(a.getByText('1', {exact:true}).first()).toBeVisible();
+  await a.getByLabel(/Selecionar venda/).first().check();
+  await a.getByRole('button',{name:/Confirmar 1 acerto/}).click();
+  await expect(a.getByRole('status')).toContainText('Acerto das entregas confirmado');
+  const pending = await request.get(API+'/vendas/pendentes-acerto-delivery', {headers});
+  expect(pending.status()).toBe(200);
+  const pendingBody=await pending.json() as {vendas:Array<{id:string}>};
+  expect(pendingBody.vendas.some(v=>v.id===deliveryId)).toBe(false);
+
   await a.goto('/financeiro');
   await expect(a.getByRole('heading', { name: 'Financeiro' })).toBeVisible();
   await a.getByRole('button', { name: 'Nova conta' }).click();
