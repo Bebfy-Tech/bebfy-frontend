@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertCircle, CheckCircle2, Plus, RefreshCcw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Plus, RefreshCcw, Inbox } from 'lucide-react';
 
 export const dinheiro=(v:unknown)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
 export const dataBR=(v:unknown)=>v?new Date(String(v)).toLocaleDateString('pt-BR'):'—';
