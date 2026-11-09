@@ -23,7 +23,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.goto('/acessar');
   await a.getByLabel('Identificador da loja').fill(SLUG);
   await a.getByRole('button', { name: 'Continuar' }).click();
-  await expect(a).toHaveURL(new RegExp('/'+SLUG+'\\$'));
+  await expect(a).toHaveURL(new RegExp('/'+SLUG+'$'));
   await entrar(a, SENHA_INICIAL);
   await expect(a.getByText('Defina sua senha pessoal')).toBeVisible();
   await expect(a).toHaveURL(/primeiro-acesso/);
