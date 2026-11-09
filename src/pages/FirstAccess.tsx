@@ -4,13 +4,14 @@ import { ArrowRight, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from 'luc
 import { useAuth } from '../contexts/AuthContext';
 import { saasApi } from '../services/saas';
 
-type InitialState = { tokenTroca: string; senhaAtual: string; retorno?: 'saas'|'pdv' };
+type InitialState = { tokenTroca: string; retorno?: 'saas'|'pdv' };
 
 export function FirstAccess() {
   const location = useLocation();
   const navigate = useNavigate();
   const dados = location.state as InitialState | null;
   const { finalizarPrimeiroAcesso, logout } = useAuth();
+  const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
   const [mostrar, setMostrar] = useState(false);
@@ -22,11 +23,11 @@ export function FirstAccess() {
     if (!dados || busy) return;
     if (novaSenha.length < 10) { setErro('A nova senha precisa ter pelo menos 10 caracteres.'); return; }
     if (novaSenha !== confirmacao) { setErro('As novas senhas não conferem.'); return; }
-    if (novaSenha === dados.senhaAtual) { setErro('A nova senha deve ser diferente da senha inicial.'); return; }
+    if (novaSenha === senhaAtual) { setErro('A nova senha deve ser diferente da senha inicial.'); return; }
     setBusy(true); setErro('');
     try {
       await finalizarPrimeiroAcesso({
-        tokenTroca: dados.tokenTroca, senhaAtual: dados.senhaAtual,
+        tokenTroca: dados.tokenTroca, senhaAtual,
         novaSenha, confirmarNovaSenha: confirmacao,
       });
       if (dados.retorno === 'saas') {
@@ -60,8 +61,8 @@ export function FirstAccess() {
       {erro && <p role="alert" className="mt-5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{erro}</p>}
       <div className="mt-6 space-y-4">
         <label className="block text-sm font-bold">Senha atual
-          <input value={dados.senhaAtual} readOnly type="password" autoComplete="off"
-            className="mt-2 w-full rounded-xl border border-white/10 bg-[#081d24] px-4 py-3 text-slate-400"/>
+          <input value={senhaAtual} onChange={e=>setSenhaAtual(e.target.value)} required type="password" autoComplete="current-password"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-[#081d24] px-4 py-3 text-white"/>
         </label>
         <label className="block text-sm font-bold">Nova senha
           <span className="relative mt-2 block"><input required minLength={10} type={mostrar?'text':'password'} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)} autoComplete="new-password"
