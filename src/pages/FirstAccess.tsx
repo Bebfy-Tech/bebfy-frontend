@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { saasApi } from '../services/saas';
+import { tenantPath, saasLoginPath, saasPanelPath } from '../services/tenantUrls';
 
 type InitialState = { tokenTroca: string; retorno?: 'saas'|'pdv' };
 
@@ -32,9 +33,9 @@ export function FirstAccess() {
       });
       if (dados.retorno === 'saas') {
         await saasApi.empresas();
-        navigate('/saas/painel', {replace:true, state:null});
+        navigate(saasPanelPath, {replace:true, state:null});
       } else {
-        navigate('/dashboard', {replace:true, state:null});
+        navigate(tenantPath('dashboard'), {replace:true, state:null});
       }
     } catch (error: unknown) {
       const e = error as {response?:{data?:{error?:{message?:string};message?:string}}; message?:string};
@@ -48,7 +49,7 @@ export function FirstAccess() {
       <div className="max-w-md text-center"><LockKeyhole className="mx-auto text-emerald-300" size={44}/>
         <h1 className="mt-4 text-2xl font-bold">Primeiro acesso expirado</h1>
         <p className="mt-2 text-slate-400">Entre novamente para configurar sua senha.</p>
-        <Link to="/login" className="mt-5 inline-block rounded-xl bg-emerald-300 px-5 py-3 font-bold text-[#062e2c]">Ir para login</Link>
+        <Link to={dados?.retorno==='saas'?saasLoginPath:tenantPath()} className="mt-5 inline-block rounded-xl bg-emerald-300 px-5 py-3 font-bold text-[#062e2c]">Ir para login</Link>
       </div>
     </main>;
   }
