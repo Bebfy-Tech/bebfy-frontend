@@ -1,0 +1,37 @@
+name: Bebfy Frontend Dependency Audit
+
+on:
+  push:
+    paths: ['.github/workflows/frontend-dependency-audit.yml', 'package.json', 'package-lock.json']
+    branches: [refactor/conexao-backend-chatgpt]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies and build
+        run: |
+          npm ci
+          npm run build
+      - name: Report dependency vulnerabilities separately for client and toolchain
+        run: |
+          npm audit --json > /tmp/npm-all.json || true
+          npm audit --omit=dev --json > /tmp/npm-prod.json || true
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const [kind,path] of [['all','/tmp/npm-all.json'],['production','/tmp/npm-prod.json']]) {
+            const data = JSON.parse(fs.readFileSync(path,'utf8'));
+            const issues = Object.entries(data.vulnerabilities || {}).map(([name,item]) => ({
+              name, severity:item.severity, direct:item.isDirect, fix:item.fixAvailable
+            }));
+            console.log('FRONTEND_DEPENDENCY_AUDIT_'+kind.toUpperCase(),JSON.stringify({
+              counts:data.metadata?.vulnerabilities||{}, issues
+            }));
+          }
+          NODE
