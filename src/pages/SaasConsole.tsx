@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, Layers3, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MODULOS, saasApi } from '../services/saas';
-import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, StatusEmpresa } from '../services/saas';
+import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'planos' | 'modulos';
 
@@ -44,6 +44,11 @@ export function SaasConsole() {
   const [mobileMenu,setMobileMenu] = useState(false);
   const [creating,setCreating] = useState(false);
   const [newCompany,setNewCompany] = useState<CriarEmpresaSaas>(blank());
+  const [editPlan,setEditPlan] = useState<number | null>(null);
+  const [planModal,setPlanModal] = useState(false);
+  const [planData,setPlanData] = useState<PlanoEntrada>({
+    nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79,
+  });
   const [busy,setBusy] = useState(false);
   const [loading,setLoading] = useState(true);
   const [forbidden,setForbidden] = useState(false);
@@ -99,6 +104,28 @@ export function SaasConsole() {
       setCreating(false);setNewCompany(blank());setOk('Distribuidora e proprietário cadastrados com sucesso.');
       setEmpresas(await saasApi.empresas());
     }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
+  }
+  function openPlanEditor(plano?: PlanoSaas) {
+    setEditPlan(plano?.id ?? null);
+    setPlanData(plano ? {
+      nome: plano.nome, tipo: plano.tipo, precoMensal: Number(plano.precoMensal),
+    } : { nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79 });
+    setAlert('');
+    setPlanModal(true);
+  }
+  async function savePlan(e:React.FormEvent) {
+    e.preventDefault();
+    if(busy)return;
+    setBusy(true);setAlert('');
+    try {
+      if(editPlan) await saasApi.editarPlano(editPlan,planData);
+      else await saasApi.criarPlano(planData);
+      setPlanos(await saasApi.planos());
+      setEmpresas(await saasApi.empresas());
+      setPlanModal(false);
+      setOk(editPlan?'Plano atualizado.':'Novo plano cadastrado.');
+    } catch(e) {setAlert(errorMessage(e));}
+    finally {setBusy(false);}
   }
   function nav(s:Section){setSection(s);setSelected(null);setCreating(false);setAlert('');setMobileMenu(false);}
 
@@ -181,8 +208,8 @@ export function SaasConsole() {
           </>}
 
           {section==='planos'&&<>
-            <div><h2 className="text-xl font-extrabold">Planos cadastrados</h2><p className="mt-1 text-sm text-slate-400">Planos disponíveis para vincular às distribuidoras. A API atual disponibiliza leitura e atribuição de plano.</p></div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{planos.map(p=><div key={p.id} className={`${card} p-6`}><div className="flex items-center justify-between"><span className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300"><CreditCard size={23}/></span><span className="text-xs font-bold text-slate-500">ID #{p.id}</span></div><h3 className="mt-7 text-lg font-extrabold">{p.nome}</h3><p className="mt-1 text-xs text-slate-500">{p.tipo.replaceAll('_',' ')}</p><div className="mt-5 border-t border-white/10 pt-5"><strong className="text-3xl font-extrabold">{money(Number(p.precoMensal))}</strong><span className="ml-2 text-xs text-slate-400">/ mês</span></div><p className="mt-3 text-xs text-slate-400">{empresas.filter(e=>e.planoId===p.id).length} empresa(s) vinculada(s)</p></div>)}{!planos.length&&<div className={`${card} p-8 text-sm text-slate-400`}>Nenhum plano cadastrado. A criação de planos requer um endpoint adicional no backend.</div>}</div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Planos cadastrados</h2><p className="mt-1 text-sm text-slate-400">Crie e atualize planos e vincule-os às distribuidoras.</p></div><button onClick={()=>openPlanEditor()} className="flex items-center gap-2 rounded-xl bg-emerald-300 px-4 py-3 text-sm font-extrabold text-[#073c36]"><Plus size={18}/> Novo plano</button></div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{planos.map(p=><div key={p.id} className={`${card} p-6`}><div className="flex items-center justify-between"><span className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300"><CreditCard size={23}/></span><span className="text-xs font-bold text-slate-500">ID #{p.id}</span></div><h3 className="mt-7 text-lg font-extrabold">{p.nome}</h3><p className="mt-1 text-xs text-slate-500">{p.tipo.replaceAll('_',' ')}</p><div className="mt-5 border-t border-white/10 pt-5"><strong className="text-3xl font-extrabold">{money(Number(p.precoMensal))}</strong><span className="ml-2 text-xs text-slate-400">/ mês</span></div><p className="mt-3 text-xs text-slate-400">{empresas.filter(e=>e.planoId===p.id).length} empresa(s) vinculada(s)</p><button onClick={()=>openPlanEditor(p)} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-3 text-sm font-bold text-emerald-300 hover:bg-emerald-500/10"><Settings2 size={16}/> Editar plano</button></div>)}{!planos.length&&<div className={`${card} p-8 text-sm text-slate-400`}>Nenhum plano cadastrado. Crie o primeiro para cadastrar distribuidoras.</div>}</div>
           </>}
 
           {section==='modulos'&&<>
@@ -194,6 +221,16 @@ export function SaasConsole() {
       </div>
     </div>
 
+
+    {planModal&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Formulário de plano"><form onSubmit={e=>void savePlan(e)} className="w-full max-w-md space-y-5 rounded-3xl border border-white/10 bg-[#102930] p-7 shadow-2xl">
+      <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Planos SaaS</p><h2 className="mt-1 text-2xl font-extrabold">{editPlan?'Editar plano':'Novo plano'}</h2></div><button type="button" onClick={()=>setPlanModal(false)} aria-label="Fechar"><X size={22}/></button></div>
+      {alert&&<p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">{alert}</p>}
+      <div><label htmlFor="plano-nome" className={label}>Nome do plano</label><input id="plano-nome" required minLength={2} maxLength={120} className={input} value={planData.nome} onChange={e=>setPlanData(p=>({...p,nome:e.target.value}))} placeholder="Bebfy Pro"/></div>
+      <div><label htmlFor="plano-tipo" className={label}>Tipo</label><select id="plano-tipo" className={input} value={planData.tipo} onChange={e=>setPlanData(p=>({...p,tipo:e.target.value as PlanoEntrada['tipo']}))}><option value="VAREJO_BASICO">Varejo básico</option><option value="VAREJO_PRO">Varejo Pro</option><option value="ATACADO_FULL">Atacado Full</option><option value="PERSONALIZADO">Personalizado</option></select></div>
+      <div><label htmlFor="plano-preco" className={label}>Mensalidade (R$)</label><input id="plano-preco" className={input} required min={0.01} step={0.01} type="number" value={planData.precoMensal} onChange={e=>setPlanData(p=>({...p,precoMensal:Number(e.target.value)}))}/></div>
+      <p className="text-xs leading-relaxed text-slate-400">O cadastro altera o catálogo de planos. Cobranças automáticas não são processadas neste módulo.</p>
+      <div className="flex gap-3 justify-end"><button type="button" onClick={()=>setPlanModal(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold">Cancelar</button><button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#073c36] disabled:opacity-50">{busy?'Salvando…':'Salvar plano'}</button></div>
+    </form></div>}
     {creating&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Cadastrar distribuidora"><div className="max-h-[95vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#102930] p-5 shadow-2xl sm:p-8"><div className="mb-6 flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-400">Novo cliente SaaS</p><h2 className="mt-1 text-2xl font-extrabold">Cadastrar distribuidora</h2></div><button onClick={()=>setCreating(false)} aria-label="Fechar" className="rounded-xl bg-white/5 p-2"><X size={21}/></button></div>
       {alert&&<p role="alert" className="mb-4 rounded-xl bg-rose-500/10 p-3 text-sm text-rose-200">{alert}</p>}
       <form onSubmit={e=>void createCompany(e)} className="space-y-5">
