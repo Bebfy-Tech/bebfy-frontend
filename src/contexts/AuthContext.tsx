@@ -85,10 +85,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     guardar(data);
   };
 
+  useEffect(() => {
+    if (!token) return;
+    const checar = () => { void api.get('/auth/perfil').catch(() => limpar()); };
+    // Ensures a displaced terminal is returned to login even when idle.
+    const intervalo = window.setInterval(checar, 15000);
+    const aoVoltar = () => { if (!document.hidden) checar(); };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => {
+      window.clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', aoVoltar);
+    };
+  }, [token]);
+
   const logout = () => {
-    // Capture the outgoing credential before clearing local state.
-    if (localStorage.getItem('@Bebfy:token')) {
-      void api.post('/auth/logout').catch(() => {});
+    const sessao = localStorage.getItem('@Bebfy:token');
+    const slug = getTenantSlug();
+    if (sessao) {
+      void api.post('/auth/logout', {}, {
+        headers: { Authorization: `Bearer ${sessao}`, 'x-tenant': slug },
+      }).catch(() => {});
     }
     limpar();
   };
