@@ -59,7 +59,7 @@ html, body, #root {
 /* Bebfy 4.0: migration layer for legacy operational pages. Global tokens live
    here while each page is progressively refined. Scoped to the tenant app. */
 .bebfy-workspace { color-scheme: dark; }
-.bebfy-workspace [class~="bg-white"] { background-color: #0a0f1d; }
+.bebfy-workspace [class~="bg-white"]:not(.print-area) { background-color: #0a0f1d; }
 .bebfy-workspace [class~="bg-slate-50"],
 .bebfy-workspace [class~="bg-slate-100"],
 .bebfy-workspace [class~="bg-[#f5faf7]"],
