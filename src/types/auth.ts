@@ -13,6 +13,7 @@ export interface Usuario {
   nome: string;
   cargo: Cargo;
   funcionarioId: string;
+  permissoes?: string[];
 }
 
 export interface Empresa {
