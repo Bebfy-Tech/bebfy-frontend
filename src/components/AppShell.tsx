@@ -4,7 +4,7 @@ import {
   BarChart3, Boxes, Building2, ChevronRight, ClipboardList, CreditCard,
   FileBarChart, HandCoins, Layers3, LogOut, Menu, Package, ReceiptText,
   Settings, ShoppingCart, Truck, UserRound, Users, Wallet, Warehouse,
-  X, ShieldCheck, ArrowLeft, FileUp,
+  X, ShieldCheck, ArrowLeft, FileUp, CircleHelp,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { tenantPath } from '../services/tenantUrls';
@@ -36,6 +36,9 @@ const groups: { title: string; items: MenuItem[] }[] = [
     { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
     { to: '/funcionarios', label: 'Funcionários e acessos', icon: UserRound, manager: true },
     { to: '/configuracoes', label: 'Minha conta', icon: Settings },
+  ] },
+  { title: 'AJUDA', items: [
+    { to: '/ajuda', label: 'Ajuda e primeiros passos', icon: CircleHelp },
   ] },
 ];
 const managerRoles = ['PROPRIETARIO', 'ADMINISTRADOR', 'GERENTE'];
