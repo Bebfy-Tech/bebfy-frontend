@@ -34,7 +34,7 @@ function Field({campo,value,options,onChange,disabled}:{campo:Campo;value:string
     }
   </div>;
 }
-const initial=(fields:Campo[]):Valores=>Object.fromEntries(fields.map(f=>[f.key, f.type==='checkbox'?false:''])) as Valores;
+const initial=(fields:Campo[]):Valores=>Object.fromEntries(fields.map(f=>[f.key, f.key==='ativo'?true:f.type==='checkbox'?false:''])) as Valores;
 
 export function CadastroPage({resource}:{resource:Recurso}){
   const cfg=definicoes[resource];
