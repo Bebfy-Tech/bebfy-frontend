@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Boxes, CreditCard, Minus, Plus, Printer, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { bebfy } from '../services/bebfy';
+import { tenantPath } from '../services/tenantUrls';
 import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
 import { btn, card, dinheiro, Empty, input, mensagemErro, Notice, secondary } from '../components/ui';
 
@@ -156,7 +157,7 @@ export function PDV(){
   }
   return <main className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-widest text-teal-700">Frente de caixa</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">PDV Bebfy</h1><p className="mt-1 text-sm text-slate-500">{empresa?.nomeFantasia} · Operador {user?.nome}</p></div>
-      <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${caixa?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>{caixa?'● Caixa aberto':'● Caixa fechado'}</span><button onClick={()=>void carregar()} disabled={loading} className={secondary}><RefreshCcw size={16}/> Atualizar</button><Link to="/vendas" className={secondary}>Histórico</Link></div></div>
+      <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${caixa?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>{caixa?'● Caixa aberto':'● Caixa fechado'}</span><button onClick={()=>void carregar()} disabled={loading} className={secondary}><RefreshCcw size={16}/> Atualizar</button><Link to={tenantPath("vendas")} className={secondary}>Histórico</Link></div></div>
     <Notice message={erro}/><Notice message={sucesso} success/>
     {loading&&!produtos.length?<div className={`${card} p-12 text-center text-slate-500`}>Carregando PDV...</div>:!caixa?
       <section className={`${card} mx-auto max-w-md p-7`}><Wallet className="text-teal-700" size={35}/><h2 className="mt-4 text-xl font-extrabold">Abra o caixa para começar</h2><p className="mt-2 text-sm text-slate-500">Informe o valor inicial disponível em espécie.</p><label className="mt-6 block text-sm font-semibold">Saldo inicial (R$)<input className={`${input} mt-2`} type="number" min={0} step=".01" value={saldoInicial} onChange={e=>setSaldoInicial(e.target.value)}/></label><button disabled={busy} className={`${btn} mt-5 w-full`} onClick={()=>void abrirCaixa()}>{busy?'Abrindo...':'Abrir meu caixa'}</button></section>
