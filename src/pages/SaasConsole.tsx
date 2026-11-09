@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, Layers3, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MODULOS, saasApi } from '../services/saas';
+import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'planos' | 'modulos';
@@ -136,7 +137,7 @@ export function SaasConsole() {
     {key:'modulos',icon:Boxes,title:'Módulos da plataforma',desc:'Recursos por empresa'},
   ];
 
-  if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#081d24] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate('/saas/acesso',{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
+  if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#081d24] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
 
   return <main className="min-h-screen bg-[#071b22] font-sans text-[#effff9]">
     <div className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#0b252c] px-5 py-4">
@@ -152,7 +153,7 @@ export function SaasConsole() {
       </nav>
       <div className="absolute bottom-5 left-5 right-5 space-y-4">
         <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[.07] p-4"><ShieldCheck size={19} className="text-emerald-300"/><p className="mt-2 text-xs font-bold">Acesso administrativo</p><p className="mt-1 text-xs text-slate-500">Protegido pelo backend.</p></div>
-        <button onClick={()=>{logout();navigate('/saas/acesso',{replace:true});}} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-400 hover:bg-white/5 hover:text-white"><LogOut size={18}/> Encerrar sessão</button>
+        <button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-400 hover:bg-white/5 hover:text-white"><LogOut size={18}/> Encerrar sessão</button>
       </div>
     </aside>
 
