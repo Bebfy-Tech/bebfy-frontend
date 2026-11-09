@@ -83,3 +83,62 @@ operador; **não há integração com adquirentes nem confirmação automática*
 
 Os workflows validam compilação TypeScript/Vite, mas ainda não realizam testes
 automatizados de interface em navegador real.
+
+
+## Landing page pública e administração SaaS
+
+A rota `/` agora mostra a landing page responsiva `src/pages/LandingPage.tsx`,
+com vitrine ilustrativa em 3D CSS, efeitos sutis de movimento, seções
+comerciais, FAQ, imagens externas do Unsplash e acesso à plataforma.
+Todo o conteúdo demonstrativo do gráfico é ilustrativo, não estatísticas reais
+de clientes. O sistema não emite NF-e ou NFC-e nesta fase.
+
+### Acesso do proprietário do SaaS
+
+- Acesse `/saas/acesso`.
+- Informe o **slug da distribuidora vinculada ao usuário administrador**,
+  código/CPF e senha. O endpoint `POST /auth/login` usa `x-tenant` para
+  identificar a empresa inicial.
+- O cliente testa `GET /saas/admin/empresas` para confirmar a autorização
+  global; o backend usa `SAAS_ADMIN_USER_IDS` com o **UUID do usuário**.
+  Ter cargo `PROPRIETARIO` em uma distribuidora não é suficiente.
+- Se autorizado, o usuário acessa `/saas/painel`.
+
+### Telas administrativas disponíveis
+
+- Visão geral: empresas cadastradas, ativas, em teste, distribuição por status
+  e **receita mensal potencial** obtida da soma dos valores dos planos.
+  Isso **não equivale a mensalidades efetivamente recebidas**.
+- Distribuidoras: pesquisa, filtro, cadastro com proprietário inicial,
+  painel detalhado, troca de status e troca de plano.
+- Planos: listagem, criação e edição (tipo, nome e preço mensal).
+  O backend não executa a cobrança recorrente.
+- Módulos: catálogo com os nomes do Prisma, atribuição de permissões por
+  empresa e indicação de quais estão ativos. Para `CAIXA_PDV`, `FIADOS`,
+  `VASILHAMES_RETORNAVEIS`, `ESTOQUE_LOTES` e
+  `COMPRAS_FORNECEDORES`, o backend já bloqueia rotas correspondentes
+  quando a empresa possui o módulo explicitamente desativado.
+  Os demais módulos futuros ainda precisam de implementação específica,
+  mesmo que suas atribuições possam ser registradas.
+
+### Configuração de backend
+
+```env
+JWT_SECRET=uma-chave-forte-com-mais-de-32-caracteres
+DATABASE_URL=postgresql://...
+FRONTEND_URL=http://localhost:5173
+SAAS_ADMIN_USER_IDS=uuid-do-usuario-admin-da-plataforma
+```
+
+Configure `SAAS_ADMIN_USER_IDS` diretamente no servidor, nunca no
+`.env` Vite. Não expor UUIDs autorizados, senhas ou segredos no frontend.
+As rotas administrativas permanecem protegidas por JWT e autorização
+servidor; um link ou botão escondido não concede segurança.
+
+## Homologação recomendada antes do deploy público
+
+Testar em celular e desktop, autenticação e expiração de sessão,
+cadastro de planos e empresas, alterações de módulo, acesso negado
+para operadores comuns, bloqueio real de módulos e migrações em banco
+de homologação. O pipeline atual cobre build e integrações de backend,
+mas não substitui testes visuais em navegador.
