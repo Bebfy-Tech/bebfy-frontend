@@ -59,7 +59,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.locator('#cadastro-nome').fill('Cervejas QA Browser');
   await a.locator('#cadastro-descricao').fill('Categoria exclusiva de homologação automatizada');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
-  await expect(a.getByText('Cervejas QA Browser').first()).toBeVisible();
+  await expect(a.locator('table').getByText('Cervejas QA Browser')).toBeVisible();
 
   await a.goto('/'+SLUG+'/produtos');
   await expect(a.getByRole('heading', { name: 'Produtos' })).toBeVisible();
