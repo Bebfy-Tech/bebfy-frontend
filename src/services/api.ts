@@ -11,6 +11,15 @@ export const getTenantSlug = (): string => {
   const configured = String(import.meta.env.VITE_TENANT_SLUG || '').trim().toLowerCase();
   if (configured) return configured;
 
+  const baseDomain = String(import.meta.env.VITE_TENANT_BASE_DOMAIN || '').trim().toLowerCase();
+  const host = window.location.hostname.toLowerCase();
+  if (baseDomain && host.endsWith('.' + baseDomain)) {
+    const slug = host.slice(0, -(baseDomain.length + 1));
+    if (slug && !slug.includes('.') && !['api', 'app', 'www'].includes(slug)) {
+      return slug;
+    }
+  }
+
   try {
     const stored = localStorage.getItem('@Bebfy:empresa');
     const company = stored ? JSON.parse(stored) as { subdominio?: string } : null;
