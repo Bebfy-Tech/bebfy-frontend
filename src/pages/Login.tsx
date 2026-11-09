@@ -48,11 +48,11 @@ export const Login: React.FC = () => {
       }
     } catch (err: unknown) {
       const error = err as {
-        response?: { data?: { error?: { codigo?: string; message?: string }; message?: string }; status?: number };
+        response?: { data?: { codigo?: string; error?: { codigo?: string; message?: string }; message?: string }; status?: number };
         message?: string;
       };
       if (error.response?.status === 409 &&
-          error.response?.data?.error?.codigo === 'SESSAO_ATIVA') {
+          (error.response?.data?.error?.codigo ?? error.response?.data?.codigo) === 'SESSAO_ATIVA') {
         setConflitoSessao(true);
       } else {
         setErro(error.response?.data?.error?.message || error.response?.data?.message ||
