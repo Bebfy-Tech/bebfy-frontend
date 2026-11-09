@@ -24,39 +24,56 @@ export const Login: React.FC = () => {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [conflitoSessao, setConflitoSessao] = useState(false);
 
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const realizarLogin = async (assumirSessao = false) => {
     setErro(null);
-
-    if (!loginInput || !senhaInput) {
-      setErro('Preencha o código/CPF e a senha.');
-      return;
-    }
-
+    setCarregando(true);
     try {
-      setCarregando(true);
-      await login({
-        login: loginInput,
-        senha: senhaInput,
+      const resultado = await login({
+        login: loginInput, senha: senhaInput, assumirSessao,
       });
-
-      navigate('/pdv');
-    } catch (err: any) {
-      const mensagemErro =
-        err.response?.data?.message || err.response?.data?.error?.message || err.message || 'Erro ao conectar com o servidor.';
-      setErro(mensagemErro);
+      setConflitoSessao(false);
+      if ('trocaSenhaObrigatoria' in resultado) {
+        navigate('/primeiro-acesso', {
+          replace: true,
+          state: { tokenTroca: resultado.tokenTroca, retorno: 'pdv' },
+        });
+      } else {
+        navigate('/pdv', { replace: true });
+      }
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { error?: { codigo?: string; message?: string }; message?: string }; status?: number };
+        message?: string;
+      };
+      if (error.response?.status === 409 &&
+          error.response?.data?.error?.codigo === 'SESSAO_ATIVA') {
+        setConflitoSessao(true);
+      } else {
+        setErro(error.response?.data?.error?.message || error.response?.data?.message ||
+          error.message || 'Não foi possível conectar ao servidor.');
+      }
     } finally {
       setCarregando(false);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginInput || !senhaInput) {
+      setErro('Preencha o código/CPF e a senha.');
+      return;
+    }
+    await realizarLogin(false);
+  };
+
   return (
-    <div className="h-screen w-screen flex items-center justify-center p-4 md:p-8 relative overflow-hidden transition-colors duration-500 dark:bg-linear-to-br dark:from-slate-950 dark:via-[#06181a] dark:to-slate-950 bg-linear-to-br from-slate-200 via-slate-100 to-[#e2f0f2]">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 relative overflow-x-hidden transition-colors duration-500 dark:bg-linear-to-br dark:from-slate-950 dark:via-[#06181a] dark:to-slate-950 bg-linear-to-br from-slate-200 via-slate-100 to-[#e2f0f2]">
       
       {/* Esferas de Iluminação de Fundo */}
       <div className="absolute top-1/4 left-1/4 w-125 h-125 bg-petrol-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -277,6 +294,27 @@ export const Login: React.FC = () => {
         </div>
 
       </div>
+      {conflitoSessao && <div role="dialog" aria-modal="true" aria-labelledby="login-conflito-titulo"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-3xl border border-amber-200/20 bg-slate-900 p-7 text-white shadow-2xl">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300">
+            <AlertCircle size={28}/>
+          </div>
+          <h2 id="login-conflito-titulo" className="text-xl font-extrabold">Este usuário já está conectado</h2>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+            Já existe alguém utilizando este acesso. Tem certeza de que deseja entrar?
+            Ao confirmar, a sessão anterior será desconectada.
+          </p>
+          <div className="mt-7 flex gap-3">
+            <button type="button" onClick={()=>setConflitoSessao(false)} disabled={carregando}
+              className="flex-1 rounded-xl border border-slate-600 px-4 py-3 font-bold disabled:opacity-50">Não</button>
+            <button type="button" onClick={()=>void realizarLogin(true)} disabled={carregando}
+              className="flex-1 rounded-xl bg-amber-400 px-4 py-3 font-extrabold text-slate-950 disabled:opacity-50">
+              {carregando?'Entrando…':'Sim, acessar'}
+            </button>
+          </div>
+        </div>
+      </div>}
     </div>
   );
 };
