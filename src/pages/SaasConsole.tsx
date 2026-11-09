@@ -63,7 +63,7 @@ export function SaasConsole() {
       const [companies,allPlans]=await Promise.allSettled([saasApi.empresas(),saasApi.planos()]);
       if(companies.status==='fulfilled')setEmpresas(companies.value);
       if(allPlans.status==='fulfilled')setPlanos(allPlans.value);
-      setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')));
+      setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')||user?.permissoes.includes('MODULOS')));
     } catch (e) {
       const status=(e as {response?:{status?:number}}).response?.status;
       if(status===401||status===403) setForbidden(true);
@@ -139,7 +139,13 @@ export function SaasConsole() {
     {key:'planos',icon:CreditCard,title:'Planos e assinaturas',desc:'Planos cadastrados'},
     {key:'modulos',icon:Boxes,title:'Módulos da plataforma',desc:'Recursos por empresa'},
     {key:'funcionarios',icon:Users,title:'Funcionários do SaaS',desc:'Equipe e permissões'},
-  ];
+  ].filter(tab => {
+    if(user?.cargo==='SUPER_ADMIN') return true;
+    const necessary:Partial<Record<Section,string>>={
+      empresas:'EMPRESAS',planos:'PLANOS',modulos:'MODULOS',funcionarios:'FUNCIONARIOS',
+    };
+    return tab.key==='visao' || user?.permissoes.includes(necessary[tab.key] || '');
+  });
 
   if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#081d24] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
 
