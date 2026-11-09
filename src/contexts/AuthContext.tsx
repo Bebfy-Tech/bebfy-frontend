@@ -46,6 +46,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem('@Bebfy:user');
     const storedEmpresa = localStorage.getItem('@Bebfy:empresa');
     if (!storedToken || !storedUser || !storedEmpresa) { setLoading(false); return; }
+    // A session saved for one store must never be restored in another store.
+    try {
+      const savedEmpresa = JSON.parse(storedEmpresa) as Empresa;
+      const currentTenant = getTenantSlug();
+      if (currentTenant && savedEmpresa.subdominio?.toLowerCase() !== currentTenant) {
+        limpar();
+        setLoading(false);
+        return;
+      }
+    } catch {
+      limpar();
+      setLoading(false);
+      return;
+    }
     // Do not trust persisted JWT before server validates its current active session ID.
     void api.get('/auth/perfil')
       .then(() => {
