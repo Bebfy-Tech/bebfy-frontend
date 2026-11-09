@@ -13,28 +13,48 @@ export function SaasAccess() {
   const [visivel, setVisivel] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [conflitoSessao, setConflitoSessao] = useState(false);
 
-  async function entrar(e: React.FormEvent) {
-    e.preventDefault();
+  async function executarLogin(assumirSessao = false) {
     if (carregando) return;
     setErro('');
     setCarregando(true);
     try {
-      await login({ login: operador, senha }, empresa);
-      // Server-side guard uses SAAS_ADMIN_USER_IDS; a tenant owner alone cannot enter.
+      const resultado = await login({ login: operador, senha, assumirSessao }, empresa);
+      setConflitoSessao(false);
+      if ('trocaSenhaObrigatoria' in resultado) {
+        navigate('/primeiro-acesso', {
+          replace: true,
+          state: { tokenTroca: resultado.tokenTroca, retorno: 'saas' },
+        });
+        return;
+      }
       await saasApi.empresas();
       navigate('/saas/painel', { replace: true });
     } catch (error: unknown) {
-      logout();
-      const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
-      if (err.response?.status === 403) {
-        setErro('Sua conta não possui acesso à administração global. Solicite autorização ao administrador do Bebfy.');
+      const err = error as {
+        response?: { status?: number; data?: { error?: { codigo?: string; message?: string }; message?: string } };
+        message?: string;
+      };
+      if (err.response?.status === 409 && err.response?.data?.error?.codigo === 'SESSAO_ATIVA') {
+        setConflitoSessao(true);
       } else {
-        setErro(err.response?.data?.message || err.message || 'Não foi possível autenticar. Confira os dados e a conexão com a API.');
+        logout();
+        if (err.response?.status === 403) {
+          setErro('Sua conta não possui acesso à administração global do Bebfy.');
+        } else {
+          setErro(err.response?.data?.error?.message || err.response?.data?.message ||
+            err.message || 'Não foi possível autenticar.');
+        }
       }
     } finally {
       setCarregando(false);
     }
+  }
+
+  async function entrar(e: React.FormEvent) {
+    e.preventDefault();
+    await executarLogin(false);
   }
 
   return (
@@ -84,6 +104,21 @@ export function SaasAccess() {
           </form>
         </div>
       </div>
+      {conflitoSessao && <div role="dialog" aria-modal="true" aria-labelledby="saas-conflito"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#102c32] p-7 shadow-2xl">
+          <h2 id="saas-conflito" className="text-xl font-extrabold">Já existe um acesso neste usuário</h2>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+            Deseja entrar e desconectar a sessão anterior?
+          </p>
+          <div className="mt-6 flex gap-3">
+            <button type="button" onClick={()=>setConflitoSessao(false)} disabled={carregando}
+              className="flex-1 rounded-xl border border-slate-500 p-3 font-semibold">Não</button>
+            <button type="button" onClick={()=>void executarLogin(true)} disabled={carregando}
+              className="flex-1 rounded-xl bg-emerald-300 p-3 font-extrabold text-[#0a302e]">Sim, acessar</button>
+          </div>
+        </div>
+      </div>}
     </main>
   );
 }
