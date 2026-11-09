@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, Boxes, CreditCard, Package, ShoppingCart,
-  Users, Wallet, TrendingUp, Clock3, CircleDollarSign, ShieldCheck,
+  Users, TrendingUp, Clock3, CircleDollarSign, ShieldCheck,
 } from 'lucide-react';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
