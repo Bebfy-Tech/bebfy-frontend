@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, Layers3, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
+import './saas-premium.css';
 import { MODULOS, saasApi } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa } from '../services/saas';
@@ -16,9 +17,9 @@ const statusStyle: Record<StatusEmpresa,string> = {
   SUSPENSA: 'bg-rose-500/10 text-rose-300 border-rose-500/20',
   CANCELADA: 'bg-slate-500/20 text-slate-400 border-slate-500/20',
 };
-const card = 'rounded-2xl border border-[#1f2937] bg-[#0a0f1d] shadow-[0_15px_45px_rgba(0,0,0,.18)]';
-const input = 'w-full min-h-11 rounded-xl border border-[#26344a] bg-[#101829] px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/15';
-const label = 'block text-xs font-semibold text-slate-400 mb-2';
+const card = 'saas-card rounded-2xl border border-[#285348] bg-[#0c302a] shadow-[0_15px_45px_rgba(0,0,0,.12)]';
+const input = 'saas-field w-full min-h-11 rounded-xl border border-[#396155] bg-[#092a26] px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/15';
+const label = 'block text-xs font-semibold text-emerald-50/75 mb-2';
 const money = (v:number) => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(v);
 const cleanDigits = (s:string) => s.replace(/\D/g,'');
 const errorMessage = (err:unknown) => {
@@ -149,18 +150,18 @@ export function SaasConsole() {
     return tab.key==='visao' || user?.permissoes.includes(necessary[tab.key] || '');
   });
 
-  if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#07090d] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
+  if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#052b27] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
 
-  return <main className="min-h-screen bg-[#07090d] font-sans text-[#effff9]">
-    <div className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#0a0f1d] px-5 py-4">
-      <Link to="/" className="flex items-center gap-2 text-xl font-extrabold"><Layers3 className="text-emerald-300"/>bebfy<span className="text-emerald-300">.</span></Link>
-      <button aria-label="Abrir menu" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button>
+  return <main className="saas-premium min-h-screen bg-[#061e1e] font-sans text-[#effff9]">
+    <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-[#0a0f1d] px-5 py-4">
+      <Link to="/" aria-label="Bebfy - início" className="inline-flex items-center"><img src="/bebfy-logo.svg" alt="bebfy" className="h-11 w-28 object-contain brightness-0 invert"/></Link>
+      <button type="button" aria-label={mobileMenu ? "Fechar menu" : "Abrir menu"} aria-expanded={mobileMenu} aria-controls="saas-main-navigation" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button>
     </div>
     <aside className={`fixed inset-y-0 left-0 z-40 w-[270px] border-r border-white/[.08] bg-[#0a0f1d] p-5 transition-transform lg:translate-x-0 ${mobileMenu?'translate-x-0':'-translate-x-full'}`}>
-      <Link to="/" className="mb-2 flex items-center gap-2.5 px-2 text-[27px] font-black tracking-tighter"><span className="rounded-xl bg-emerald-300 p-2 text-[#092c2c]"><Layers3 size={21}/></span>bebfy<span className="-ml-2 text-emerald-400">.</span></Link>
-      <div className="mb-10 ml-[57px] text-[10px] font-black tracking-[.19em] text-emerald-400">CONTROL CENTER</div>
+      <Link to="/" aria-label="Bebfy - início" className="mb-1 inline-flex items-center px-2"><img src="/bebfy-logo.svg" alt="bebfy" className="h-16 w-36 object-contain brightness-0 invert"/></Link>
+      <div className="mb-10 ml-[57px] text-[10px] font-black tracking-[.19em] text-emerald-400">ADMINISTRAÇÃO SAAS</div>
       <p className="px-3 text-[10px] font-black tracking-[.2em] text-slate-500">PLATAFORMA</p>
-      <nav className="mt-3 space-y-1.5">
+      <nav id="saas-main-navigation" aria-label="Navegação administrativa" className="mt-3 space-y-1.5">
         {tabs.map(t=><button key={t.key} onClick={()=>nav(t.key)} className={`w-full rounded-xl px-3.5 py-3.5 text-left transition ${section===t.key?'bg-emerald-400/15 text-emerald-300':'text-slate-400 hover:bg-white/5 hover:text-white'}`}><span className="flex items-center gap-3 text-sm font-bold"><t.icon size={19}/>{t.title}</span></button>)}
       </nav>
       <div className="absolute bottom-5 left-5 right-5 space-y-4">
@@ -182,7 +183,7 @@ export function SaasConsole() {
 
           {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
           {section==='visao'&&<>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Bom trabalho! <span className="text-emerald-300">Tudo sob controle.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Nova distribuidora</button></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Visão geral da <span className="text-emerald-300">plataforma.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Nova distribuidora</button></div>
             <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
               <StatCard icon={Building2} label="Distribuidoras" value={String(empresas.length)} subtitle="Total cadastradas no SaaS"/>
               <StatCard icon={Activity} label="Ativas" value={String(empresas.filter(e=>e.status==='ATIVA').length)} subtitle="Empresas com status ativo"/>
