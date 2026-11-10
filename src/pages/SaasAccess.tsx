@@ -1,53 +1,89 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Layers3, LockKeyhole, ShieldCheck, ArrowRight, LoaderCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Building2, CreditCard, Eye, EyeOff, Layers3, LoaderCircle, LockKeyhole, ShieldCheck, Users } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { saasPanelPath } from '../services/tenantUrls';
+import './saas-premium.css';
+
+const resources = [
+  { icon: Building2, title: 'Distribuidoras', description: 'Cadastros e gestão de clientes.' },
+  { icon: CreditCard, title: 'Planos', description: 'Assinaturas e condições comerciais.' },
+  { icon: Layers3, title: 'Módulos', description: 'Recursos habilitados por empresa.' },
+  { icon: Users, title: 'Equipe', description: 'Acessos da administração SaaS.' },
+];
 
 export function SaasAccess() {
-  const navigate=useNavigate();
-  const {login}=useSaasAuth();
-  const [codigo,setCodigo]=useState('');
-  const [senha,setSenha]=useState('');
-  const [showPassword,setShowPassword]=useState(false);
-  const [busy,setBusy]=useState(false);
-  const [error,setError]=useState('');
+  const navigate = useNavigate();
+  const { login } = useSaasAuth();
+  const [codigo, setCodigo] = useState('');
+  const [senha, setSenha] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  const entrar=async(e:React.FormEvent)=>{
-    e.preventDefault();setBusy(true);setError('');
-    try { await login(Number(codigo),senha); navigate(saasPanelPath,{replace:true}); }
-    catch {setError('Código ou senha inválidos, ou acesso bloqueado.');}
-    finally {setBusy(false);}
+  const entrar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    const numero = Number(codigo);
+    if (!Number.isSafeInteger(numero) || numero < 1 || !senha) {
+      setError('Informe um código de administrador válido e sua senha.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await login(numero, senha);
+      navigate(saasPanelPath, { replace: true });
+    } catch {
+      setError('Código ou senha inválidos, ou acesso bloqueado.');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  return <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#07090d] px-4 py-12 text-white sm:px-6">
-    <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[440px] w-[440px] rounded-full bg-blue-600/10 blur-[110px]"/>
-    <div aria-hidden="true" className="pointer-events-none absolute -bottom-44 -right-32 h-[440px] w-[440px] rounded-full bg-emerald-500/10 blur-[110px]"/>
-    <div className="relative z-10 w-full max-w-[990px] overflow-hidden rounded-[28px] border border-[#253047] bg-[#0a0f1d] shadow-[0_35px_120px_rgba(0,0,0,.55)] lg:grid lg:grid-cols-[1fr_1fr]">
-      <aside className="hidden flex-col justify-between border-r border-[#263247] bg-[#0d1424] p-12 lg:flex">
-        <div className="flex items-center gap-3 text-3xl font-black tracking-tighter"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-300"><Layers3 size={26}/></span>bebfy<span className="-ml-3 text-emerald-400">.</span></div>
-        <div><p className="text-xs font-black uppercase tracking-[.22em] text-blue-400">CONTROL CENTER</p><h2 className="mt-5 text-4xl font-extrabold leading-tight">Controle sua plataforma com <span className="text-emerald-400">clareza e segurança.</span></h2><p className="mt-6 max-w-sm text-sm leading-7 text-slate-400">Gerencie distribuidoras, assinaturas, módulos e sua equipe administrativa em um só lugar.</p></div>
-        <div className="flex items-center gap-2 border-t border-[#253247] pt-6 text-xs font-medium text-slate-500"><ShieldCheck size={18} className="text-emerald-400"/> Ambiente administrativo independente das lojas</div>
+  return <main className="saas-login-workspace relative isolate grid min-h-screen place-items-center overflow-x-hidden bg-[#062b27] px-4 py-10 sm:px-6">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_15%,rgba(31,122,93,.32),transparent_48%),radial-gradient(ellipse_at_7%_95%,rgba(18,105,78,.23),transparent_45%)]" />
+    <div className="saas-login-panel relative z-10 grid w-full max-w-[1080px] overflow-hidden rounded-[26px] border border-white/15 shadow-[0_35px_90px_rgba(0,0,0,.30)] lg:min-h-[640px] lg:grid-cols-2">
+      <aside className="saas-login-intro flex flex-col justify-between bg-[#082e2b] px-7 py-8 text-white sm:px-10 sm:py-10 lg:px-12">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/" aria-label="Bebfy, início" className="inline-flex"><img src="/bebfy-logo.svg" alt="bebfy" className="h-[63px] w-[157px] object-contain brightness-0 invert"/></Link>
+          <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100">ACESSO INTERNO</span>
+        </div>
+        <div className="mt-8 lg:my-auto lg:py-10">
+          <span className="inline-flex items-center gap-2 text-xs font-extrabold tracking-[.12em] text-[#6ee5b9]"><ShieldCheck size={17}/> ADMINISTRAÇÃO CENTRAL</span>
+          <h2 className="mt-5 max-w-md text-3xl font-extrabold leading-[1.16] tracking-[-.04em] sm:text-[39px]">Sua plataforma, sob controle.</h2>
+          <p className="mt-4 max-w-sm text-sm leading-7 text-emerald-50/70">Gerencie distribuidoras, planos, módulos e colaboradores em um único ambiente administrativo.</p>
+          <div className="mt-8 hidden grid-cols-2 gap-3 sm:grid">
+            {resources.map(({icon:Icon,title,description})=><div key={title} className="rounded-2xl border border-white/10 bg-white/[.045] p-4">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-300/10 text-emerald-200"><Icon size={19}/></span>
+              <strong className="mt-3 block text-[13px]">{title}</strong>
+              <p className="mt-1 text-[11px] leading-5 text-emerald-50/60">{description}</p>
+            </div>)}
+          </div>
+        </div>
+        <p className="mt-8 hidden border-t border-white/10 pt-4 text-[11px] text-emerald-50/50 lg:block">Bebfy · Gestão da plataforma</p>
       </aside>
-      <form onSubmit={e=>void entrar(e)} className="flex flex-col justify-center gap-6 p-7 sm:p-12">
-        <div className="flex items-center gap-2 text-xl font-black tracking-tighter lg:hidden"><Layers3 className="text-emerald-400"/>bebfy<span className="-ml-2 text-emerald-400">.</span></div>
-        <div><p className="text-xs font-bold uppercase tracking-[.22em] text-emerald-400">Acesso restrito</p><h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Administração SaaS</h1><p className="mt-3 text-sm leading-6 text-slate-400">Entre com seu código individual e senha de administrador.</p></div>
-        {error&&<p role="alert" className="rounded-xl border border-rose-500/25 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}
-        <label className="block space-y-2 text-sm font-semibold text-slate-300">Código de acesso
-          <input required min="1" type="number" inputMode="numeric" autoComplete="username" value={codigo} onChange={e=>setCodigo(e.target.value)} placeholder="Seu código" className="w-full rounded-xl border border-[#29374e] bg-[#101a2a] px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"/>
-        </label>
-        <label className="block space-y-2 text-sm font-semibold text-slate-300">Senha
-          <span className="relative block">
-            <LockKeyhole className="pointer-events-none absolute left-4 top-3.5 text-slate-500" size={19}/>
-            <input required type={showPassword?'text':'password'} autoComplete="current-password" value={senha} onChange={e=>setSenha(e.target.value)} placeholder="Sua senha" className="w-full rounded-xl border border-[#29374e] bg-[#101a2a] py-3.5 pl-11 pr-12 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"/>
-            <button type="button" onClick={()=>setShowPassword(!showPassword)} aria-label={showPassword?'Ocultar senha':'Mostrar senha'} className="absolute right-3 top-2.5 rounded-lg p-1.5 text-slate-400 hover:text-white">{showPassword?<EyeOff size={19}/>:<Eye size={19}/>}</button>
-          </span>
-        </label>
-        <button type="submit" disabled={busy} className="mt-1 inline-flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-4 text-sm font-black text-[#052219] shadow-[0_14px_30px_rgba(16,185,129,.18)] transition hover:bg-emerald-300 disabled:opacity-50">
-          {busy?<LoaderCircle size={18} className="animate-spin"/>:<ArrowRight size={18}/>} {busy?'Autenticando…':'Entrar no painel'}
-        </button>
-        <p className="text-center text-xs text-slate-500">Acesso exclusivo à administração geral da Bebfy.</p>
-      </form>
+      <section className="saas-login-form flex flex-col justify-between bg-[#f8f6ef] px-7 py-8 text-[#173c33] sm:px-10 sm:py-10 lg:px-12" aria-labelledby="saas-login-title">
+        <div className="flex items-center justify-between gap-3">
+          <div><span className="text-[11px] font-extrabold tracking-[.14em] text-[#147756]">CONTROL CENTER</span><h1 id="saas-login-title" className="mt-2 text-xl font-extrabold">Administração SaaS</h1></div>
+          <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#d5e3d7] bg-white text-[#147756]"><LockKeyhole size={20}/></span>
+        </div>
+        <form onSubmit={e=>void entrar(e)} className="my-auto space-y-5 py-10">
+          <div className="mb-8"><h2 className="text-[30px] font-extrabold tracking-[-.04em]">Bem-vindo de volta.</h2><p className="mt-2 text-sm leading-6 text-[#647c70]">Entre com suas credenciais administrativas.</p></div>
+          {error && <p role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm font-medium text-rose-700">{error}</p>}
+          <div><label htmlFor="saas-codigo" className="mb-2 block text-[13px] font-bold">Código de acesso</label>
+            <input id="saas-codigo" autoFocus required min="1" step="1" type="number" inputMode="numeric" autoComplete="username" value={codigo} onChange={e=>{setCodigo(e.target.value);setError('');}} placeholder="Ex.: 1" className="saas-login-input min-h-14 w-full rounded-xl border border-[#cfddd2] bg-white px-4 text-sm font-semibold text-[#173c33] outline-none transition placeholder:font-normal placeholder:text-[#91a69b] focus:border-[#29ad7a] focus:ring-2 focus:ring-emerald-200"/>
+          </div>
+          <div><label htmlFor="saas-senha" className="mb-2 block text-[13px] font-bold">Senha</label><div className="relative">
+            <LockKeyhole size={18} className="pointer-events-none absolute left-4 top-[19px] text-[#779186]"/>
+            <input id="saas-senha" required type={showPassword?'text':'password'} autoComplete="current-password" value={senha} onChange={e=>{setSenha(e.target.value);setError('');}} placeholder="Digite sua senha" className="saas-login-input min-h-14 w-full rounded-xl border border-[#cfddd2] bg-white py-3 pl-11 pr-12 text-sm font-semibold text-[#173c33] outline-none transition placeholder:font-normal placeholder:text-[#91a69b] focus:border-[#29ad7a] focus:ring-2 focus:ring-emerald-200"/>
+            <button type="button" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} aria-pressed={showPassword} onClick={()=>setShowPassword(!showPassword)} className="absolute right-2 top-2.5 rounded-lg p-2 text-[#779186] hover:bg-[#f0f6f1] hover:text-[#14664b]">{showPassword?<EyeOff size={19}/>:<Eye size={19}/>}</button>
+          </div></div>
+          <button type="submit" disabled={busy} className="mt-2 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-[#20bd88] px-5 text-sm font-extrabold text-[#063329] transition hover:bg-[#51dcaa] disabled:opacity-60">{busy?<LoaderCircle size={19} className="animate-spin"/>:<ArrowRight size={19}/>} {busy?'Autenticando...':'Entrar no painel'}</button>
+          <p className="text-center text-xs leading-5 text-[#73887d]">Acesso exclusivo à equipe administrativa autorizada.</p>
+        </form>
+        <Link to="/" className="inline-flex items-center justify-center gap-2 border-t border-[#dbe6dd] pt-5 text-xs font-bold text-[#23664f] hover:text-[#0b4633]"><ArrowLeft size={15}/> Voltar à página inicial</Link>
+      </section>
     </div>
   </main>;
 }
