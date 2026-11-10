@@ -8,7 +8,7 @@ const options=[
   ['MODULOS','Módulos'],
   ['FUNCIONARIOS','Gestão de funcionários'],
 ] as const;
-const field='w-full rounded-lg border border-white/20 bg-[#101829] p-3 text-white';
+const field='saas-field mt-2 w-full rounded-xl border border-[#396155] bg-[#092a26] px-4 py-3 text-white outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/15';
 export function SaasFuncionarios({current}:{current:SaasUser|null}) {
  const [users,setUsers]=useState<SaasFuncionario[]>([]);
  const [codigo,setCodigo]=useState('');
@@ -43,11 +43,11 @@ export function SaasFuncionarios({current}:{current:SaasUser|null}) {
   finally{setBusy(false);}
  };
  if(!canManage)return <p className="text-rose-200">Sua conta não possui permissão para cadastrar funcionários.</p>;
- return <div className="space-y-6">
-   <div><h2 className="text-2xl font-extrabold">Funcionários do SaaS</h2><p className="text-sm text-slate-400">Cadastre colaboradores da administração central, sem vincular às distribuidoras.</p></div>
+ return <div className="saas-staff space-y-6">
+   <div><h2 className="text-2xl font-extrabold tracking-tight">Equipe administrativa</h2><p className="text-sm text-slate-400">Cadastre colaboradores da administração central, sem vincular às distribuidoras.</p></div>
    {error&&<p role="alert" className="rounded-lg bg-rose-800/30 p-3 text-rose-200">{error}</p>}
    {message&&<p role="status" className="rounded-lg bg-emerald-800/20 p-3 text-emerald-200">{message}</p>}
-   <form onSubmit={e=>void create(e)} className="rounded-2xl border border-[#1f2937] bg-[#0a0f1d] p-5 space-y-4">
+   <form onSubmit={e=>void create(e)} className="saas-card rounded-2xl border border-[#285348] bg-[#0c302a] p-5 space-y-4">
     <h3 className="font-bold">Cadastrar funcionário</h3>
     <div className="grid gap-4 md:grid-cols-3">
      <label className="text-sm">Código de acesso<input className={field} type="number" min="3" required value={codigo} onChange={e=>setCodigo(e.target.value)}/></label>
@@ -55,14 +55,14 @@ export function SaasFuncionarios({current}:{current:SaasUser|null}) {
      <label className="text-sm">Senha inicial (12+ caracteres)<input className={field} type="password" minLength={12} required value={senha} onChange={e=>setSenha(e.target.value)}/></label>
     </div>
     <div className="flex flex-wrap gap-4">{options.map(([key,title])=><label key={key} className="flex gap-2 text-sm"><input type="checkbox" checked={permissoes.includes(key)} onChange={e=>setPermissoes(p=>e.target.checked?[...p,key]:p.filter(x=>x!==key))}/>{title}</label>)}</div>
-    <button disabled={busy} className="rounded-xl bg-emerald-400 px-5 py-3 font-bold text-[#052117] disabled:opacity-50">Cadastrar funcionário</button>
+    <button disabled={busy} className="rounded-xl bg-[#4cdbab] px-5 py-3 font-extrabold text-[#063329] hover:bg-[#72edc1] disabled:opacity-50">Cadastrar funcionário</button>
    </form>
-   <section className="rounded-2xl border border-[#1f2937] bg-[#0a0f1d] p-5 space-y-4">
+   <section className="saas-card rounded-2xl border border-[#285348] bg-[#0c302a] p-5 space-y-4">
     <h3 className="font-bold">Equipe cadastrada</h3>
-    {users.map(user=><div key={user.id} className="rounded-xl border border-[#1f2937] p-4 space-y-3">
+    {users.map(user=><div key={user.id} className="rounded-xl border border-[#376353] bg-[#0a342b] p-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
        <div><b>{user.nome}</b><p className="text-xs text-slate-400">Código {user.codigo} · {user.cargo==='SUPER_ADMIN'?'Administrador geral':'Funcionário'} · {user.ativo?'Ativo':'Bloqueado'}</p></div>
-       {user.cargo!=='SUPER_ADMIN'&&<button disabled={busy} onClick={()=>void toggle(user)} className="rounded-lg border border-white/20 px-4 py-2 text-sm">{user.ativo?'Desativar':'Reativar'}</button>}
+       {user.cargo!=='SUPER_ADMIN'&&<button disabled={busy} onClick={()=>void toggle(user)} className="rounded-lg border border-emerald-200/25 px-4 py-2 text-sm hover:bg-white/5">{user.ativo?'Desativar':'Reativar'}</button>}
       </div>
       {user.cargo!=='SUPER_ADMIN'&&<div className="flex flex-wrap gap-4">{options.map(([key,title])=><label key={key} className="flex gap-2 text-xs"><input disabled={busy} type="checkbox" checked={user.permissoes.includes(key)} onChange={()=>void togglePermission(user,key)}/>{title}</label>)}</div>}
      </div>)}
