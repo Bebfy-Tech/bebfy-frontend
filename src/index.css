@@ -12,6 +12,19 @@
   --color-petrol-400: #2698a3;
   --color-petrol-300: #4fc3ce; /* Tom brilhante para alto contraste no dark mode */
   --color-amber-500: #f59e0b;
+  --color-bebfy-bg: #07090d;
+  --color-bebfy-surface: #0a0f1d;
+  --color-bebfy-border: #1f2937;
+  --color-bebfy-primary: #10b981;
+  --color-bebfy-blue: #2563eb;
+}
+
+:root {
+  --bebfy-bg: #07090d;
+  --bebfy-surface: #0a0f1d;
+  --bebfy-border: #1f2937;
+  --bebfy-emerald: #10b981;
+  --bebfy-electric-blue: #2563eb;
 }
 
 body {
@@ -33,5 +46,79 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+
+/* Bebfy 4.0: migration layer for legacy operational pages. Global tokens live
+   here while each page is progressively refined. Scoped to the tenant app. */
+.bebfy-workspace { color-scheme: dark; }
+.bebfy-workspace [class~="bg-white"]:not(.print-area) { background-color: #0a0f1d; }
+.bebfy-workspace [class~="bg-slate-50"],
+.bebfy-workspace [class~="bg-slate-100"],
+.bebfy-workspace [class~="bg-[#f5faf7]"],
+.bebfy-workspace [class~="bg-[#f7faf8]"] { background-color: #111a2a; }
+.bebfy-workspace [class~="text-slate-900"],
+.bebfy-workspace [class~="text-slate-800"],
+.bebfy-workspace [class~="text-slate-700"],
+.bebfy-workspace [class~="text-[#10353a]"] { color: #e2e8f0; }
+.bebfy-workspace [class~="text-teal-700"],
+.bebfy-workspace [class~="text-teal-800"] { color: #6ee7b7; }
+.bebfy-workspace [class~="text-slate-600"] { color: #a8b4c6; }
+.bebfy-workspace [class~="text-slate-500"] { color: #94a3b8; }
+.bebfy-workspace [class~="border-slate-200"],
+.bebfy-workspace [class~="border-slate-100"],
+.bebfy-workspace [class~="border-slate-300"] { border-color: #253247; }
+.bebfy-workspace [class~="bg-teal-50"],
+.bebfy-workspace [class~="bg-emerald-50"],
+.bebfy-workspace [class~="bg-amber-50"] { background-color: #152537; }
+.bebfy-workspace [class~="text-emerald-800"],
+.bebfy-workspace [class~="text-emerald-900"],
+.bebfy-workspace [class~="text-emerald-700"] { color: #6ee7b7; }
+.bebfy-workspace [class~="text-amber-700"],
+.bebfy-workspace [class~="text-amber-800"] { color: #fcd34d; }
+.bebfy-workspace [class~="text-rose-600"] { color: #fda4af; }
+.bebfy-workspace table { border-collapse: separate; border-spacing: 0; }
+.bebfy-workspace table thead { background: #101a2a; }
+.bebfy-workspace table thead th { color: #a7b5c8; font-size: .69rem; letter-spacing: .08em; }
+.bebfy-workspace table tbody tr { transition: background-color .15s ease; }
+.bebfy-workspace table tbody tr:hover { background-color: #111d30; }
+.bebfy-workspace input,
+.bebfy-workspace select,
+.bebfy-workspace textarea { accent-color: #10b981; }
+.bebfy-workspace input:focus-visible,
+.bebfy-workspace button:focus-visible,
+.bebfy-workspace select:focus-visible,
+.bebfy-workspace textarea:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .bebfy-workspace .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
+
+/* Only the explicitly requested commercial receipt is printed. */
+@media print {
+  body, html, #root { background: white !important; overflow: visible !important; }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: black !important;
+  }
+  @page { margin: 0; }
 }
