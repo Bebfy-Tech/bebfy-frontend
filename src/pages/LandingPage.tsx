@@ -100,7 +100,7 @@ export function LandingPage() {
       <header className="lp-topbar">
         <div className="lp-wrap lp-nav">
           <Logo light />
-          <nav className={`lp-links ${menuOpen ? 'is-open' : ''}`} aria-label="Navegação principal">
+          <nav id="lp-navigation" className={`lp-links ${menuOpen ? 'is-open' : ''}`} aria-label="Navegação principal">
             <a href="#inicio" onClick={()=>setMenuOpen(false)}>Início</a>
             <a href="#funcionalidades" onClick={()=>setMenuOpen(false)}>Funcionalidades</a>
             <a href="#demonstracao" onClick={()=>setMenuOpen(false)}>Demonstração</a>
