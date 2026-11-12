@@ -120,13 +120,13 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
           <input className={field} minLength={2} required value={nome} onChange={e=>setNome(e.target.value)}/>
         </label>
         <label className="text-sm font-semibold">Senha inicial
-          <span className="relative block"><input className={field + ' pr-12'} minLength={12} required type={mostrarSenha?'text':'password'} autoComplete="new-password" value={senha} onChange={e=>setSenha(e.target.value)}/>
+          <span className="relative block"><input className={field + ' pr-12'} required type={mostrarSenha?'text':'password'} autoComplete="new-password" value={senha} onChange={e=>setSenha(e.target.value)}/>
           <button type="button" onClick={()=>setMostrarSenha(!mostrarSenha)} aria-label={mostrarSenha?'Ocultar senha':'Mostrar senha'} className="absolute right-3 top-4 rounded-lg p-2 text-slate-300 hover:bg-white/10">{mostrarSenha?<EyeOff size={18}/>:<Eye size={18}/>}</button></span>
         </label>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-bold">Permissões de acesso</h4><button type="button" onClick={()=>setPermissoes(permissoes.length===options.length?[]:options.map(([key])=>key))} className="text-xs font-bold text-emerald-300 hover:underline">{permissoes.length===options.length?'Desmarcar todas':'Marcar todas as permissões'}</button></div>
       {permissionList(permissoes,setPermissoes)}
-      <p className="text-xs text-slate-400">Por segurança, a senha inicial deve conter pelo menos 12 caracteres.</p>
+
       <button type="submit" disabled={busy} className={btn}>{busy?'Salvando...':'Cadastrar funcionário'}</button>
     </form>
 
@@ -154,7 +154,7 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
           <label className="text-sm font-semibold">Código de acesso<input className={field} type="number" min="3" required value={editCode} onChange={e=>setEditCode(e.target.value)}/></label>
         </div>
         <label className="block text-sm font-semibold">Nova senha (opcional)
-          <span className="relative block"><input className={field+' pr-12'} type={showEditPassword?'text':'password'} minLength={12} autoComplete="new-password" value={editPassword} onChange={e=>setEditPassword(e.target.value)} placeholder="Mantenha em branco para não alterar"/>
+          <span className="relative block"><input className={field+' pr-12'} type={showEditPassword?'text':'password'} autoComplete="new-password" value={editPassword} onChange={e=>setEditPassword(e.target.value)} placeholder="Mantenha em branco para não alterar"/>
             <button type="button" onClick={()=>setShowEditPassword(!showEditPassword)} aria-label={showEditPassword?'Ocultar senha':'Mostrar senha'} className="absolute right-3 top-4 p-2 text-slate-300">{showEditPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button>
           </span>
         </label>
