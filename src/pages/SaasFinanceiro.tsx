@@ -133,7 +133,7 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
     if(ok)void selectCustomer(chosen.id);
   };
   const generateMonthly=async()=>{
-    if(!/^20\\d{2}-(0[1-9]|1[0-2])$/.test(competence)){setError('Informe uma competência no formato AAAA-MM.');return;}
+    if(!/^20\d{2}-(0[1-9]|1[0-2])$/.test(competence)){setError('Informe uma competência no formato AAAA-MM.');return;}
     if(!window.confirm('Gerar as mensalidades de '+competence+' somente para distribuidoras ativas com recorrência habilitada?'))return;
     if(busy)return;setBusy(true);setError('');setSuccess('');
     try{
