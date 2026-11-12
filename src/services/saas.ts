@@ -145,6 +145,8 @@ export interface AtualizarSaasChamado {
   comDev?:boolean;responsavelId?:string;devResponsavel?:string;solucao?:string;
 }
 export const saasApi = {
+  empresasSuporte: () => saasClient.get<Array<{id:number;nomeFantasia:string;slug:string;status:StatusEmpresa}>>('/saas/admin/suporte/empresas').then(r=>r.data),
+  operadoresSuporte: () => saasClient.get<Array<{id:string;nome:string;codigo:number}>>('/saas/admin/suporte/operadores').then(r=>r.data),
   chamadosSuporte: () => saasClient.get<SaasChamado[]>('/saas/admin/suporte/chamados').then(r=>r.data),
   chamadoSuporte: (id:string) => saasClient.get<SaasChamado>('/saas/admin/suporte/chamados/'+id).then(r=>r.data),
   criarChamadoSuporte: (data:CriarSaasChamado) => saasClient.post<SaasChamado>('/saas/admin/suporte/chamados',data).then(r=>r.data),
