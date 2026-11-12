@@ -7,6 +7,7 @@ type SaasContextValue = {
  user: SaasUser|null;
  loading: boolean;
  login: (codigo:number,senha:string)=>Promise<void>;
+ atualizarPerfil: (dados:{nome?:string;email?:string;senhaAtual?:string;novaSenha?:string})=>Promise<void>;
  logout: ()=>void;
 };
 const SaasContext=createContext<SaasContextValue|null>(null);
@@ -26,11 +27,20 @@ export function SaasAuthProvider({children}:{children:ReactNode}) {
    localStorage.setItem('@Bebfy:saasToken',data.access_token);
    setUser(data.usuario);
  };
+ const atualizarPerfil=async(dados:{nome?:string;email?:string;senhaAtual?:string;novaSenha?:string})=>{
+   const updated=await saasAuthApi.atualizarPerfil(dados);
+   if (dados.novaSenha) {
+     localStorage.removeItem('@Bebfy:saasToken');
+     setUser(null);
+   } else {
+     setUser(updated);
+   }
+ };
  const logout=()=>{
    void saasAuthApi.logout().catch(()=>{});
    clear();
  };
- return <SaasContext.Provider value={{user,loading,login,logout}}>{children}</SaasContext.Provider>;
+ return <SaasContext.Provider value={{user,loading,login,atualizarPerfil,logout}}>{children}</SaasContext.Provider>;
 }
 export function useSaasAuth() {
  const context=useContext(SaasContext);
