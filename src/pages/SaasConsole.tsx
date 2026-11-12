@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
+import { ProfileModal } from '../components/ProfileModal';
 import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
 import { MODULOS, saasApi } from '../services/saas';
@@ -64,6 +65,7 @@ export function SaasConsole() {
   const [filter,setFilter] = useState('');
   const [filterStatus,setFilterStatus] = useState<'TODAS'|StatusEmpresa>('TODAS');
   const [mobileMenu,setMobileMenu] = useState(false);
+  const [profileOpen,setProfileOpen] = useState(false);
   const [graceDays,setGraceDays] = useState(7);
   const [graceReason,setGraceReason] = useState('Prorrogação solicitada pelo cliente para regularização do pagamento.');
   const [creating,setCreating] = useState(false);
@@ -259,7 +261,7 @@ export function SaasConsole() {
     <div className="lg:ml-[270px]">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[.07] bg-[#0a0f1d] px-5 py-5 sm:px-9">
         <div><p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">Bebfy / Administração da plataforma</p><h1 className="mt-1 text-xl font-extrabold sm:text-2xl">{selected?selected.nomeFantasia:tabs.find(t=>t.key===section)?.title}</h1></div>
-        <div className="flex items-center gap-3"><button aria-label="Atualizar dados" onClick={()=>void refresh()} disabled={loading} className="rounded-xl border border-white/10 p-2.5 text-slate-300 hover:bg-white/5 disabled:opacity-40"><RefreshCcw size={18} className={loading?'animate-spin':''}/></button><span className="hidden text-xs font-semibold text-slate-400 sm:block">{user?.nome||'Administrador'}</span><span className="grid h-10 w-10 place-items-center rounded-full border border-emerald-300/20 bg-emerald-300/10 text-sm font-bold text-emerald-300">{(user?.nome||'A').slice(0,1).toUpperCase()}</span></div>
+        <div className="flex items-center gap-3"><button aria-label="Atualizar dados" onClick={()=>void refresh()} disabled={loading} className="rounded-xl border border-white/10 p-2.5 text-slate-300 hover:bg-white/5 disabled:opacity-40"><RefreshCcw size={18} className={loading?'animate-spin':''}/></button><span className="hidden text-xs font-semibold text-slate-400 sm:block">{user?.nome||'Administrador'}</span><span className="grid h-10 w-10 place-items-center rounded-full border border-emerald-300/20 bg-emerald-300/10 text-sm font-bold text-emerald-300">{(user?.nome||'A').slice(0,1).toUpperCase()}</span><button type="button" onClick={()=>setProfileOpen(true)} title="Meu perfil e configurações" aria-label="Meu perfil e configurações" className="rounded-xl border border-white/15 p-2.5 text-emerald-100 hover:bg-white/10"><Settings2 size={19}/></button></div>
       </header>
 
       <div className="mx-auto max-w-[1500px] space-y-6 px-5 py-7 sm:px-9">
@@ -449,5 +451,6 @@ export function SaasConsole() {
         <p className="text-xs leading-relaxed text-slate-400">A empresa será criada no status “Em teste”, com um proprietário inicial e código de operador 1. Oriente o responsável a trocar sua senha após o primeiro acesso.</p>
         <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setCreating(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold">Cancelar</button><button disabled={busy||!planos.length} type="submit" className="flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Criar distribuidora'} <Check size={17}/></button></div>
       </form></div></div>}
+    <ProfileModal mode="saas" open={profileOpen} onClose={()=>setProfileOpen(false)} />
   </main>;
 }
