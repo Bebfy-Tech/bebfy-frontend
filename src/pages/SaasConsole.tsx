@@ -4,6 +4,7 @@ import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, Ci
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import { SaasFinanceiro } from './SaasFinanceiro';
+import { SaasSuporte } from './SaasSuporte';
 import { ProfileModal } from '../components/ProfileModal';
 import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
@@ -11,7 +12,7 @@ import { MODULOS, saasApi } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao, SaasCobranca } from '../services/saas';
 
-type Section = 'visao' | 'empresas' | 'financeiro' | 'planos' | 'modulos' | 'funcionarios';
+type Section = 'visao' | 'empresas' | 'financeiro' | 'suporte' | 'planos' | 'modulos' | 'funcionarios';
 const moduloIcon: Record<NomeModulo,typeof Activity> = {
   CAIXA_PDV:ShoppingCart, FIADOS:CreditCard, VASILHAMES_RETORNAVEIS:Package,
   ENTREGAS_DELIVERY:Truck, PEDIDOS_ATACADO:ShoppingCart, TABELA_PRECO_VOLUME:CreditCard,
@@ -66,6 +67,7 @@ export function SaasConsole() {
   const [filterStatus,setFilterStatus] = useState<'TODAS'|StatusEmpresa>('TODAS');
   const [mobileMenu,setMobileMenu] = useState(false);
   const [profileOpen,setProfileOpen] = useState(false);
+  const [supportCompanyId,setSupportCompanyId] = useState<number|null>(null);
   const [graceDays,setGraceDays] = useState(7);
   const [graceReason,setGraceReason] = useState('Prorrogação solicitada pelo cliente para regularização do pagamento.');
   const [creating,setCreating] = useState(false);
@@ -288,13 +290,14 @@ export function SaasConsole() {
     {key:'visao',icon:LayoutDashboard,title:'Visão geral',desc:'Indicadores do SaaS'},
     {key:'empresas',icon:Building2,title:'Distribuidoras',desc:'Clientes e acessos'},
     {key:'financeiro',icon:Wallet,title:'Financeiro e cobranças',desc:'Recebimentos e bloqueios'},
+    {key:'suporte',icon:Activity,title:'Central de suporte',desc:'Ordens e atendimento pelo WhatsApp'},
     {key:'planos',icon:CreditCard,title:'Planos e assinaturas',desc:'Planos cadastrados'},
     {key:'modulos',icon:Boxes,title:'Módulos da plataforma',desc:'Recursos por empresa'},
     {key:'funcionarios',icon:Users,title:'Funcionários do SaaS',desc:'Equipe e permissões'},
   ] as {key:Section;icon:typeof Activity;title:string;desc:string}[]).filter(tab => {
     if(user?.cargo==='SUPER_ADMIN') return true;
     const necessary:Partial<Record<Section,string>>={
-      empresas:'EMPRESAS',financeiro:'EMPRESAS',planos:'PLANOS',modulos:'MODULOS',funcionarios:'FUNCIONARIOS',
+      empresas:'EMPRESAS',financeiro:'EMPRESAS',suporte:'SUPORTE',planos:'PLANOS',modulos:'MODULOS',funcionarios:'FUNCIONARIOS',
     };
     return tab.key==='visao' || user?.permissoes.includes(necessary[tab.key] || '');
   });
@@ -332,6 +335,7 @@ export function SaasConsole() {
 
           {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
           {section==='financeiro'&&<SaasFinanceiro onOpenCompany={id=>void openCompany(id)}/>}
+          {section==='suporte'&&<SaasSuporte empresas={empresas} initialCompanyId={supportCompanyId} onOpenCompany={id=>void openCompany(id)}/>}
           {section==='visao'&&<>
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Visão geral da <span className="text-emerald-300">plataforma.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={exportarResumo} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-white/5"><Download size={17}/> Exportar relatório CSV</button><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Nova distribuidora</button></div></div>
             <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
