@@ -6,6 +6,7 @@ import {
   ShoppingCart, Users, Wallet, X,
 } from 'lucide-react';
 import './landing.css';
+import { BebfyBrand } from '../components/BebfyBrand';
 
 const modules = [
   { icon: ShoppingCart, title: 'Frente de caixa', description: 'Registre vendas e pagamentos no balcão.' },
@@ -43,14 +44,14 @@ type Preview = keyof typeof previews;
 
 function Logo({ light = false }: { light?: boolean }) {
   return <Link to="/" className={`lp-brand ${light ? 'lp-brand-light' : ''}`} aria-label="Bebfy — página inicial">
-    <img src="/bebfy-logo.svg" alt="bebfy" />
+    <BebfyBrand light={light} compact />
   </Link>;
 }
 
 function DashboardMock() {
   return <div className="lp-dashboard-mock" aria-label="Painel ilustrativo do Bebfy, com dados fictícios">
     <div className="lp-mock-sidebar">
-      <div className="lp-mock-mark">b.</div>
+      <div className="lp-mock-mark"><img src="/bebfy-symbol.svg" alt="Símbolo Bebfy"/></div>
       <span className="selected"><BarChart3 size={14}/> <span>Visão geral</span></span>
       <span><ShoppingCart size={14}/> <span>PDV</span></span>
       <span><Package size={14}/> <span>Produtos</span></span>
