@@ -102,7 +102,7 @@ export function SaasConsole() {
       if(companies.status==='fulfilled')setEmpresas(companies.value);
       if(allPlans.status==='fulfilled')setPlanos(allPlans.value);
       try {setModDescriptions(await saasApi.descricoesModulos());} catch { /* A role may have no MODULOS permission. */ }
-      setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')||user?.permissoes.includes('MODULOS')));
+      setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')||user?.permissoes.includes('MODULOS')||user?.permissoes.includes('SUPORTE')));
     } catch (e) {
       const status=(e as {response?:{status?:number}}).response?.status;
       if(status===401||status===403) setForbidden(true);
