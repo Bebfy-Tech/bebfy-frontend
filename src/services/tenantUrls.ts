@@ -1,7 +1,7 @@
 /** Public URLs: /{loja} for login, /{loja}/{page} for operations. */
 export const RESERVED_PATHS = [
   'saas', 'api', 'admin', 'acessar', 'login', 'logout', 'dashboard', 'pdv',
-  'primeiro-acesso', 'produtos', 'clientes', 'funcionarios', 'categorias',
+  'primeiro-acesso', 'recuperar-senha', 'produtos', 'clientes', 'funcionarios', 'categorias',
   'lotes', 'estoque', 'financeiro', 'caixas', 'vendas', 'delivery',
   'fiados', 'vasilhames', 'fornecedores', 'relatorios', 'configuracoes',
   'assets', 'static', 'www', 'health', 'favicon.ico', 'robots.txt',
