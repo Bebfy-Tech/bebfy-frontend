@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Code2, Filter, MessageCircle, Plus, RefreshCcw, Search, ShieldCheck, Timer, X } from 'lucide-react';
 import { saasApi } from '../services/saas';
-import type { SaasChamado, SaasChamadoEvento, CriarSaasChamado, AtualizarSaasChamado, ChamadoStatus, ChamadoCategoria, ChamadoPrioridade, EmpresaSaas } from '../services/saas';
+import type { SaasChamado, SaasChamadoEvento, SaasChamadoAnexo, CriarSaasChamado, AtualizarSaasChamado, ChamadoStatus, ChamadoCategoria, ChamadoPrioridade, EmpresaSaas } from '../services/saas';
 
 const statuses: Record<ChamadoStatus,string> = {
   PENDENTE:'Pendente',EM_ATENDIMENTO:'Em atendimento',AGUARDANDO_CLIENTE:'Aguardando cliente',
@@ -35,6 +35,8 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
   const [editForm,setEditForm]=useState<AtualizarSaasChamado>({});
   const [newTicket,setNewTicket]=useState(false);
   const [interaction,setInteraction]=useState('');
+  const [attachments,setAttachments]=useState<SaasChamadoAnexo[]>([]);
+  const [evidence,setEvidence]=useState<File|null>(null);
   const [statusFilter,setStatusFilter]=useState('TODOS');
   const [companyFilter,setCompanyFilter]=useState(initialCompanyId||0);
   const [devFilter,setDevFilter]=useState('TODOS');
@@ -72,7 +74,7 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
     setEditForm({titulo:t.titulo,descricao:t.descricao,contatoNome:t.contatoNome||'',
       contatoTelefone:t.contatoTelefone||'',categoria:t.categoria,prioridade:t.prioridade,status:t.status,
       comDev:t.comDev,responsavelId:t.responsavelId||'',devResponsavel:t.devResponsavel||'',solucao:t.solucao||''});
-    try{setSelected(await saasApi.chamadoSuporte(t.id));}catch(e){setError(errText(e));}
+    try{const [chamado,anexos]=await Promise.all([saasApi.chamadoSuporte(t.id),saasApi.anexosChamado(t.id)]);setSelected(chamado);setAttachments(anexos);}catch(e){setError(errText(e));}
   };
   const submitCreate=async(e:React.FormEvent)=>{
     e.preventDefault();
@@ -94,6 +96,21 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
     if(status==='RESOLVIDO'){void open(t);setEditing(true);setEditForm(p=>({...p,status}));return;}
     const ok=await run(()=>saasApi.atualizarChamadoSuporte(t.id,{status,comDev:status==='COM_DEV'?true:status==='PENDENTE'?false:t.comDev}),'Situação alterada.');
     if(ok&&selected?.id===t.id)void open(t);
+  };
+  const uploadEvidence=async(e:React.FormEvent)=>{
+    e.preventDefault();if(!selected||!evidence)return;
+    if(evidence.size>3*1024*1024){setError('O arquivo deve ter até 3 MB.');return;}
+    const ok=await run(()=>saasApi.anexarChamado(selected.id,evidence),'Evidência anexada à OS.');
+    if(ok){setEvidence(null);void open(selected);}
+  };
+  const downloadEvidence=async(anexo:SaasChamadoAnexo)=>{
+    setError('');
+    try{
+      const blob=await saasApi.baixarAnexoChamado(anexo.chamadoId,anexo.id);
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=anexo.nome;a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(e){setError(errText(e));}
   };
   const downloadCsv=()=>{
     const columns=[['OS','Distribuidora','Título','Prioridade','Status','Com Dev','Dev responsável','Criado em'],
@@ -155,6 +172,18 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
         {selected.status!=='RESOLVIDO'&&<button type="button" disabled={busy} onClick={()=>void changeStatus(selected,'RESOLVIDO')} className="rounded-xl border border-emerald-400/35 px-4 py-2 text-xs text-emerald-200">Resolver OS</button>}
         {whatsappLink(selected.contatoTelefone,selected.numero)&&<a href={whatsappLink(selected.contatoTelefone,selected.numero)} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl border border-emerald-400/35 px-4 py-2 text-xs text-emerald-200"><MessageCircle size={15}/> Abrir WhatsApp</a>}
       </div>
+      <section className="mt-6 rounded-xl border border-white/10 bg-white/[.025] p-4">
+        <h4 className="text-sm font-bold">Evidências e anexos da OS</h4>
+        <p className="mt-1 text-xs text-slate-400">Arquivos privados, disponíveis somente para operadores autorizados. Formatos PDF, JPG e PNG até 3 MB.</p>
+        <form onSubmit={e=>void uploadEvidence(e)} className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="min-w-[220px] flex-1 text-xs">Arquivo do atendimento
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              className={input} onChange={e=>setEvidence(e.target.files?.[0]||null)}/>
+          </label>
+          <button type="submit" disabled={!evidence||busy} className="min-h-11 rounded-xl border border-emerald-300/25 px-4 py-2 text-xs font-bold text-emerald-200 disabled:opacity-40">Anexar evidência</button>
+        </form>
+        <div className="mt-3 space-y-2">{attachments.map(a=><div key={a.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/5 p-3 text-xs"><span>{a.nome} · {(a.tamanho/1024).toFixed(0)} KB</span><button type="button" className="font-bold text-emerald-200" onClick={()=>void downloadEvidence(a)}>Baixar</button></div>)}{!attachments.length&&<p className="text-xs text-slate-400">Nenhuma evidência anexada.</p>}</div>
+      </section>
       <h4 className="mt-7 font-bold">Histórico do atendimento</h4>
       <div className="mt-3 max-h-72 space-y-3 overflow-y-auto">{(selected.eventos||[]).map((event:SaasChamadoEvento)=><div key={event.id} className="rounded-xl border border-white/10 bg-white/[.025] p-3"><p className="text-xs font-bold text-emerald-200">{event.acao.replaceAll('_',' ')} <span className="ml-2 font-normal text-slate-400">{when(event.criadoEm)} · {operators.find(u=>u.id===event.operadorId)?.nome||'Operador '+event.operadorId.slice(0,8)}</span></p><p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">{event.mensagem}</p></div>)}</div>
       <form onSubmit={e=>void addInteraction(e)} className="mt-4"><label className="text-xs text-slate-300">Registrar atendimento feito pelo WhatsApp / contato interno<textarea required minLength={2} className={input+' min-h-24'} value={interaction} onChange={e=>setInteraction(e.target.value)} placeholder="Ex.: Cliente informou erro no PDV pelo WhatsApp. Solicitamos print..."/></label><button disabled={busy} type="submit" className="mt-3 rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-[#102a21]">Registrar interação</button></form>
