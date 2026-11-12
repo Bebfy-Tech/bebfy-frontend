@@ -99,6 +99,51 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   expect(supplier?.endereco).toBe('Rua QA, 123');
   expect(supplier?.inscricaoEstadual).toBe('IE-TESTE-001');
 
+  // SaaS toggle must immediately govern both tenant navigation and server APIs.
+  const adminLogin = await request.post(API+'/saas/auth/login', {
+    data: { codigo: Number(process.env.E2E_SAAS_CODE), senha: process.env.E2E_SAAS_PASSWORD },
+  });
+  expect(adminLogin.status()).toBe(200);
+  const platformToken = (await adminLogin.json() as {access_token:string}).access_token;
+  const adminHeaders = { Authorization:'Bearer '+platformToken };
+  const companies = await request.get(API+'/saas/admin/empresas',{headers:adminHeaders});
+  expect(companies.status()).toBe(200);
+  const enterprise = (await companies.json() as Array<{id:number;slug:string}>)
+    .find(c=>c.slug===SLUG);
+  expect(enterprise).toBeTruthy();
+  const moduleToggle = API+'/saas/admin/empresas/'+enterprise!.id+'/modulos';
+  const disabled = await request.patch(moduleToggle,{
+    headers:adminHeaders,data:{modulo:'COMPRAS_FORNECEDORES',ativo:false},
+  });
+  expect(disabled.status()).toBe(200);
+  try {
+    const disabledModules = await request.get(API+'/auth/modulos',{
+      headers:{'x-tenant':SLUG,Authorization:'Bearer '+tokenAnterior},
+    });
+    expect(disabledModules.status()).toBe(200);
+    expect((await disabledModules.json() as {modulos:Record<string,boolean>}).modulos.COMPRAS_FORNECEDORES).toBe(false);
+    // Even an already-authenticated user cannot open the disabled supplier page.
+    await a.reload();
+    await expect(a.getByRole('navigation',{name:'Menu da distribuidora'})
+      .getByRole('link',{name:/Fornecedores/})).toHaveCount(0);
+    await expect(a.getByRole('heading',{name:'Fornecedores'})).toHaveCount(0);
+    await a.goto('/'+SLUG+'/fornecedores');
+    await expect(a.getByRole('heading',{name:'Módulo não disponível'})).toBeVisible();
+    const denied = await request.get(API+'/fornecedores',{
+      headers:{'x-tenant':SLUG,Authorization:'Bearer '+tokenAnterior},
+    });
+    expect(denied.status()).toBe(403);
+  } finally {
+    const restored = await request.patch(moduleToggle,{
+      headers:adminHeaders,data:{modulo:'COMPRAS_FORNECEDORES',ativo:true},
+    });
+    expect(restored.status()).toBe(200);
+  }
+  await a.reload();
+  await expect(a.getByRole('heading',{name:'Fornecedores'})).toBeVisible();
+  await expect(a.getByRole('navigation',{name:'Menu da distribuidora'})
+    .getByRole('link',{name:/Fornecedores/})).toBeVisible();
+
   await a.goto('/'+SLUG+'/lotes');
   await expect(a.getByRole('heading', { name: 'Lotes e validade' })).toBeVisible();
   await a.getByRole('button', { name: 'Novo cadastro' }).click();
