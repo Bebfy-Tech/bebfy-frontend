@@ -7,9 +7,9 @@ const API = process.env.E2E_API_URL || 'http://localhost:3000';
 
 async function entrar(page: import('@playwright/test').Page, senha: string) {
   await page.goto('/'+SLUG);
-  await page.getByPlaceholder('Ex: 1, 10').fill('1');
+  await page.getByLabel('Código do funcionário').fill('1');
   await page.locator('input[type="password"]').first().fill(senha);
-  await page.getByRole('button', { name: 'Autenticar no Bebfy' }).click();
+  await page.getByRole('button', { name: 'Entrar no sistema' }).click();
 }
 
 test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS', async ({ browser, request }, testInfo) => {
@@ -21,8 +21,8 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await expect(a.locator('body')).toContainText(/Bebfy|bebfy/i);
 
   await a.goto('/acessar');
-  await a.getByLabel('Identificador da loja').fill(SLUG);
-  await a.getByRole('button', { name: 'Continuar' }).click();
+  await a.getByLabel('Identificador da distribuidora').fill(SLUG);
+  await a.getByRole('button', { name: 'Continuar para o login' }).click();
   await expect(a).toHaveURL(new RegExp('/'+SLUG+'$'));
   await entrar(a, SENHA_INICIAL);
   await expect(a.getByText('Defina sua senha pessoal')).toBeVisible();
@@ -260,14 +260,14 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   const b = await contextB.newPage();
   await entrar(b, SENHA_ROTACIONADA);
   await expect(b.getByRole('dialog', { name: /já está conectado/i })).toBeVisible();
-  await b.getByRole('button', { name: 'Não', exact: true }).click();
+  await b.getByRole('button', { name: 'Cancelar', exact: true }).click();
   const aindaValida = await request.get(API + '/auth/perfil', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + tokenAnterior },
   });
   expect(aindaValida.status()).toBe(200);
-  await b.getByRole('button', { name: 'Autenticar no Bebfy' }).click();
+  await b.getByRole('button', { name: 'Entrar no sistema' }).click();
   await expect(b.getByRole('dialog', { name: /já está conectado/i })).toBeVisible();
-  await b.getByRole('button', { name: 'Sim, acessar' }).click();
+  await b.getByRole('button', { name: 'Continuar e desconectar' }).click();
   await expect(b).toHaveURL(new RegExp('/'+SLUG+'/dashboard'));
   const revogada = await request.get(API + '/auth/perfil', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + tokenAnterior },
@@ -297,7 +297,7 @@ test('interface em celular: login, navegação, consulta de produtos e PDV', asy
   await entrar(page, SENHA_ROTACIONADA);
   const modal = page.getByRole('dialog', { name: /já está conectado/i });
   await expect(modal).toBeVisible();
-  await page.getByRole('button', { name: 'Sim, acessar' }).click();
+  await page.getByRole('button', { name: 'Continuar e desconectar' }).click();
   await expect(page).toHaveURL(new RegExp('/'+SLUG+'/dashboard'));
   await page.getByRole('button', { name: 'Abrir navegação' }).click();
   await page.getByRole('link', { name: /Produtos/i }).first().click();
