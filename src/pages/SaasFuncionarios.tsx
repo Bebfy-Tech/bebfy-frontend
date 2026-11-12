@@ -8,6 +8,7 @@ const options = [
   ['PLANOS', 'Planos e assinaturas'],
   ['MODULOS', 'Módulos'],
   ['FUNCIONARIOS', 'Gestão de funcionários'],
+  ['SUPORTE', 'Central de suporte'],
 ] as const;
 const field = 'saas-field mt-2 min-h-12 w-full rounded-xl border border-[#425658] bg-[#172327] px-4 py-3 text-white outline-none focus:border-emerald-300';
 const btn = 'rounded-xl bg-[#53dcae] px-5 py-3 text-sm font-bold text-[#11382e] hover:bg-[#7ceac1] disabled:opacity-50';
