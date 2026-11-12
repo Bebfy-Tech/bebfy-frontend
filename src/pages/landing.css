@@ -244,3 +244,17 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-new *, .lp-new *::before,.lp-new *::after { scroll-behavior: auto!important; transition: none!important; }
 }
+
+/* Brand refinements and more restrained editorial palette. */
+.lp-brand { width: auto; height: 62px; }
+.lp-brand > span { display: inline-flex; align-items: center; }
+.lp-brand img { width: 21px; height: 38px; object-fit: contain; }
+.lp-mock-mark img { width: 17px; height: 31px; object-fit: contain; filter: brightness(0) invert(1); }
+.lp-dark-top {
+  background: radial-gradient(ellipse at 72% 22%,rgba(61,103,92,.17),transparent 44%),
+              linear-gradient(119deg,#13181d,#1a2427 69%,#152022);
+}
+.lp-new .lp-footer-new { background: #111a1d; }
+.lp-new .lp-final { background: linear-gradient(120deg,#172023,#23312f); }
+.lp-new .lp-hero-graphic { filter: saturate(.91); }
+@media(max-width:640px) { .lp-brand { height: 53px; } .lp-brand img { height: 34px; width: 19px; } }
