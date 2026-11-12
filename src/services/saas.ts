@@ -161,7 +161,7 @@ export const saasApi = {
   anexosChamado: (id:string) => saasClient.get<SaasChamadoAnexo[]>('/saas/admin/suporte/chamados/'+id+'/anexos').then(r=>r.data),
   anexarChamado: (id:string,file:File) => {
     const form=new FormData();form.append('arquivo',file);
-    return saasClient.post<SaasChamadoAnexo>('/saas/admin/suporte/chamados/'+id+'/anexos',form).then(r=>r.data);
+    return saasClient.post<SaasChamadoAnexo>('/saas/admin/suporte/chamados/'+id+'/anexos',form,{headers:{'Content-Type':undefined}}).then(r=>r.data);
   },
   baixarAnexoChamado: (id:string,anexoId:string) => saasClient.get<Blob>('/saas/admin/suporte/chamados/'+id+'/anexos/'+anexoId,{responseType:'blob'}).then(r=>r.data),
   chamadosSuporte: () => saasClient.get<SaasChamado[]>('/saas/admin/suporte/chamados').then(r=>r.data),
@@ -174,7 +174,7 @@ export const saasApi = {
   anexarFinanceiro: (id:number,arquivo:File,tipo:'BOLETO'|'COMPROVANTE',cobrancaId?:string) => {
     const form=new FormData();form.append('arquivo',arquivo);form.append('tipo',tipo);
     if(cobrancaId)form.append('cobrancaId',cobrancaId);
-    return saasClient.post<SaasAnexoFinanceiro>(`/saas/admin/financeiro/empresas/${id}/anexos`,form).then(r=>r.data);
+    return saasClient.post<SaasAnexoFinanceiro>(`/saas/admin/financeiro/empresas/${id}/anexos`,form,{headers:{'Content-Type':undefined}}).then(r=>r.data);
   },
   baixarAnexoFinanceiro: (id:number,anexoId:string) => saasClient.get<Blob>(`/saas/admin/financeiro/empresas/${id}/anexos/${anexoId}`,{responseType:'blob'}).then(r=>r.data),
   configurarRecorrencia: (id:number,dados:{recorrente:boolean;diaVencimento:number}) => saasClient.patch('/saas/admin/financeiro/empresas/'+id+'/recorrencia',dados).then(r=>r.data),
