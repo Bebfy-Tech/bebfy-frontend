@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
-import { PrivateRoute } from './PrivateRoute';
+import { PrivateRoute, ModuleRoute } from './PrivateRoute';
 import { validSlug } from '../services/tenantUrls';
 import { AppShell } from '../components/AppShell';
 import { LandingPage } from '../pages/LandingPage';
@@ -48,22 +48,22 @@ export const AppRoutes = () => (
         <Route element={<PrivateRoute />}>
           <Route element={<AppShell />}>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="pdv" element={<PDV />} />
-            <Route path="vendas" element={<VendasPage />} />
-            <Route path="caixas" element={<CaixasPage />} />
-            <Route path="delivery" element={<DeliveryPage />} />
+            <Route element={<ModuleRoute modulo="CAIXA_PDV" />}><Route path="pdv" element={<PDV />} /></Route>
+            <Route element={<ModuleRoute modulo="CAIXA_PDV" />}><Route path="vendas" element={<VendasPage />} /></Route>
+            <Route element={<ModuleRoute modulo="CAIXA_PDV" />}><Route path="caixas" element={<CaixasPage />} /></Route>
+            <Route element={<ModuleRoute modulo="ENTREGAS_DELIVERY" />}><Route path="delivery" element={<DeliveryPage />} /></Route>
             <Route path="produtos" element={<CadastroPage resource="produtos" />} />
             <Route path="categorias" element={<CadastroPage resource="categorias" />} />
-            <Route path="lotes" element={<CadastroPage resource="lotes" />} />
-            <Route path="fornecedores" element={<CadastroPage resource="fornecedores" />} />
+            <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
+            <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<CadastroPage resource="fornecedores" />} /></Route>
             <Route path="clientes" element={<CadastroPage resource="clientes" />} />
             <Route path="funcionarios" element={<CadastroPage resource="funcionarios" />} />
             <Route path="estoque" element={<EstoquePage />} />
-            <Route path="estoque/importar-xml" element={<ImportarXmlPage />} />
-            <Route path="fiados" element={<FiadosPage />} />
-            <Route path="vasilhames" element={<VasilhamesPage />} />
+            <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="estoque/importar-xml" element={<ImportarXmlPage />} /></Route>
+            <Route element={<ModuleRoute modulo="FIADOS" />}><Route path="fiados" element={<FiadosPage />} /></Route>
+            <Route element={<ModuleRoute modulo="VASILHAMES_RETORNAVEIS" />}><Route path="vasilhames" element={<VasilhamesPage />} /></Route>
             <Route path="financeiro" element={<FinanceiroPage />} />
-            <Route path="relatorios" element={<RelatoriosPage />} />
+            <Route element={<ModuleRoute modulo="RELATORIOS_AVANCADOS" />}><Route path="relatorios" element={<RelatoriosPage />} /></Route>
             <Route path="configuracoes" element={<ConfiguracoesPage />} />
             <Route path="ajuda" element={<AjudaPage />} />
           </Route>
