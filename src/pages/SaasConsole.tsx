@@ -4,6 +4,7 @@ import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, Ci
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import './saas-premium.css';
+import { BebfyBrand } from '../components/BebfyBrand';
 import { MODULOS, saasApi } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa } from '../services/saas';
@@ -154,12 +155,12 @@ export function SaasConsole() {
 
   return <main className="saas-premium min-h-screen bg-[#061e1e] font-sans text-[#effff9]">
     <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-[#0a0f1d] px-5 py-4">
-      <Link to="/" aria-label="Bebfy - início" className="inline-flex items-center"><img src="/bebfy-logo.svg" alt="bebfy" className="h-11 w-28 object-contain brightness-0 invert"/></Link>
+      <Link to="/" aria-label="Bebfy - início" className="inline-flex items-center"><BebfyBrand light compact /></Link>
       <button type="button" aria-label={mobileMenu ? "Fechar menu" : "Abrir menu"} aria-expanded={mobileMenu} aria-controls="saas-main-navigation" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button>
     </div>
     <aside className={`fixed inset-y-0 left-0 z-40 w-[270px] border-r border-white/[.08] bg-[#0a0f1d] p-5 transition-transform lg:translate-x-0 ${mobileMenu?'translate-x-0':'-translate-x-full'}`}>
-      <Link to="/" aria-label="Bebfy - início" className="mb-1 inline-flex items-center px-2"><img src="/bebfy-logo.svg" alt="bebfy" className="h-16 w-36 object-contain brightness-0 invert"/></Link>
-      <div className="mb-10 ml-[57px] text-[10px] font-black tracking-[.19em] text-emerald-400">ADMINISTRAÇÃO SAAS</div>
+      <Link to="/" aria-label="Bebfy - início" className="mb-1 inline-flex items-center px-2"><BebfyBrand light compact /></Link>
+      <div className="mb-10 ml-[57px] text-[10px] font-black tracking-[.19em] text-emerald-400">CENTRAL DA PLATAFORMA</div>
       <p className="px-3 text-[10px] font-black tracking-[.2em] text-slate-500">PLATAFORMA</p>
       <nav id="saas-main-navigation" aria-label="Navegação administrativa" className="mt-3 space-y-1.5">
         {tabs.map(t=><button key={t.key} onClick={()=>nav(t.key)} className={`w-full rounded-xl px-3.5 py-3.5 text-left transition ${section===t.key?'bg-emerald-400/15 text-emerald-300':'text-slate-400 hover:bg-white/5 hover:text-white'}`}><span className="flex items-center gap-3 text-sm font-bold"><t.icon size={19}/>{t.title}</span></button>)}
