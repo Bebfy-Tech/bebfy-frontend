@@ -361,6 +361,35 @@ export function SaasConsole() {
     </div>
 
 
+    {moduleEditor&&<div role="dialog" aria-modal="true" aria-labelledby="saas-module-title" className="fixed inset-0 z-[85] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
+      <div className="max-h-[95dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#202c2e] p-6 text-white shadow-2xl sm:p-8">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">MÓDULO DA PLATAFORMA</p><h2 id="saas-module-title" className="mt-1 text-2xl font-extrabold">{modDescriptions.find(m=>m.modulo===moduleEditor)?.nome||MODULOS.find(m=>m.key===moduleEditor)?.nome}</h2></div><button type="button" onClick={()=>setModuleEditor(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={22}/></button></div>
+        {alert&&<p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-200">{alert}</p>}
+        <form onSubmit={e=>void saveModulo(e)} className="space-y-4 rounded-xl border border-white/10 bg-white/[.025] p-4">
+          <h3 className="text-sm font-extrabold">Apresentação comercial</h3>
+          <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-300">Nome exibido<input className={input+' mt-2'} required maxLength={90} minLength={2} value={moduleName} onChange={e=>setModuleName(e.target.value)}/></label><label className="text-xs font-semibold text-slate-300">Código fixo<input className={input+' mt-2'} disabled value={moduleEditor}/></label></div>
+          <label className="block text-xs font-semibold text-slate-300">Descrição curta<textarea className={input+' mt-2'} required maxLength={240} minLength={2} rows={2} value={moduleDescription} onChange={e=>setModuleDescription(e.target.value)}/></label>
+          <button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-4 py-3 text-xs font-extrabold text-[#0c3029] disabled:opacity-50">Salvar apresentação</button>
+        </form>
+        <div className="space-y-3">
+          <div><h3 className="text-sm font-extrabold">Gerenciar por distribuidora</h3><p className="mt-1 text-xs text-slate-400">Libere ou retire atribuições avulsas. Os módulos incluídos em planos também são apresentados.</p></div>
+          <div className="relative"><Search size={17} className="pointer-events-none absolute left-3 top-3.5 text-slate-400"/><input className={input+' pl-10'} placeholder="Buscar distribuidora..." value={moduleSearch} onChange={e=>setModuleSearch(e.target.value)}/></div>
+          <div className="max-h-[260px] space-y-2 overflow-y-auto pr-1">
+            {empresas.filter(e=>e.nomeFantasia.toLowerCase().includes(moduleSearch.trim().toLowerCase())).map(e=>{
+              const viaPlano=Boolean(planos.find(p=>p.id===e.planoId)?.modulosPadrao?.includes(moduleEditor));
+              const assigned=e.modulosAtivos.find(a=>a.modulo===moduleEditor);
+              const enabled=assigned?.ativo ?? viaPlano;
+              return <div key={e.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3">
+                <div className="min-w-0"><strong className="block truncate text-sm">{e.nomeFantasia}</strong><span className={'mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold '+(viaPlano?'bg-emerald-300/10 text-emerald-200':'bg-white/10 text-slate-300')}>{viaPlano?'Via plano':enabled?'Liberado avulso':'Não atribuído'}</span></div>
+                <button type="button" role="switch" aria-label={'Acesso ao módulo para '+e.nomeFantasia} aria-checked={enabled} disabled={busy} onClick={()=>void updateModuleCompany(e.id,moduleEditor,!enabled)} className={'relative h-7 w-12 shrink-0 rounded-full '+(enabled?'bg-emerald-400':'bg-slate-600')}><span className={'absolute top-1 h-5 w-5 rounded-full bg-white '+(enabled?'left-6':'left-1')}/></button>
+              </div>;
+            })}
+            {!empresas.length&&<p className="p-4 text-center text-xs text-slate-400">Nenhuma distribuidora cadastrada.</p>}
+          </div>
+          <p className="text-xs text-slate-400">As atribuições de módulos não substituem verificações de autorização no backend. O controle de acesso deve ser validado por rota antes da comercialização.</p>
+        </div>
+      </div>
+    </div>}
     {companyEdit&&selected&&<div role="dialog" aria-modal="true" aria-labelledby="company-edit-title" className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
       <form onSubmit={e=>void saveCompanyDetails(e)} className="max-h-[95dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#222b2e] p-6 text-white shadow-2xl sm:p-8">
         <div className="flex items-center justify-between gap-2"><div><p className="text-xs font-bold tracking-widest text-emerald-300">DISTRIBUIDORA #{selected.id}</p><h2 id="company-edit-title" className="mt-1 text-2xl font-extrabold">Editar cadastro</h2></div><button type="button" onClick={()=>setCompanyEdit(false)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={21}/></button></div>
