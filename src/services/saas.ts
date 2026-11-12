@@ -77,12 +77,15 @@ export interface CriarEmpresaSaas {
   senhaInicial: string;
 }
 
+export interface SaasModuloDescricao { modulo: NomeModulo; nome: string; descricao: string; atualizadoEm: string }
 export interface AtualizarEmpresaSaas {
   nomeFantasia?: string; razaoSocial?: string; documento?: string; telefone?: string;
   nomeResponsavel?: string; cpfResponsavel?: string; emailResponsavel?: string; senhaTemporaria?: string;
 }
 
 export const saasApi = {
+  descricoesModulos: () => saasClient.get<SaasModuloDescricao[]>('/saas/admin/modulos').then(r=>r.data),
+  personalizarModulo: (modulo: NomeModulo, dados: {nome:string;descricao:string}) => saasClient.patch<SaasModuloDescricao>('/saas/admin/modulos/'+modulo,dados).then(r=>r.data),
   empresas: () => saasClient.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
   empresa: (id: number) => saasClient.get<EmpresaSaas>(`/saas/admin/empresas/${id}`).then(r => r.data),
   planos: () => saasClient.get<PlanoSaas[]>('/saas/admin/planos').then(r => r.data),
