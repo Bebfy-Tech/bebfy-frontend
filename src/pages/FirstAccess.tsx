@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { BebfyBrand } from '../components/BebfyBrand';
 import { useAuth } from '../contexts/AuthContext';
 import { saasApi } from '../services/saas';
 import { tenantPath, saasLoginPath, saasPanelPath } from '../services/tenantUrls';
@@ -56,7 +57,7 @@ export function FirstAccess() {
   }
   return <main className="grid min-h-screen place-items-center bg-gradient-to-br from-[#052521] via-[#0a4335] to-[#062e2c] px-4 py-10 text-white">
     <form onSubmit={e=>void salvar(e)} className="w-full max-w-md rounded-3xl border border-emerald-200/25 bg-[#0c332c] p-7 shadow-[0_30px_75px_rgba(0,0,0,.3)] sm:p-9">
-      <div className="mb-5 flex items-center justify-between gap-3"><img src="/bebfy-logo.svg" alt="bebfy" className="h-14 w-36 object-contain brightness-0 invert"/><div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-300/10 text-emerald-200"><KeyRound size={23}/></div></div>
+      <div className="mb-5 flex items-center justify-between gap-3"><BebfyBrand light compact /><div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-300/10 text-emerald-200"><KeyRound size={23}/></div></div>
       <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">{isSaasArea ? 'Segurança da administração SaaS' : 'Segurança da sua distribuidora'}</p>
       <h1 className="mt-2 text-3xl font-extrabold">Defina sua senha pessoal</h1>
       <p className="mt-3 text-sm leading-relaxed text-slate-400">Este é seu primeiro acesso. Antes de entrar no sistema, confirme a senha inicial e crie uma senha exclusiva, que só você conhece.</p>
