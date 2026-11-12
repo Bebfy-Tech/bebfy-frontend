@@ -1,7 +1,7 @@
 import { saasClient } from './saasAuth';
 
 export type TipoPlanoSaas = 'VAREJO_BASICO' | 'VAREJO_PRO' | 'ATACADO_FULL' | 'PERSONALIZADO';
-export interface PlanoEntrada { nome: string; tipo: TipoPlanoSaas; precoMensal: number; }
+export interface PlanoEntrada { nome: string; tipo: TipoPlanoSaas; precoMensal: number; modulosPadrao?: NomeModulo[]; }
 
 export type StatusEmpresa = 'ATIVA' | 'EM_TESTE' | 'SUSPENSA' | 'CANCELADA';
 export type NomeModulo = 'CAIXA_PDV' | 'FIADOS' | 'VASILHAMES_RETORNAVEIS' | 'ENTREGAS_DELIVERY' | 'PEDIDOS_ATACADO' | 'TABELA_PRECO_VOLUME' | 'ROTAS_CAMINHOES' | 'CREDITO_B2B' | 'ESTOQUE_LOTES' | 'COMPRAS_FORNECEDORES' | 'RELATORIOS_AVANCADOS';
@@ -26,6 +26,7 @@ export interface PlanoSaas {
   tipo: TipoPlanoSaas;
   precoMensal: string | number;
   criadoEm: string;
+  modulosPadrao?: NomeModulo[];
 }
 export interface ModuloEmpresa {
   id: number;
