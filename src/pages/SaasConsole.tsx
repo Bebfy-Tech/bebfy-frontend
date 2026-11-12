@@ -393,6 +393,20 @@ export function SaasConsole() {
               </div>}
               {!!selected.historicoLiberacoes?.length&&<div className="mt-6 border-t border-white/10 pt-5"><h4 className="mb-3 text-sm font-bold">Histórico de liberações</h4><div className="space-y-2">{selected.historicoLiberacoes.map(item=><div key={item.id} className="flex flex-wrap justify-between gap-2 rounded-lg bg-[#09121e] p-3 text-xs"><span>{item.dias} dias · {item.motivo}</span><span className="text-slate-400">{new Date(item.criadoEm).toLocaleString('pt-BR')} · até {new Date(item.liberadoAte).toLocaleDateString('pt-BR')}</span></div>)}</div></div>}
             </section>
+            <section className={card+' space-y-5 p-6'}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><h3 className="text-base font-extrabold">Cobranças e boletos · Controle manual</h3><p className="mt-1 text-xs text-slate-400">Registre vencimentos e pagamentos informados. Sem emissão de boletos ou conciliação bancária.</p></div>
+                <button type="button" onClick={()=>{setBillingOpen(true);setAlert('');}} className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/25 px-4 py-3 text-xs font-bold text-emerald-200"><Plus size={16}/> Nova cobrança</button>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-white/10">
+                <table className="w-full min-w-[580px] text-left text-xs"><thead className="bg-white/5 text-slate-300"><tr><th className="p-3">REFERÊNCIA</th><th className="p-3">VALOR</th><th className="p-3">VENCIMENTO</th><th className="p-3">SITUAÇÃO</th><th className="p-3">AÇÃO</th></tr></thead>
+                  <tbody className="divide-y divide-white/10">{cobrancas.map(b=>{
+                    const vencido=!b.pagoEm&&new Date(b.vencimento).getTime()<Date.now();
+                    return <tr key={b.id}><td className="p-3"><strong className="block text-sm">{b.referencia}</strong>{b.linhaDigitavel&&<span className="block max-w-[200px] truncate text-[11px] text-slate-400" title={b.linhaDigitavel}>{b.linhaDigitavel}</span>}</td><td className="p-3">{money(Number(b.valor))}</td><td className="p-3">{new Date(b.vencimento).toLocaleDateString('pt-BR')}</td><td className="p-3"><span className={'rounded-full px-2 py-1 font-bold '+(b.pagoEm?'bg-emerald-400/10 text-emerald-200':vencido?'bg-rose-400/10 text-rose-200':'bg-amber-400/10 text-amber-200')}>{b.pagoEm?'Pago':vencido?'Vencido':'Pendente'}</span></td><td className="p-3"><button type="button" disabled={busy} className="font-bold text-emerald-200 hover:underline disabled:opacity-40" onClick={()=>void markCobranca(b,!b.pagoEm)}>{b.pagoEm?'Desmarcar':'Marcar pago'}</button></td></tr>;
+                  })}{!cobrancas.length&&<tr><td colSpan={5} className="p-8 text-center text-sm text-slate-400">Nenhuma cobrança registrada para esta distribuidora.</td></tr>}</tbody>
+                </table>
+              </div>
+            </section>
             <section className={`${card} p-6`}><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-extrabold">Módulos disponíveis</h3><p className="mt-1 text-xs text-slate-500">Ative ou desative as funcionalidades atribuídas a esta empresa.</p></div><span className="rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">{selected.modulosAtivos.filter(m=>m.ativo).length} ativados explicitamente</span></div>
               <div className="grid gap-3 md:grid-cols-2">{MODULOS.map(m=>{const configuracao=selected.modulosAtivos.find(x=>x.modulo===m.key);
                 const enabled=configuracao?.ativo!==false;return <div key={m.key} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-[#101829] p-4"><div className="min-w-0"><strong className="text-sm">{m.nome}</strong><p className="mt-1 text-xs text-slate-500">{m.descricao}</p>{!configuracao&&<p className="mt-1 text-[10px] text-amber-300">Padrão legado: permitido quando implementado</p>}</div><button type="button" role="switch" aria-checked={enabled} aria-label={`${enabled?'Desativar':'Ativar'} ${m.nome}`} disabled={busy} onClick={()=>void updateCompany(()=>saasApi.alternarModulo(selected.id,m.key,!enabled),`Módulo ${m.nome} atualizado.`)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${enabled?'bg-emerald-400':'bg-slate-600'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled?'left-6':'left-1'}`}/></button></div>})}</div>
@@ -432,6 +446,21 @@ export function SaasConsole() {
     </div>
 
 
+    {billingOpen&&selected&&<div role="dialog" aria-modal="true" aria-labelledby="saas-billing-title" className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
+      <form onSubmit={e=>void addCobranca(e)} className="max-h-[95dvh] w-full max-w-lg space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#232e30] p-6 text-white shadow-2xl sm:p-8">
+        <div className="flex justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">CONTROLE FINANCEIRO</p><h2 id="saas-billing-title" className="mt-1 text-2xl font-extrabold">Registrar cobrança</h2></div><button type="button" onClick={()=>setBillingOpen(false)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={20}/></button></div>
+        {alert&&<p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-200">{alert}</p>}
+        <label className="block text-xs font-semibold text-slate-300">Referência<input className={input+' mt-2'} maxLength={120} required value={billingForm.referencia} onChange={e=>setBillingForm(p=>({...p,referencia:e.target.value}))} placeholder="Mensalidade 11/2026"/></label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-slate-300">Valor (R$)<input className={input+' mt-2'} required inputMode="numeric" value={money(billingForm.valor)} onChange={e=>setBillingForm(p=>({...p,valor:Number(moneyInput(e.target.value))/100}))}/></label>
+          <label className="text-xs font-semibold text-slate-300">Vencimento<input type="date" required className={input+' mt-2'} value={billingForm.vencimento} onChange={e=>setBillingForm(p=>({...p,vencimento:e.target.value}))}/></label>
+        </div>
+        <label className="block text-xs font-semibold text-slate-300">Linha digitável (opcional)<input className={input+' mt-2'} maxLength={120} value={billingForm.linhaDigitavel} onChange={e=>setBillingForm(p=>({...p,linhaDigitavel:e.target.value}))}/></label>
+        <label className="block text-xs font-semibold text-slate-300">Observação (opcional)<textarea className={input+' mt-2'} rows={2} maxLength={500} value={billingForm.observacao} onChange={e=>setBillingForm(p=>({...p,observacao:e.target.value}))}/></label>
+        <p className="text-xs leading-5 text-amber-200/80">Registro manual: não gera boleto, não efetua cobrança e não verifica recebimentos automaticamente.</p>
+        <div className="flex justify-end gap-2"><button type="button" className="rounded-xl border border-white/15 px-4 py-3 text-xs font-bold" onClick={()=>setBillingOpen(false)}>Cancelar</button><button type="submit" disabled={busy||billingForm.valor<=0} className="rounded-xl bg-emerald-300 px-4 py-3 text-xs font-extrabold text-[#0b3329] disabled:opacity-50">{busy?'Salvando...':'Registrar cobrança'}</button></div>
+      </form>
+    </div>}
     {moduleEditor&&<div role="dialog" aria-modal="true" aria-labelledby="saas-module-title" className="fixed inset-0 z-[85] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
       <div className="max-h-[95dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#202c2e] p-6 text-white shadow-2xl sm:p-8">
         <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">MÓDULO DA PLATAFORMA</p><h2 id="saas-module-title" className="mt-1 text-2xl font-extrabold">{modDescriptions.find(m=>m.modulo===moduleEditor)?.nome||MODULOS.find(m=>m.key===moduleEditor)?.nome}</h2></div><button type="button" onClick={()=>setModuleEditor(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={22}/></button></div>
