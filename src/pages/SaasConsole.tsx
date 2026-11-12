@@ -286,7 +286,7 @@ export function SaasConsole() {
     } catch(e) {setAlert(errorMessage(e));}
     finally {setBusy(false);}
   }
-  function nav(s:Section){setSection(s);setSelected(null);setCreating(false);setAlert('');setMobileMenu(false);}
+  function nav(s:Section){setSection(s);setSelected(null);setCreating(false);setAlert('');setMobileMenu(false);setSupportCompanyId(null);}
 
   const tabs=([
     {key:'visao',icon:LayoutDashboard,title:'Visão geral',desc:'Indicadores do SaaS'},
@@ -337,7 +337,7 @@ export function SaasConsole() {
         {loading?<div className={`${card} p-12 text-center text-slate-400`}>Carregando dados da plataforma…</div>:<>
 
           {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
-          {section==='financeiro'&&<SaasFinanceiro onOpenCompany={id=>void openCompany(id)}/>}
+          {section==='financeiro'&&<SaasFinanceiro onOpenCompany={id=>void openCompany(id)} initialCompanyId={supportCompanyId}/>}
           {section==='suporte'&&<SaasSuporte empresas={empresas} initialCompanyId={supportCompanyId} onOpenCompany={id=>void openCompany(id)}/>}
           {section==='monitoramento'&&<SaasMonitoramento onOpenCompany={id=>void openCompany(id)}/>}
           {section==='visao'&&<>
@@ -388,7 +388,7 @@ export function SaasConsole() {
             </div>
             <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-[#101d24] p-4">
               <span className="mr-2 self-center text-xs font-bold text-emerald-200">CENTRAL 360º</span>
-              <button type="button" onClick={()=>{setSection('financeiro');setSelected(null);}} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Financeiro e boletos</button>
+              <button type="button" onClick={()=>{setSupportCompanyId(selected.id);setSection('financeiro');setSelected(null);}} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Financeiro e boletos</button>
               <button type="button" onClick={()=>{setSupportCompanyId(selected.id);setSection('suporte');setSelected(null);}} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Ordens de serviço e suporte</button>
               <button type="button" onClick={openCompanyEditor} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Dados e responsável</button>
             </div>
