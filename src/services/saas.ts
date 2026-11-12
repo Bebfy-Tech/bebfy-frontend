@@ -145,7 +145,14 @@ export interface AtualizarSaasChamado {
   categoria?:ChamadoCategoria;prioridade?:ChamadoPrioridade;status?:ChamadoStatus;
   comDev?:boolean;responsavelId?:string;devResponsavel?:string;solucao?:string;
 }
+export interface SaasTenantMonitor {
+  id:number;nomeFantasia:string;slug:string;status:StatusEmpresa;
+  inadimplente:boolean;criadoEm:string;
+  _count:{funcionarios:number;produtos:number;vendas:number};
+  usuariosAtivos:number;usuariosRecentes:number;ultimoAcesso:string|null;
+}
 export const saasApi = {
+  monitoramento: () => saasClient.get<SaasTenantMonitor[]>('/saas/admin/monitoramento').then(r=>r.data),
   empresasSuporte: () => saasClient.get<Array<{id:number;nomeFantasia:string;slug:string;status:StatusEmpresa}>>('/saas/admin/suporte/empresas').then(r=>r.data),
   operadoresSuporte: () => saasClient.get<Array<{id:string;nome:string;codigo:number}>>('/saas/admin/suporte/operadores').then(r=>r.data),
   chamadosSuporte: () => saasClient.get<SaasChamado[]>('/saas/admin/suporte/chamados').then(r=>r.data),
