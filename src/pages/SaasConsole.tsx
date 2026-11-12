@@ -75,6 +75,21 @@ export function SaasConsole() {
   const [graceReason,setGraceReason] = useState('Prorrogação solicitada pelo cliente para regularização do pagamento.');
   const [creating,setCreating] = useState(false);
   const [newCompany,setNewCompany] = useState<CriarEmpresaSaas>(blank());
+  const [slugCheck,setSlugCheck] = useState<{status:'empty'|'checking'|'available'|'taken'|'error'; sugestoes:string[]}>({status:'empty',sugestoes:[]});
+  const normalizedSlug = newCompany.subdominio.trim().toLowerCase();
+  useEffect(()=>{
+    if (!creating || !normalizedSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug) || normalizedSlug.length>60) {
+      setSlugCheck({status:'empty',sugestoes:[]}); return;
+    }
+    let cancelled=false;
+    setSlugCheck({status:'checking',sugestoes:[]});
+    const timeout=window.setTimeout(()=>{
+      void saasApi.verificarEndereco(normalizedSlug).then(response=>{
+        if(!cancelled) setSlugCheck({status:response.disponivel?'available':'taken',sugestoes:response.sugestoes});
+      }).catch(()=>{if(!cancelled)setSlugCheck({status:'error',sugestoes:[]});});
+    },350);
+    return ()=>{cancelled=true;window.clearTimeout(timeout);};
+  },[normalizedSlug,creating]);
   const [editPlan,setEditPlan] = useState<number | null>(null);
   const [planModal,setPlanModal] = useState(false);
   const [documentType,setDocumentType] = useState<'CPF'|'CNPJ'>('CNPJ');
@@ -253,6 +268,7 @@ export function SaasConsole() {
   async function createCompany(e:React.FormEvent) {
     e.preventDefault();if(busy)return;
     if(!newCompany.planoId){setAlert('Selecione um plano.');return;}
+    if(slugCheck.status!=='available'){setAlert('Confirme um endereço disponível para a distribuidora.');return;}
     setBusy(true);setAlert('');setOk('');
     try {
       await saasApi.criarEmpresa({
@@ -561,7 +577,7 @@ export function SaasConsole() {
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><label htmlFor="empresa-cnpj" className="text-xs font-semibold text-slate-300">Documento da distribuidora</label><div role="group" aria-label="Tipo de documento" className="inline-flex overflow-hidden rounded-lg border border-white/15">{(['CNPJ','CPF'] as const).map(tipo=><button key={tipo} type="button" aria-pressed={documentType===tipo} onClick={()=>{setDocumentType(tipo);setNewCompany(p=>({...p,documento:''}));}} className={'px-3 py-1 text-xs font-bold '+(documentType===tipo?'bg-emerald-300 text-[#0c302b]':'text-slate-300')}>{tipo}</button>)}</div></div>
             <input id="empresa-cnpj" className={input} required inputMode="numeric" maxLength={documentType==='CNPJ'?18:14} value={newCompany.documento} onChange={e=>setNewCompany(p=>({...p,documento:documentType==='CNPJ'?maskCnpj(e.target.value):maskCpf(e.target.value)}))} placeholder={documentType==='CNPJ'?'00.000.000/0000-00':'000.000.000-00'}/>
           </div>
-          <div><label htmlFor="empresa-slug" className={label}>Slug / subdomínio</label><input id="empresa-slug" className={input} required pattern="[a-z0-9]+(-[a-z0-9]+)*" value={newCompany.subdominio} onChange={e=>setNewCompany(p=>({...p,subdominio:e.target.value.toLowerCase()}))} placeholder="adega-central"/></div>
+          <div><label htmlFor="empresa-slug" className={label}>Endereço exclusivo da distribuidora</label><input id="empresa-slug" className={input} required maxLength={60} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={newCompany.subdominio} onChange={e=>setNewCompany(p=>({...p,subdominio:e.target.value.toLowerCase()}))} placeholder="adega-central" aria-describedby="empresa-slug-status"/><p className="mt-1 text-xs text-slate-400">bebfy.com.br/{normalizedSlug||'seu-endereco'}</p><div id="empresa-slug-status" role="status" aria-live="polite" className="mt-2 text-xs">{slugCheck.status==='checking'&&<span className="text-slate-300">Verificando disponibilidade…</span>}{slugCheck.status==='available'&&<span className="text-emerald-300">✓ Endereço disponível</span>}{slugCheck.status==='taken'&&<span className="text-rose-300">Este endereço já existe ou é reservado. Escolha outro.</span>}{slugCheck.status==='error'&&<span className="text-amber-300">Não foi possível verificar o endereço. Tente novamente.</span>}</div>{slugCheck.status==='taken'&&slugCheck.sugestoes.length>0&&<div className="mt-2 flex flex-wrap gap-2"><span className="w-full text-xs text-slate-300">Sugestões disponíveis:</span>{slugCheck.sugestoes.map(s=><button type="button" key={s} onClick={()=>setNewCompany(p=>({...p,subdominio:s}))} className="rounded-lg border border-emerald-400/30 px-2.5 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/10">{s}</button>)}</div>}</div>
           <div><label htmlFor="empresa-telefone" className={label}>Telefone comercial</label><input id="empresa-telefone" className={input} required value={newCompany.telefone} onChange={e=>setNewCompany(p=>({...p,telefone:maskPhone(e.target.value)}))} placeholder="(11) 99999-9999"/></div>
           <div className="sm:col-span-2"><label htmlFor="empresa-plano" className={label}>Plano inicial</label><select id="empresa-plano" className={input} required value={newCompany.planoId||''} onChange={e=>setNewCompany(p=>({...p,planoId:Number(e.target.value)}))}><option value="">Selecione um plano</option>{planos.map(p=><option key={p.id} value={p.id}>{p.nome} — {money(Number(p.precoMensal))}/mês</option>)}</select><p className="mt-2 text-xs text-emerald-200/80">{planos.find(p=>p.id===newCompany.planoId)?.modulosPadrao?.length ? 'Módulos incluídos: '+MODULOS.filter(m=>planos.find(p=>p.id===newCompany.planoId)?.modulosPadrao?.includes(m.key)).map(m=>m.nome).join(', ') : 'Este plano não tem módulos padrão configurados.'}</p></div>
         </div>
@@ -573,7 +589,7 @@ export function SaasConsole() {
           <div><label htmlFor="senha-inicial" className={label}>Senha inicial</label><input id="senha-inicial" type="password" className={input} required autoComplete="new-password" value={newCompany.senhaInicial} onChange={e=>setNewCompany(p=>({...p,senhaInicial:e.target.value}))}/></div>
         </div>
         <p className="text-xs leading-relaxed text-slate-400">A empresa será criada no status “Em teste”, com um proprietário inicial e código de operador 1. Oriente o responsável a trocar sua senha após o primeiro acesso.</p>
-        <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setCreating(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold">Cancelar</button><button disabled={busy||!planos.length} type="submit" className="flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Criar distribuidora'} <Check size={17}/></button></div>
+        <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setCreating(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold">Cancelar</button><button disabled={busy||!planos.length||slugCheck.status!=='available'} type="submit" className="flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Criar distribuidora'} <Check size={17}/></button></div>
       </form></div></div>}
     <ProfileModal mode="saas" open={profileOpen} onClose={()=>setProfileOpen(false)} />
   </main>;
