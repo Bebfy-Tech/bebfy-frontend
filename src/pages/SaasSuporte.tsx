@@ -36,6 +36,7 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
   const [newTicket,setNewTicket]=useState(false);
   const [interaction,setInteraction]=useState('');
   const [statusFilter,setStatusFilter]=useState('TODOS');
+  const [companyFilter,setCompanyFilter]=useState(initialCompanyId||0);
   const [devFilter,setDevFilter]=useState('TODOS');
   const [search,setSearch]=useState('');
   const [loading,setLoading]=useState(true);
@@ -55,9 +56,9 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
   const filtered=useMemo(()=>tickets.filter(t=>{
     const q=search.toLowerCase().trim();
     const matches= !q||[String(t.numero),t.titulo,t.empresa.nomeFantasia,t.contatoNome||'',t.devResponsavel||''].some(v=>v.toLowerCase().includes(q));
-    return matches&&(statusFilter==='TODOS'||t.status===statusFilter)
+    return matches&&(!companyFilter||t.empresaId===companyFilter)&&(statusFilter==='TODOS'||t.status===statusFilter)
       &&(devFilter==='TODOS'||(devFilter==='DEV' ? t.comDev : !t.comDev));
-  }),[tickets,search,statusFilter,devFilter]);
+  }),[tickets,search,statusFilter,devFilter,companyFilter]);
   const outstanding=tickets.filter(t=>t.status!=='RESOLVIDO'&&t.status!=='CANCELADO');
   const run=async(task:()=>Promise<unknown>,success:string)=>{
     if(busy)return false;
@@ -113,8 +114,12 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
       {([{name:'OS em aberto',value:outstanding.length,icon:ClipboardList},{name:'Aguardando cliente',value:tickets.filter(t=>t.status==='AGUARDANDO_CLIENTE').length,icon:Timer},{name:'Com desenvolvimento',value:outstanding.filter(t=>t.comDev).length,icon:Code2},{name:'Resolvidas',value:tickets.filter(t=>t.status==='RESOLVIDO').length,icon:ShieldCheck}] as const).map(({name,value,icon:Icon})=><div key={name} className={panel}><div className="flex items-center justify-between"><span className="text-xs text-slate-400">{name}</span><Icon size={19} className="text-emerald-300"/></div><p className="mt-4 text-3xl font-extrabold">{value}</p></div>)}
     </div>
     <div className={panel}>
-      <div className="grid gap-3 md:grid-cols-[1fr_190px_160px_auto]">
+      <div className="grid gap-3 md:grid-cols-[minmax(170px,1fr)_190px_170px_155px_auto]">
         <div className="relative"><Search size={17} className="absolute left-3 top-4 text-slate-400"/><input className={input+' mt-0 pl-10'} placeholder="Buscar OS, distribuidora ou assunto" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+        <select className={input+' mt-0'} value={companyFilter} onChange={e=>setCompanyFilter(Number(e.target.value))}>
+          <option value={0}>Todas as distribuidoras</option>
+          {(supportCompanies.length?supportCompanies:empresas).map(c=><option key={c.id} value={c.id}>{c.nomeFantasia}</option>)}
+        </select>
         <select className={input+' mt-0'} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="TODOS">Todos os status</option>{(Object.keys(statuses) as ChamadoStatus[]).map(k=><option key={k} value={k}>{statuses[k]}</option>)}</select>
         <select className={input+' mt-0'} value={devFilter} onChange={e=>setDevFilter(e.target.value)}><option value="TODOS">Toda a equipe</option><option value="DEV">Com o Dev</option><option value="SUPORTE">Sem o Dev</option></select>
         <button type="button" onClick={downloadCsv} className="flex items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm"><Filter size={16}/> CSV</button>
