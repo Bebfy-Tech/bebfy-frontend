@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import type { TenantModules } from '../services/moduleAccess';
 import { api, getTenantSlug } from '../services/api';
 import type {
   AuthResponse, LoginCredentials, LoginResponse, Usuario, Empresa,
@@ -11,6 +12,9 @@ interface AuthContextData {
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
+  modules: TenantModules;
+  modulesStatus: 'loading' | 'ready' | 'error';
+  refreshModules: () => Promise<void>;
   login: (credentials: LoginCredentials, tenantSlug?: string) => Promise<LoginResponse>;
   finalizarPrimeiroAcesso: (dados: TrocaSenhaPrimeiroAcesso) => Promise<void>;
   logout: () => void;
@@ -23,13 +27,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modules, setModules] = useState<TenantModules>({});
+  const [modulesStatus, setModulesStatus] = useState<'loading'|'ready'|'error'>('loading');
+  const refreshModules = useCallback(async () => {
+    if (!localStorage.getItem('@Bebfy:token')) return;
+    try {
+      const response = await api.get<{modulos:TenantModules}>('/auth/modulos');
+      setModules(response.data.modulos || {});
+      setModulesStatus('ready');
+    } catch {
+      // On a failed initial request do not assume paid modules are available.
+      setModulesStatus(previous => previous === 'ready' ? previous : 'error');
+    }
+  }, []);
 
   const limpar = () => {
     localStorage.removeItem('@Bebfy:token');
     localStorage.removeItem('@Bebfy:user');
     localStorage.removeItem('@Bebfy:empresa');
     localStorage.removeItem('@Bebfy:tenantOverride');
-    setToken(null); setUser(null); setEmpresa(null);
+    setToken(null); setUser(null); setEmpresa(null); setModules({}); setModulesStatus('loading');
   };
 
   const guardar = (resposta: AuthResponse) => {
@@ -72,6 +89,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch(() => limpar())
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    setModulesStatus('loading');
+    void refreshModules();
+    const interval = window.setInterval(() => { void refreshModules(); }, 15000);
+    const onFocus = () => { if (!document.hidden) void refreshModules(); };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [token, refreshModules]);
 
   const login = async (credentials: LoginCredentials, tenantSlug?: string): Promise<LoginResponse> => {
     if (tenantSlug) {
@@ -131,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{
       user, empresa, token, isAuthenticated: !!token,
-      loading, login, finalizarPrimeiroAcesso, logout, validarGerente,
+      loading, modules, modulesStatus, refreshModules, login, finalizarPrimeiroAcesso, logout, validarGerente,
     }}>
       {children}
     </AuthContext.Provider>
