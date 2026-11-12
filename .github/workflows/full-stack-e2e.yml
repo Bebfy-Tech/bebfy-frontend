@@ -42,6 +42,8 @@ jobs:
       VITE_API_URL: http://localhost:3000
       E2E_API_URL: http://localhost:3000
       E2E_BASE_URL: http://localhost:4173
+      E2E_SAAS_CODE: '950001'
+      E2E_SAAS_PASSWORD: ci-only-admin-password-for-browser-tests
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
@@ -71,6 +73,9 @@ jobs:
           ADMIN_ID="$(node -e 'const {PrismaClient}=require("@prisma/client"); const db=new PrismaClient(); db.usuario.findUnique({where:{email:"qa@bebfy.invalid"}}).then(u=>{if(!u)process.exitCode=1;else process.stdout.write(u.id)}).finally(()=>db.$disconnect())')"
           test -n "$ADMIN_ID"
           echo "SAAS_ADMIN_USER_IDS=$ADMIN_ID" >> "$GITHUB_ENV"
+      - name: Provision isolated SaaS operator for module tests
+        working-directory: backend
+        run: npx ts-node scripts/seed-e2e-saas-operator.ts
       - name: Boot NestJS API
         working-directory: backend
         run: |
