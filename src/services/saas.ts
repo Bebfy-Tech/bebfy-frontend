@@ -123,6 +123,9 @@ export interface RegistrarPagamentoSaas {
 export type ChamadoStatus = 'PENDENTE'|'EM_ATENDIMENTO'|'AGUARDANDO_CLIENTE'|'COM_DEV'|'RESOLVIDO'|'CANCELADO';
 export type ChamadoPrioridade = 'BAIXA'|'NORMAL'|'ALTA'|'URGENTE';
 export type ChamadoCategoria = 'DUVIDA'|'ERRO'|'CONFIGURACAO'|'FINANCEIRO'|'SOLICITACAO'|'OUTRO';
+export interface SaasChamadoAnexo {
+  id:string;chamadoId:string;nome:string;mime:string;tamanho:number;operadorId:string;criadoEm:string;
+}
 export interface SaasChamadoEvento {
   id: string; chamadoId: string; operadorId: string; acao: string; mensagem: string; criadoEm: string;
 }
@@ -155,6 +158,12 @@ export const saasApi = {
   monitoramento: () => saasClient.get<SaasTenantMonitor[]>('/saas/admin/monitoramento').then(r=>r.data),
   empresasSuporte: () => saasClient.get<Array<{id:number;nomeFantasia:string;slug:string;status:StatusEmpresa}>>('/saas/admin/suporte/empresas').then(r=>r.data),
   operadoresSuporte: () => saasClient.get<Array<{id:string;nome:string;codigo:number}>>('/saas/admin/suporte/operadores').then(r=>r.data),
+  anexosChamado: (id:string) => saasClient.get<SaasChamadoAnexo[]>('/saas/admin/suporte/chamados/'+id+'/anexos').then(r=>r.data),
+  anexarChamado: (id:string,file:File) => {
+    const form=new FormData();form.append('arquivo',file);
+    return saasClient.post<SaasChamadoAnexo>('/saas/admin/suporte/chamados/'+id+'/anexos',form).then(r=>r.data);
+  },
+  baixarAnexoChamado: (id:string,anexoId:string) => saasClient.get<Blob>('/saas/admin/suporte/chamados/'+id+'/anexos/'+anexoId,{responseType:'blob'}).then(r=>r.data),
   chamadosSuporte: () => saasClient.get<SaasChamado[]>('/saas/admin/suporte/chamados').then(r=>r.data),
   chamadoSuporte: (id:string) => saasClient.get<SaasChamado>('/saas/admin/suporte/chamados/'+id).then(r=>r.data),
   criarChamadoSuporte: (data:CriarSaasChamado) => saasClient.post<SaasChamado>('/saas/admin/suporte/chamados',data).then(r=>r.data),
