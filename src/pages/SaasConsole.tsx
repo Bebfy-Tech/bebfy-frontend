@@ -335,8 +335,25 @@ export function SaasConsole() {
           </>}
 
           {section==='modulos'&&<>
-            <div><h2 className="text-xl font-extrabold">Catálogo de módulos</h2><p className="mt-1 text-sm text-slate-400">Módulos previstos no schema do Bebfy e suas ativações por distribuidora.</p></div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{MODULOS.map(m=><div key={m.key} className={`${card} p-5`}><div className="flex items-center justify-between"><span className="rounded-xl bg-emerald-400/10 p-3 text-emerald-300"><Settings2 size={20}/></span><span className="text-xs font-bold text-emerald-300">{empresas.filter(e=>e.modulosAtivos.some(a=>a.modulo===m.key&&a.ativo)).length} empresas</span></div><h3 className="mt-5 font-extrabold">{m.nome}</h3><p className="mt-2 min-h-9 text-xs leading-relaxed text-slate-500">{m.descricao}</p><button onClick={()=>nav('empresas')} className="mt-5 flex items-center gap-2 border-t border-white/[.08] pt-4 text-xs font-bold text-emerald-300">Gerenciar por empresa <ArrowRight size={15}/></button></div>)}</div>
+            <div><h2 className="text-xl font-extrabold">Catálogo de módulos</h2><p className="mt-1 text-sm text-slate-400">Gerencie os recursos fixos da plataforma, seus textos comerciais e as liberações por empresa.</p></div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {MODULOS.map(m=>{
+                const Icon=moduloIcon[m.key];
+                const count=empresas.filter(e=>e.modulosAtivos.some(a=>a.modulo===m.key&&a.ativo)).length;
+                const included=planos.filter(p=>p.modulosPadrao?.includes(m.key)).map(p=>p.nome);
+                const custom=modDescriptions.find(c=>c.modulo===m.key);
+                return <button key={m.key} type="button" onClick={()=>openModulo(m.key)} className={card+' p-5 text-left transition hover:border-emerald-300/35'} aria-label={'Gerenciar módulo '+m.nome}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="rounded-xl bg-slate-500/15 p-3 text-emerald-200"><Icon size={22}/></span>
+                    <span className={'rounded-full border px-3 py-1.5 text-[11px] font-bold '+(count?'border-emerald-300/25 bg-emerald-500/10 text-emerald-200':'border-white/10 bg-white/5 text-slate-400')}>{count} {count===1?'empresa':'empresas'}</span>
+                  </div>
+                  <h3 className="mt-5 text-base font-extrabold">{custom?.nome||m.nome}</h3>
+                  <p className="mt-2 min-h-10 text-xs leading-6 text-slate-400">{custom?.descricao||m.descricao}</p>
+                  <p className="mt-3 text-[11px] text-slate-300">{included.length?'Incluso em: '+included.join(', '):'Nenhum plano inclui este módulo por padrão'}</p>
+                  <div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-xs font-bold text-emerald-200">Gerenciar por empresa <ArrowRight size={15}/></div>
+                </button>;
+              })}
+            </div>
           </>}
 
         </>}
