@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
 import { MODULOS, saasApi } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
-import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa } from '../services/saas';
+import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'planos' | 'modulos' | 'funcionarios';
+const moduloIcon: Record<NomeModulo,typeof Activity> = {
+  CAIXA_PDV:ShoppingCart, FIADOS:CreditCard, VASILHAMES_RETORNAVEIS:Package,
+  ENTREGAS_DELIVERY:Truck, PEDIDOS_ATACADO:ShoppingCart, TABELA_PRECO_VOLUME:CreditCard,
+  ROTAS_CAMINHOES:Route, CREDITO_B2B:HandCoins, ESTOQUE_LOTES:Boxes,
+  COMPRAS_FORNECEDORES:Package, RELATORIOS_AVANCADOS:FileText,
+};
 
 const statusText: Record<StatusEmpresa,string> = { ATIVA: 'Ativa', EM_TESTE: 'Em teste', SUSPENSA: 'Suspensa', CANCELADA: 'Cancelada' };
 const statusStyle: Record<StatusEmpresa,string> = {
@@ -65,7 +71,10 @@ export function SaasConsole() {
   const [editPlan,setEditPlan] = useState<number | null>(null);
   const [planModal,setPlanModal] = useState(false);
   const [documentType,setDocumentType] = useState<'CPF'|'CNPJ'>('CNPJ');
-  const [moduleEditor,setModuleEditor] = useState<string|null>(null);
+  const [moduleEditor,setModuleEditor] = useState<NomeModulo|null>(null);
+  const [modDescriptions,setModDescriptions] = useState<SaasModuloDescricao[]>([]);
+  const [moduleName,setModuleName] = useState('');
+  const [moduleDescription,setModuleDescription] = useState('');
   const [moduleSearch,setModuleSearch] = useState('');
   const [companyEdit,setCompanyEdit] = useState(false);
   const [companyForm,setCompanyForm] = useState({nomeFantasia:'',razaoSocial:'',documento:'',telefone:'',nomeResponsavel:'',cpfResponsavel:'',emailResponsavel:'',senhaTemporaria:''});
@@ -84,6 +93,7 @@ export function SaasConsole() {
       const [companies,allPlans]=await Promise.allSettled([saasApi.empresas(),saasApi.planos()]);
       if(companies.status==='fulfilled')setEmpresas(companies.value);
       if(allPlans.status==='fulfilled')setPlanos(allPlans.value);
+      try {setModDescriptions(await saasApi.descricoesModulos());} catch { /* A role may have no MODULOS permission. */ }
       setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')||user?.permissoes.includes('MODULOS')));
     } catch (e) {
       const status=(e as {response?:{status?:number}}).response?.status;
@@ -100,6 +110,34 @@ export function SaasConsole() {
   }),[empresas,filter,filterStatus]);
   const totalModulos=useMemo(()=>empresas.reduce((v,e)=>v+e.modulosAtivos.filter(m=>m.ativo).length,0),[empresas]);
   const receitaEstimada=useMemo(()=>empresas.filter(e=>e.status==='ATIVA'||e.status==='EM_TESTE').reduce((v,e)=>v+Number(e.plano?.precoMensal||0),0),[empresas]);
+
+  function openModulo(modulo:NomeModulo) {
+    const item=MODULOS.find(m=>m.key===modulo);
+    const custom=modDescriptions.find(m=>m.modulo===modulo);
+    setModuleName(custom?.nome||item?.nome||modulo);
+    setModuleDescription(custom?.descricao||item?.descricao||'');
+    setModuleSearch('');setAlert('');setModuleEditor(modulo);
+  }
+  async function updateModuleCompany(empresaId:number,modulo:NomeModulo,ativo:boolean) {
+    if(busy)return;
+    setBusy(true);setAlert('');
+    try {
+      await saasApi.alternarModulo(empresaId,modulo,ativo);
+      setEmpresas(await saasApi.empresas());
+      if(selected?.id===empresaId)setSelected(await saasApi.empresa(empresaId));
+      setOk('Módulo atualizado para a distribuidora.');
+    }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
+  }
+  async function saveModulo(e:React.FormEvent) {
+    e.preventDefault();
+    if(!moduleEditor||busy)return;
+    setBusy(true);setAlert('');
+    try{
+      await saasApi.personalizarModulo(moduleEditor,{nome:moduleName.trim(),descricao:moduleDescription.trim()});
+      setModDescriptions(await saasApi.descricoesModulos());
+      setOk('Dados comerciais do módulo salvos.');
+    }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
+  }
 
   async function openCompany(id:number) {
     setBusy(true);setAlert('');
