@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ProfileModal } from './ProfileModal';
 import { tenantPath } from '../services/tenantUrls';
 import type { ComponentType } from 'react';
+import { hasModule, routeModules } from '../services/moduleAccess';
 
 type IconType = ComponentType<{ size?: number; className?: string }>;
 type MenuItem = { to: string; label: string; icon: IconType; manager?: boolean };
@@ -45,7 +46,7 @@ const groups: { title: string; items: MenuItem[] }[] = [
 const managerRoles = ['PROPRIETARIO', 'ADMINISTRADOR', 'GERENTE'];
 
 export function AppShell() {
-  const { user, empresa, logout } = useAuth();
+  const { user, empresa, logout, modules, modulesStatus } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -73,7 +74,7 @@ export function AppShell() {
       <nav aria-label="Menu da distribuidora" className="flex-1 px-3 pb-6">
         {groups.map(group => <section key={group.title} className="mt-6">
           <p className="px-3 pb-2 text-[10px] font-extrabold tracking-[.22em] text-slate-500">{group.title}</p>
-          {group.items.filter(i => !i.manager || manager).map(i =>
+          {group.items.filter(i => (!i.manager || manager) && modulesStatus === 'ready' && hasModule(modules,routeModules[i.to])).map(i =>
             <NavLink key={i.to} to={tenantPath(i.to)} onClick={close}
               className={({ isActive }) => `my-0.5 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition ${isActive ? 'border border-emerald-500/25 bg-emerald-500/12 text-emerald-300' : 'border border-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
               <i.icon size={19} /><span className="flex-1">{i.label}</span><ChevronRight size={14} className="opacity-35"/>
@@ -120,7 +121,7 @@ export function AppShell() {
         { to: 'produtos', label: 'Produtos', icon: Package },
         { to: 'clientes', label: 'Clientes', icon: Users },
         { to: 'configuracoes', label: 'Conta', icon: Settings },
-      ].map(item => <NavLink key={item.to} to={tenantPath(item.to)} className={({isActive}) => `flex min-w-14 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold ${isActive ? 'bg-emerald-500/10 text-emerald-300' : 'text-slate-400'}`}>
+      ].filter(item => modulesStatus === 'ready' && hasModule(modules,routeModules['/'+item.to])).map(item => <NavLink key={item.to} to={tenantPath(item.to)} className={({isActive}) => `flex min-w-14 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold ${isActive ? 'bg-emerald-500/10 text-emerald-300' : 'text-slate-400'}`}>
         <item.icon size={20}/>{item.label}
       </NavLink>)}
     </nav>}
