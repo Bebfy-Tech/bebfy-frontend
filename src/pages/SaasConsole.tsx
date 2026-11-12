@@ -314,14 +314,14 @@ export function SaasConsole() {
       <Link to="/" aria-label="Bebfy - início" className="inline-flex items-center"><BebfyBrand light compact /></Link>
       <button type="button" aria-label={mobileMenu ? "Fechar menu" : "Abrir menu"} aria-expanded={mobileMenu} aria-controls="saas-main-navigation" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button>
     </div>
-    <aside className={`fixed inset-y-0 left-0 z-40 w-[270px] border-r border-white/[.08] bg-[#0a0f1d] p-5 transition-transform lg:translate-x-0 ${mobileMenu?'translate-x-0':'-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-[270px] flex-col overflow-y-auto border-r border-white/[.08] bg-[#0a0f1d] p-5 transition-transform lg:translate-x-0 ${mobileMenu?'translate-x-0':'-translate-x-full'}`}>
       <Link to="/" aria-label="Bebfy - início" className="mb-1 inline-flex items-center px-2"><BebfyBrand light compact /></Link>
       <div className="mb-10 ml-[57px] text-[10px] font-black tracking-[.19em] text-emerald-400">CENTRAL DA PLATAFORMA</div>
       <p className="px-3 text-[10px] font-black tracking-[.2em] text-slate-500">PLATAFORMA</p>
       <nav id="saas-main-navigation" aria-label="Navegação administrativa" className="mt-3 space-y-1.5">
         {tabs.map(t=><button key={t.key} onClick={()=>nav(t.key)} className={`w-full rounded-xl px-3.5 py-3.5 text-left transition ${section===t.key?'bg-emerald-400/15 text-emerald-300':'text-slate-400 hover:bg-white/5 hover:text-white'}`}><span className="flex items-center gap-3 text-sm font-bold"><t.icon size={19}/>{t.title}</span></button>)}
       </nav>
-      <div className="absolute bottom-5 left-5 right-5 space-y-4">
+      <div className="mt-auto space-y-4 pt-8">
         <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[.07] p-4"><ShieldCheck size={19} className="text-emerald-300"/><p className="mt-2 text-xs font-bold">Acesso administrativo</p><p className="mt-1 text-xs text-slate-500">Protegido pelo backend.</p></div>
         <button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-400 hover:bg-white/5 hover:text-white"><LogOut size={18}/> Encerrar sessão</button>
       </div>
