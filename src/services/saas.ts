@@ -107,6 +107,10 @@ export interface SaasFinanceiroResumo {
   empresas: SaasFinanceiroEmpresa[];
   cobrancas: SaasCobrancaFinanceiro[];
 }
+export interface SaasAnexoFinanceiro {
+  id:string; empresaId:number; cobrancaId:string|null; tipo:'BOLETO'|'COMPROVANTE';
+  nome:string; mime:string; tamanho:number; operadorId:string; criadoEm:string;
+}
 export interface SaasFinanceiroEvento {
   id: string; empresaId: number; operadorId: string;
   acao: string; descricao: string; criadoEm: string;
@@ -116,6 +120,13 @@ export interface RegistrarPagamentoSaas {
 }
 
 export const saasApi = {
+  anexosFinanceiros: (id:number) => saasClient.get<SaasAnexoFinanceiro[]>(`/saas/admin/financeiro/empresas/${id}/anexos`).then(r=>r.data),
+  anexarFinanceiro: (id:number,arquivo:File,tipo:'BOLETO'|'COMPROVANTE',cobrancaId?:string) => {
+    const form=new FormData();form.append('arquivo',arquivo);form.append('tipo',tipo);
+    if(cobrancaId)form.append('cobrancaId',cobrancaId);
+    return saasClient.post<SaasAnexoFinanceiro>(`/saas/admin/financeiro/empresas/${id}/anexos`,form).then(r=>r.data);
+  },
+  baixarAnexoFinanceiro: (id:number,anexoId:string) => saasClient.get<Blob>(`/saas/admin/financeiro/empresas/${id}/anexos/${anexoId}`,{responseType:'blob'}).then(r=>r.data),
   financeiro: () => saasClient.get<SaasFinanceiroResumo>('/saas/admin/financeiro').then(r=>r.data),
   historicoFinanceiro: (id:number) => saasClient.get<SaasFinanceiroEvento[]>(`/saas/admin/financeiro/empresas/${id}/historico`).then(r=>r.data),
   registrarPagamento: (id:number,cobrancaId:string,dados:RegistrarPagamentoSaas) => saasClient.post<SaasPagamento>(`/saas/admin/financeiro/empresas/${id}/cobrancas/${cobrancaId}/pagamentos`,dados).then(r=>r.data),
