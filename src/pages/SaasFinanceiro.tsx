@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, CreditCard, Download, FilePlus2, FileText, LockKeyhole, Plus, RefreshCcw, Search, Wallet, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, CreditCard, Download, FilePlus2, LockKeyhole, Plus, RefreshCcw, Search, Wallet, X } from 'lucide-react';
 import { saasApi } from '../services/saas';
 import type { SaasCobrancaFinanceiro, SaasFinanceiroEmpresa, SaasFinanceiroEvento, SaasFinanceiroResumo } from '../services/saas';
 
