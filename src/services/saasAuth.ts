@@ -28,5 +28,5 @@ export const saasAuthApi = {
     saasClient.patch<SaasUser>('/saas/auth/perfil',data).then(r=>r.data),
   funcionarios: () => saasClient.get<SaasFuncionario[]>('/saas/admin/funcionarios').then(r=>r.data),
   criarFuncionario: (data:{codigo:number;nome:string;senha:string;cargo:'OPERADOR';permissoes:string[]}) => saasClient.post('/saas/admin/funcionarios',data).then(r=>r.data),
-  alterarFuncionario: (id:string,data:{codigo?:number;ativo?:boolean;permissoes?:string[];nome?:string;senha?:string}) => saasClient.patch('/saas/admin/funcionarios/'+id,data).then(r=>r.data),
+  alterarFuncionario: (id:string,data:{codigo?:number;ativo?:boolean;permissoes?:string[];nome?:string;email?:string;senha?:string}) => saasClient.patch('/saas/admin/funcionarios/'+id,data).then(r=>r.data),
 };
