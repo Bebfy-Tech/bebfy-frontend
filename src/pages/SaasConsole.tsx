@@ -306,6 +306,28 @@ export function SaasConsole() {
     </div>
 
 
+    {companyEdit&&selected&&<div role="dialog" aria-modal="true" aria-labelledby="company-edit-title" className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
+      <form onSubmit={e=>void saveCompanyDetails(e)} className="max-h-[95dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#222b2e] p-6 text-white shadow-2xl sm:p-8">
+        <div className="flex items-center justify-between gap-2"><div><p className="text-xs font-bold tracking-widest text-emerald-300">DISTRIBUIDORA #{selected.id}</p><h2 id="company-edit-title" className="mt-1 text-2xl font-extrabold">Editar cadastro</h2></div><button type="button" onClick={()=>setCompanyEdit(false)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={21}/></button></div>
+        {alert&&<p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-200">{alert}</p>}
+        <h3 className="border-b border-white/10 pb-2 font-extrabold">Dados da empresa</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-xs font-bold text-slate-300">Nome fantasia<input required minLength={2} className={input+' mt-2'} value={companyForm.nomeFantasia} onChange={e=>setCompanyForm(p=>({...p,nomeFantasia:e.target.value}))}/></label>
+          <label className="text-xs font-bold text-slate-300">Razão social<input required minLength={2} className={input+' mt-2'} value={companyForm.razaoSocial} onChange={e=>setCompanyForm(p=>({...p,razaoSocial:e.target.value}))}/></label>
+          <label className="text-xs font-bold text-slate-300">CPF / CNPJ<input required inputMode="numeric" maxLength={18} className={input+' mt-2'} value={companyForm.documento} onChange={e=>setCompanyForm(p=>({...p,documento:cleanDigits(e.target.value).length>11?maskCnpj(e.target.value):maskCpf(e.target.value)}))}/></label>
+          <label className="text-xs font-bold text-slate-300">Telefone comercial<input required inputMode="tel" maxLength={15} className={input+' mt-2'} value={companyForm.telefone} onChange={e=>setCompanyForm(p=>({...p,telefone:maskPhone(e.target.value)}))}/></label>
+        </div>
+        <h3 className="border-b border-white/10 pb-2 pt-3 font-extrabold">Responsável e acesso</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-xs font-bold text-slate-300">Nome do proprietário<input required minLength={2} className={input+' mt-2'} value={companyForm.nomeResponsavel} onChange={e=>setCompanyForm(p=>({...p,nomeResponsavel:e.target.value}))}/></label>
+          <label className="text-xs font-bold text-slate-300">CPF do proprietário<input required inputMode="numeric" maxLength={14} className={input+' mt-2'} value={companyForm.cpfResponsavel} onChange={e=>setCompanyForm(p=>({...p,cpfResponsavel:maskCpf(e.target.value)}))}/></label>
+          <label className="text-xs font-bold text-slate-300">E-mail do proprietário<input type="email" required className={input+' mt-2'} value={companyForm.emailResponsavel} onChange={e=>setCompanyForm(p=>({...p,emailResponsavel:e.target.value}))}/></label>
+          <label className="text-xs font-bold text-slate-300">Nova senha temporária (opcional)<input type="password" minLength={10} autoComplete="new-password" className={input+' mt-2'} value={companyForm.senhaTemporaria} onChange={e=>setCompanyForm(p=>({...p,senhaTemporaria:e.target.value}))} placeholder="Não preencha para manter a senha"/></label>
+        </div>
+        <p className="text-xs leading-5 text-slate-400">As senhas atuais não podem ser visualizadas. Definir uma senha temporária encerra a sessão anterior e obriga o proprietário a trocar a senha no próximo acesso.</p>
+        <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setCompanyEdit(false)} className="rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold">Cancelar</button><button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#0b3329] disabled:opacity-50">{busy?'Salvando...':'Salvar alterações'}</button></div>
+      </form>
+    </div>}
     {planModal&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Formulário de plano"><form onSubmit={e=>void savePlan(e)} className="max-h-[94dvh] w-full max-w-[710px] space-y-5 overflow-y-auto rounded-3xl border border-white/10 bg-[#0a0f1d] p-7 shadow-2xl">
       <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Planos SaaS</p><h2 className="mt-1 text-2xl font-extrabold">{editPlan?'Editar plano':'Novo plano'}</h2></div><button type="button" onClick={()=>setPlanModal(false)} aria-label="Fechar"><X size={22}/></button></div>
       {alert&&<p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">{alert}</p>}
