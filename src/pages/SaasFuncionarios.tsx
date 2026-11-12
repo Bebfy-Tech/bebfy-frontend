@@ -86,8 +86,8 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
     setBusy(true); setError('');
     try {
       await saasAuthApi.alterarFuncionario(selected.id, selected.cargo === 'SUPER_ADMIN'
-        ? { nome: editName.trim(), email: editEmail.trim() }
-        : { codigo: Number(editCode), nome: editName.trim(), email: editEmail.trim(), permissoes: editPermissions,
+        ? { nome: editName.trim(), ...(editEmail.trim()?{email:editEmail.trim()}: {}) }
+        : { codigo: Number(editCode), nome: editName.trim(), ...(editEmail.trim()?{email:editEmail.trim()}: {}), permissoes: editPermissions,
             ativo: editActive, ...(editPassword ? { senha: editPassword } : {}) });
       setSelected(null); await reload(); setMessage('Cadastro atualizado com sucesso.');
     } catch (err) {
@@ -134,7 +134,7 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
     <section className="saas-card space-y-4 rounded-2xl p-6">
       <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold">Equipe cadastrada</h3><Users size={20} className="text-emerald-300"/></div>
       {loading && <p className="text-sm text-slate-400">Carregando colaboradores...</p>}
-      {!loading && users.map(u=><button type="button" key={u.id} onClick={()=>openEditor(u)}
+      {!loading && users.map(u=><button type="button" key={u.id} onClick={()=>openEditor(u)} disabled={u.cargo==='SUPER_ADMIN'&&current?.cargo!=='SUPER_ADMIN'}
         className="flex w-full flex-col gap-3 rounded-xl border border-white/10 bg-white/[.025] p-4 text-left transition hover:border-emerald-400/35 hover:bg-white/[.04] sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><strong>{u.nome}</strong><span className={'rounded-full px-2 py-0.5 text-[10px] font-bold ' + (u.ativo?'bg-emerald-400/10 text-emerald-200':'bg-slate-400/15 text-slate-300')}>{u.ativo?'Ativo':'Desativado'}</span></div>
