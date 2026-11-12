@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, CreditCard, Download, FilePlus2, LockKeyhole, Plus, RefreshCcw, Search, Wallet, X } from 'lucide-react';
 import { saasApi } from '../services/saas';
-import type { SaasCobrancaFinanceiro, SaasFinanceiroEmpresa, SaasFinanceiroEvento, SaasFinanceiroResumo } from '../services/saas';
+import type { SaasCobrancaFinanceiro, SaasFinanceiroEmpresa, SaasFinanceiroEvento, SaasFinanceiroResumo, SaasAnexoFinanceiro } from '../services/saas';
 
 const panel = 'rounded-2xl border border-white/10 bg-[#202a2e] p-5 shadow-lg';
 const field = 'w-full min-h-11 rounded-xl border border-white/20 bg-[#131f23] px-4 py-3 text-sm text-white outline-none focus:border-emerald-300';
@@ -34,6 +34,10 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
   const [tab,setTab]=useState<Tab>('geral');
   const [selectedId,setSelectedId]=useState<number|null>(null);
   const [history,setHistory]=useState<SaasFinanceiroEvento[]>([]);
+  const [attachments,setAttachments]=useState<SaasAnexoFinanceiro[]>([]);
+  const [documentFile,setDocumentFile]=useState<File|null>(null);
+  const [documentType,setDocumentType]=useState<'BOLETO'|'COMPROVANTE'>('BOLETO');
+  const [documentBill,setDocumentBill]=useState('');
   const [query,setQuery]=useState('');
   const [status,setStatus]=useState('TODOS');
   const [busy,setBusy]=useState(false);
@@ -69,26 +73,28 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
   });
   const clients=companies.filter(e=>e.nomeFantasia.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
   const perform=async(task:()=>Promise<unknown>,ok:string)=>{
-    if(busy)return;
+    if(busy)return false;
     setBusy(true);setError('');setSuccess('');
-    try{await task();await refresh();setSuccess(ok);}
-    catch(e){setError(errorText(e));}
+    try{await task();await refresh();setSuccess(ok);return true;}
+    catch(e){setError(errorText(e));return false;}
     finally{setBusy(false);}
   };
   const selectCustomer=async(id:number)=>{
-    setSelectedId(id);setError('');setHistory([]);
-    try{setHistory(await saasApi.historicoFinanceiro(id));}
-    catch(e){setError(errorText(e));}
+    setSelectedId(id);setError('');setHistory([]);setAttachments([]);
+    try{
+      const [events,files]=await Promise.all([saasApi.historicoFinanceiro(id),saasApi.anexosFinanceiros(id)]);
+      setHistory(events);setAttachments(files);
+    }catch(e){setError(errorText(e));}
   };
   const addCharge=async(e:React.FormEvent)=>{
     e.preventDefault();if(!chosen)return;
     const valor=Number(charge.valor.replace(',','.'));
     if(!Number.isFinite(valor)||valor<=0){setError('Informe um valor válido.');return;}
-    await perform(()=>saasApi.criarCobranca(chosen.id,{
+    const saved=await perform(()=>saasApi.criarCobranca(chosen.id,{
       referencia:charge.referencia,valor,vencimento:charge.vencimento,
       linhaDigitavel:charge.linhaDigitavel,observacao:charge.observacao,
     }),'Cobrança cadastrada.');
-    setNewCharge(false);setCharge({referencia:'',valor:'',vencimento:'',linhaDigitavel:'',observacao:''});
+    if(saved){setNewCharge(false);setCharge({referencia:'',valor:'',vencimento:'',linhaDigitavel:'',observacao:''});}
   };
   const addPayment=async(e:React.FormEvent)=>{
     e.preventDefault();if(!paying)return;
@@ -96,10 +102,10 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
     if(!Number.isFinite(valor)||valor<=0||valor>paying.saldo+.001){setError('Informe um valor positivo que não ultrapasse o saldo.');return;}
     if(!window.confirm('Confirmar o recebimento manual de '+money(valor)+'?'))return;
     const companyId=paying.empresaId;
-    await perform(()=>saasApi.registrarPagamento(companyId,paying.id,{
+    const saved=await perform(()=>saasApi.registrarPagamento(companyId,paying.id,{
       valor,pagoEm:payment.pagoEm,forma:payment.forma,observacao:payment.observacao,
     }),'Pagamento registrado com sucesso.');
-    setPaying(null);if(selectedId===companyId)void selectCustomer(companyId);
+    if(saved){setPaying(null);if(selectedId===companyId)void selectCustomer(companyId);}
   };
   const changeBlock=async(c:SaasFinanceiroEmpresa)=>{
     if(!window.confirm(c.inadimplente?'Remover o bloqueio financeiro desta empresa?':'Bloquear o acesso desta distribuidora por inadimplência?'))return;
@@ -113,6 +119,24 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
     if(!window.confirm('Liberar '+c.nomeFantasia+' por '+days+' dias?'))return;
     await perform(()=>saasApi.liberarTemporariamente(c.id,days,reason),'Liberação temporária registrada.');
     void selectCustomer(c.id);
+  };
+  const uploadDocument=async(e:React.FormEvent)=>{
+    e.preventDefault();
+    if(!chosen||!documentFile)return;
+    if(documentFile.size>2*1024*1024){setError('Escolha um arquivo de até 2 MB.');return;}
+    const saved=await perform(()=>saasApi.anexarFinanceiro(
+      chosen.id,documentFile,documentType,documentBill||undefined,
+    ),'Documento anexado à ficha financeira.');
+    if(saved){setDocumentFile(null);setDocumentBill('');void selectCustomer(chosen.id);}
+  };
+  const downloadDocument=async(file:SaasAnexoFinanceiro)=>{
+    setError('');
+    try{
+      const blob=await saasApi.baixarAnexoFinanceiro(file.empresaId,file.id);
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download=file.nome;a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(e){setError(errorText(e));}
   };
   const download=()=>exportCsv([
     ['Empresa','Referência','Valor','Recebido','Saldo','Vencimento','Situação'],
@@ -147,6 +171,29 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
         </section>
         <section className={panel}><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold">Boletos e cobranças</h3><p className="mt-1 text-xs text-slate-400">Registro manual; o Bebfy não emite boletos bancários.</p></div><button type="button" className="flex items-center gap-2 rounded-xl bg-emerald-300 px-4 py-3 text-xs font-bold text-[#102a22]" onClick={()=>setNewCharge(true)}><Plus size={16}/> Nova cobrança</button></div>
           <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[680px] text-left"><thead className="text-xs text-slate-400"><tr><th className="p-4">CLIENTE / REFERÊNCIA</th><th className="p-4">VALOR</th><th className="p-4">VENCIMENTO</th><th className="p-4">STATUS</th><th className="p-4">AÇÃO</th></tr></thead><tbody>{customerBills.map(renderBill)}</tbody></table>{!customerBills.length&&<p className="p-5 text-sm text-slate-400">Nenhuma cobrança cadastrada.</p>}</div>
+        </section>
+        <section className={panel}>
+          <div className="flex items-center gap-2"><FilePlus2 size={20} className="text-emerald-300"/><h3 className="font-bold">Boletos e comprovantes anexados</h3></div>
+          <p className="mt-2 text-xs text-slate-400">Anexe documentos PDF, JPG ou PNG de até 2 MB. Arquivos privados, disponíveis apenas para administradores autorizados.</p>
+          <form onSubmit={e=>void uploadDocument(e)} className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-white/[.025] p-4 sm:grid-cols-2">
+            <label className="text-xs text-slate-300">Tipo de documento
+              <select className={field+' mt-2'} value={documentType} onChange={e=>setDocumentType(e.target.value as 'BOLETO'|'COMPROVANTE')}>
+                <option value="BOLETO">Boleto emitido</option><option value="COMPROVANTE">Comprovante de pagamento</option>
+              </select>
+            </label>
+            <label className="text-xs text-slate-300">Vincular a cobrança (opcional)
+              <select className={field+' mt-2'} value={documentBill} onChange={e=>setDocumentBill(e.target.value)}>
+                <option value="">Nenhuma cobrança específica</option>
+                {customerBills.map(b=><option key={b.id} value={b.id}>{b.referencia} · {money(Number(b.valor))}</option>)}
+              </select>
+            </label>
+            <label className="text-xs text-slate-300 sm:col-span-2">Arquivo
+              <input type="file" className={field+' mt-2'} accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required
+                onChange={e=>setDocumentFile(e.target.files?.[0]??null)}/>
+            </label>
+            <div className="sm:col-span-2"><button type="submit" disabled={busy||!documentFile} className="rounded-xl bg-emerald-300 px-5 py-3 text-xs font-bold text-[#112a24] disabled:opacity-40">Adicionar documento</button></div>
+          </form>
+          <div className="mt-5 space-y-2">{attachments.map(file=><div key={file.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 p-3"><div><p className="text-sm font-semibold">{file.nome}</p><p className="mt-1 text-xs text-slate-400">{file.tipo==='BOLETO'?'Boleto':'Comprovante'} · {(file.tamanho/1024).toFixed(0)} KB · {new Date(file.criadoEm).toLocaleDateString('pt-BR')}</p></div><button type="button" onClick={()=>void downloadDocument(file)} className="flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold"><Download size={15}/> Baixar</button></div>)}{!attachments.length&&<p className="text-sm text-slate-400">Nenhum boleto ou comprovante anexado.</p>}</div>
         </section>
         <section className={panel}><h3 className="font-bold">Bloqueio e liberação por inadimplência</h3><p className="mt-2 text-sm text-slate-400">Bloqueio financeiro é independente da suspensão administrativa. A liberação temporária não quita dívidas.</p><div className="mt-5 flex flex-wrap items-center justify-between gap-3"><span className={chosen.inadimplente?'text-amber-200':'text-emerald-200'}>{chosen.inadimplente?'Inadimplente':'Sem bloqueio financeiro'}</span><button type="button" disabled={busy} onClick={()=>void changeBlock(chosen)} className="rounded-xl border border-white/20 px-4 py-3 text-sm font-bold">{chosen.inadimplente?'Remover bloqueio':'Bloquear por inadimplência'}</button></div>
           {chosen.inadimplente&&<div className="mt-5 grid gap-3 border-t border-white/10 pt-5 sm:grid-cols-[180px_1fr_auto] sm:items-end"><label className="text-xs text-slate-300">Dias (1 a 90)<input type="number" min={1} max={90} className={field+' mt-2'} value={days} onChange={e=>setDays(Number(e.target.value))}/></label><label className="text-xs text-slate-300">Justificativa<input className={field+' mt-2'} value={reason} onChange={e=>setReason(e.target.value)}/></label><button type="button" onClick={()=>void grant(chosen)} disabled={busy||reason.trim().length<8} className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-300 px-4 py-2 font-bold text-[#102a22] disabled:opacity-40"><LockKeyhole size={15}/> Liberar acesso</button></div>}
