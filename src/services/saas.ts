@@ -157,7 +157,9 @@ export interface SaasTenantMonitor {
   _count:{funcionarios:number;produtos:number;vendas:number};
   usuariosAtivos:number;usuariosRecentes:number;ultimoAcesso:string|null;
 }
+export interface EnderecoDisponivel { subdominio:string; disponivel:boolean; sugestoes:string[]; }
 export const saasApi = {
+  verificarEndereco: (subdominio:string) => saasClient.get<EnderecoDisponivel>('/saas/admin/empresas/verificar-endereco',{params:{subdominio}}).then(r=>r.data),
   auditoria: () => saasClient.get<SaasAuditEvent[]>('/saas/admin/auditoria').then(r=>r.data),
   monitoramento: () => saasClient.get<SaasTenantMonitor[]>('/saas/admin/monitoramento').then(r=>r.data),
   empresasSuporte: () => saasClient.get<Array<{id:number;nomeFantasia:string;slug:string;status:StatusEmpresa}>>('/saas/admin/suporte/empresas').then(r=>r.data),
