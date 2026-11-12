@@ -86,7 +86,7 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
     setBusy(true); setError('');
     try {
       await saasAuthApi.alterarFuncionario(selected.id, selected.cargo === 'SUPER_ADMIN'
-        ? { nome: editName.trim(), ...(editEmail.trim()?{email:editEmail.trim()}: {}) }
+        ? { nome: editName.trim(), email: editEmail.trim() || null }
         : { codigo: Number(editCode), nome: editName.trim(), ...(editEmail.trim()?{email:editEmail.trim()}: {}), permissoes: editPermissions,
             ativo: editActive, ...(editPassword ? { senha: editPassword } : {}) });
       setSelected(null); await reload(); setMessage('Cadastro atualizado com sucesso.');
