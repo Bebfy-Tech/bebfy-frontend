@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Code2, Filter, MessageCircle, Plus, RefreshCcw, Search, ShieldCheck, Timer, X } from 'lucide-react';
 import { saasApi } from '../services/saas';
 import type { SaasChamado, SaasChamadoEvento, CriarSaasChamado, AtualizarSaasChamado, ChamadoStatus, ChamadoCategoria, ChamadoPrioridade, EmpresaSaas } from '../services/saas';
-import { saasAuthApi } from '../services/saasAuth';
-import type { SaasFuncionario } from '../services/saasAuth';
 
 const statuses: Record<ChamadoStatus,string> = {
   PENDENTE:'Pendente',EM_ATENDIMENTO:'Em atendimento',AGUARDANDO_CLIENTE:'Aguardando cliente',
@@ -29,7 +27,8 @@ function whatsappLink(tel:string|null,numero:number) {
 }
 export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:EmpresaSaas[];initialCompanyId?:number|null;onOpenCompany:(id:number)=>void}) {
   const [tickets,setTickets]=useState<SaasChamado[]>([]);
-  const [operators,setOperators]=useState<SaasFuncionario[]>([]);
+  const [operators,setOperators]=useState<Array<{id:string;nome:string;codigo:number}>>([]);
+  const [supportCompanies,setSupportCompanies]=useState<Array<{id:number;nomeFantasia:string;slug:string}>>([]);
   const [selected,setSelected]=useState<SaasChamado|null>(null);
   const [form,setForm]=useState<CriarSaasChamado>(()=>defaultForm(initialCompanyId||0));
   const [editing,setEditing]=useState(false);
@@ -48,7 +47,11 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
     catch(e){setError(errText(e));}
     finally{setLoading(false);}
   },[]);
-  useEffect(()=>{void reload();void saasAuthApi.funcionarios().then(setOperators).catch(()=>{});},[reload]);
+  useEffect(()=>{
+    void reload();
+    void saasApi.operadoresSuporte().then(setOperators).catch(()=>{});
+    void saasApi.empresasSuporte().then(setSupportCompanies).catch(()=>{});
+  },[reload]);
   const filtered=useMemo(()=>tickets.filter(t=>{
     const q=search.toLowerCase().trim();
     const matches= !q||[String(t.numero),t.titulo,t.empresa.nomeFantasia,t.contatoNome||'',t.devResponsavel||''].some(v=>v.toLowerCase().includes(q));
@@ -154,7 +157,7 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
     {editing&&selected&&<div role="dialog" aria-modal="true" aria-label={'Editar ordem de serviço '+selected.numero} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3"><form onSubmit={e=>void submitEdit(e)} className="max-h-[95dvh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl border border-white/15 bg-[#202f34] p-5 sm:p-7"><div className="flex items-center justify-between"><h3 className="text-xl font-bold">Editar OS #{selected.numero}</h3><button type="button" onClick={()=>setEditing(false)} aria-label="Fechar"><X/></button></div>{error&&<p role="alert" className="text-sm text-rose-200">{error}</p>}<div className="grid gap-3 sm:grid-cols-2">
       <label className="text-xs">Status<select className={input} value={editForm.status} onChange={e=>setEditForm(p=>({...p,status:e.target.value as ChamadoStatus,comDev:e.target.value==='COM_DEV'?true:p.comDev}))}>{(Object.keys(statuses) as ChamadoStatus[]).map(k=><option value={k} key={k}>{statuses[k]}</option>)}</select></label>
       <label className="text-xs">Prioridade<select className={input} value={editForm.prioridade} onChange={e=>setEditForm(p=>({...p,prioridade:e.target.value as ChamadoPrioridade}))}>{(Object.keys(priorities) as ChamadoPrioridade[]).map(k=><option value={k} key={k}>{priorities[k]}</option>)}</select></label>
-      <label className="text-xs">Responsável interno<select className={input} value={editForm.responsavelId} onChange={e=>setEditForm(p=>({...p,responsavelId:e.target.value}))}><option value="">Não atribuído</option>{operators.filter(o=>o.ativo).map(o=><option key={o.id} value={o.id}>{o.nome}</option>)}</select></label>
+      <label className="text-xs">Responsável interno<select className={input} value={editForm.responsavelId} onChange={e=>setEditForm(p=>({...p,responsavelId:e.target.value}))}><option value="">Não atribuído</option>{operators.map(o=><option key={o.id} value={o.id}>{o.nome}</option>)}</select></label>
       <label className="text-xs">Categoria<select className={input} value={editForm.categoria} onChange={e=>setEditForm(p=>({...p,categoria:e.target.value as ChamadoCategoria}))}>{(Object.keys(categories) as ChamadoCategoria[]).map(k=><option value={k} key={k}>{categories[k]}</option>)}</select></label>
       <label className="text-xs sm:col-span-2"><span className="flex items-center gap-2"><input type="checkbox" checked={!!editForm.comDev} onChange={e=>setEditForm(p=>({...p,comDev:e.target.checked,status:e.target.checked?'COM_DEV':p.status==='COM_DEV'?'EM_ATENDIMENTO':p.status}))}/> Chamado encaminhado ao Dev</span></label>
       <label className="text-xs sm:col-span-2">Dev responsável (manual)<input className={input} value={editForm.devResponsavel||''} onChange={e=>setEditForm(p=>({...p,devResponsavel:e.target.value}))} placeholder="Nome do desenvolvedor ou equipe"/></label>
@@ -165,7 +168,7 @@ export function SaasSuporte({empresas,initialCompanyId,onOpenCompany}:{empresas:
       <label className="text-xs sm:col-span-2">Solução / observação final<textarea className={input+' min-h-24'} value={editForm.solucao||''} onChange={e=>setEditForm(p=>({...p,solucao:e.target.value}))} placeholder="Obrigatório quando marcar como resolvido"/></label>
       </div><button disabled={busy} type="submit" className="rounded-xl bg-emerald-300 px-6 py-3 text-sm font-bold text-[#102a21]">Salvar alterações</button></form></div>}
     {newTicket&&<div role="dialog" aria-modal="true" aria-label="Nova ordem de serviço" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3"><form onSubmit={e=>void submitCreate(e)} className="max-h-[95dvh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-2xl border border-white/15 bg-[#202f34] p-5 sm:p-7"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold text-emerald-300">ATENDIMENTO WHATSAPP</p><h3 className="text-xl font-bold">Nova ordem de serviço</h3></div><button type="button" onClick={()=>setNewTicket(false)} aria-label="Fechar"><X/></button></div>{error&&<p role="alert" className="text-sm text-rose-200">{error}</p>}
-      <label className="block text-xs">Distribuidora<select required className={input} value={form.empresaId||''} onChange={e=>setForm(p=>({...p,empresaId:Number(e.target.value)}))}><option value="">Selecione uma distribuidora</option>{empresas.map(c=><option value={c.id} key={c.id}>{c.nomeFantasia}</option>)}</select></label>
+      <label className="block text-xs">Distribuidora<select required className={input} value={form.empresaId||''} onChange={e=>setForm(p=>({...p,empresaId:Number(e.target.value)}))}><option value="">Selecione uma distribuidora</option>{(supportCompanies.length?supportCompanies:empresas).map(c=><option value={c.id} key={c.id}>{c.nomeFantasia}</option>)}</select></label>
       <label className="block text-xs">Assunto<input required minLength={3} maxLength={160} className={input} value={form.titulo} onChange={e=>setForm(p=>({...p,titulo:e.target.value}))} placeholder="Ex.: Erro ao finalizar venda no PDV"/></label>
       <label className="block text-xs">Descrição do problema<textarea required minLength={5} className={input+' min-h-28'} value={form.descricao} onChange={e=>setForm(p=>({...p,descricao:e.target.value}))} placeholder="Descreva o relato do cliente, testes realizados e informações recebidas no WhatsApp"/></label>
       <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">Nome do contato<input className={input} value={form.contatoNome} onChange={e=>setForm(p=>({...p,contatoNome:e.target.value}))}/></label><label className="text-xs">WhatsApp (DDD + número)<input className={input} value={form.contatoTelefone} onChange={e=>setForm(p=>({...p,contatoTelefone:e.target.value}))}/></label>
