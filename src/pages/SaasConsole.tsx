@@ -8,7 +8,7 @@ import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
 import { MODULOS, saasApi } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
-import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao } from '../services/saas';
+import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao, SaasCobranca } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'planos' | 'modulos' | 'funcionarios';
 const moduloIcon: Record<NomeModulo,typeof Activity> = {
@@ -78,6 +78,9 @@ export function SaasConsole() {
   const [moduleDescription,setModuleDescription] = useState('');
   const [moduleSearch,setModuleSearch] = useState('');
   const [companyEdit,setCompanyEdit] = useState(false);
+  const [cobrancas,setCobrancas] = useState<SaasCobranca[]>([]);
+  const [billingForm,setBillingForm] = useState({referencia:'',valor:0,vencimento:'',linhaDigitavel:'',observacao:''});
+  const [billingOpen,setBillingOpen] = useState(false);
   const [companyForm,setCompanyForm] = useState({nomeFantasia:'',razaoSocial:'',documento:'',telefone:'',nomeResponsavel:'',cpfResponsavel:'',emailResponsavel:'',senhaTemporaria:''});
   const [planData,setPlanData] = useState<PlanoEntrada>({
     nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79, modulosPadrao:[],
@@ -175,9 +178,33 @@ export function SaasConsole() {
 
   async function openCompany(id:number) {
     setBusy(true);setAlert('');
-    try {setSelected(await saasApi.empresa(id));setSection('empresas');setMobileMenu(false);}catch(e){setAlert(errorMessage(e));}
+    try {const [empresa,cob]=await Promise.all([saasApi.empresa(id),saasApi.cobrancas(id)]);setSelected(empresa);setCobrancas(cob);setSection('empresas');setMobileMenu(false);}catch(e){setAlert(errorMessage(e));}
     finally{setBusy(false);}
   }
+  async function addCobranca(e:React.FormEvent) {
+    e.preventDefault();if(!selected||busy)return;
+    setBusy(true);setAlert('');
+    try {
+      await saasApi.criarCobranca(selected.id,{
+        ...billingForm,
+        vencimento:new Date(billingForm.vencimento+'T12:00:00').toISOString(),
+      });
+      setCobrancas(await saasApi.cobrancas(selected.id));
+      setBillingForm({referencia:'',valor:0,vencimento:'',linhaDigitavel:'',observacao:''});
+      setBillingOpen(false);setOk('Cobrança registrada. O pagamento ainda depende de confirmação manual.');
+    }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
+  }
+  async function markCobranca(cobranca:SaasCobranca,pago:boolean){
+    if(!selected||busy)return;
+    if(!window.confirm(pago?'Confirmar que este pagamento foi recebido?':'Remover a confirmação de pagamento?'))return;
+    setBusy(true);setAlert('');
+    try {
+      await saasApi.marcarPagamento(selected.id,cobranca.id,pago);
+      setCobrancas(await saasApi.cobrancas(selected.id));
+      setOk(pago?'Pagamento registrado manualmente.':'Pagamento desmarcado.');
+    }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
+  }
+
   function openCompanyEditor() {
     if (!selected) return;
     const owner=selected.funcionarios?.[0];
