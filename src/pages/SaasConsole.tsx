@@ -5,6 +5,7 @@ import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import { SaasFinanceiro } from './SaasFinanceiro';
 import { SaasSuporte } from './SaasSuporte';
+import { SaasExecutiveOverview } from './SaasExecutiveOverview';
 import { ProfileModal } from '../components/ProfileModal';
 import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
@@ -344,6 +345,12 @@ export function SaasConsole() {
               <StatCard icon={Users} label="Em teste" value={String(empresas.filter(e=>e.status==='EM_TESTE').length)} subtitle="Contas no período experimental"/>
               <StatCard icon={Wallet} label="Receita potencial / mês" value={money(receitaEstimada)} subtitle="Soma dos preços dos planos, não recebimentos reais"/>
             </div>
+            <SaasExecutiveOverview
+              canFinance={user?.cargo==='SUPER_ADMIN'||!!user?.permissoes.includes('EMPRESAS')}
+              canSupport={user?.cargo==='SUPER_ADMIN'||!!user?.permissoes.includes('SUPORTE')}
+              onFinance={()=>nav('financeiro')}
+              onSupport={()=>nav('suporte')}
+            />
             <section className={card+' p-6'} aria-label="Gráfico de distribuidoras cadastradas nos últimos seis meses">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-base font-extrabold">Novas distribuidoras</h3><p className="mt-1 text-xs text-slate-400">Cadastros nos últimos seis meses</p></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">Dados de cadastro</span></div>
               <div className="flex h-40 items-end justify-between gap-2 border-b border-white/10 pb-2">
