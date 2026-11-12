@@ -23,6 +23,18 @@ const input = 'saas-field w-full min-h-11 rounded-xl border border-[#396155] bg-
 const label = 'block text-xs font-semibold text-emerald-50/75 mb-2';
 const money = (v:number) => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(v);
 const cleanDigits = (s:string) => s.replace(/\D/g,'');
+const maskCpf = (raw: string) => cleanDigits(raw).slice(0,11).replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+const maskCnpj = (raw: string) => cleanDigits(raw).slice(0,14).replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+const maskPhone = (raw: string) => {
+  const digits=cleanDigits(raw).slice(0,11);
+  if(digits.length<3) return digits;
+  if(digits.length<=6) return '('+digits.slice(0,2)+') '+digits.slice(2);
+  const cut=digits.length>10?7:6;
+  return '('+digits.slice(0,2)+') '+digits.slice(2,cut)+'-'+digits.slice(cut);
+};
+const moneyInput = (raw: string) => cleanDigits(raw).slice(0,11);
+const maskMoney = (raw: string) => money(Number(moneyInput(raw))/100);
+
 const errorMessage = (err:unknown) => {
   const e = err as { response?:{data?:{ message?:string|string[]; error?:{ message?:string } };status?:number};message?:string };
   const m=e.response?.data?.message ?? e.response?.data?.error?.message ?? e.message;
@@ -52,8 +64,13 @@ export function SaasConsole() {
   const [newCompany,setNewCompany] = useState<CriarEmpresaSaas>(blank());
   const [editPlan,setEditPlan] = useState<number | null>(null);
   const [planModal,setPlanModal] = useState(false);
+  const [documentType,setDocumentType] = useState<'CPF'|'CNPJ'>('CNPJ');
+  const [moduleEditor,setModuleEditor] = useState<string|null>(null);
+  const [moduleSearch,setModuleSearch] = useState('');
+  const [companyEdit,setCompanyEdit] = useState(false);
+  const [companyForm,setCompanyForm] = useState({nomeFantasia:'',razaoSocial:'',documento:'',telefone:'',nomeResponsavel:'',cpfResponsavel:'',emailResponsavel:'',senhaTemporaria:''});
   const [planData,setPlanData] = useState<PlanoEntrada>({
-    nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79,
+    nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79, modulosPadrao:[],
   });
   const [busy,setBusy] = useState(false);
   const [loading,setLoading] = useState(true);
@@ -116,8 +133,8 @@ export function SaasConsole() {
   function openPlanEditor(plano?: PlanoSaas) {
     setEditPlan(plano?.id ?? null);
     setPlanData(plano ? {
-      nome: plano.nome, tipo: plano.tipo, precoMensal: Number(plano.precoMensal),
-    } : { nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79 });
+      nome: plano.nome, tipo: plano.tipo, precoMensal: Number(plano.precoMensal), modulosPadrao:plano.modulosPadrao||[],
+    } : { nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79,modulosPadrao:[] });
     setAlert('');
     setPlanModal(true);
   }
