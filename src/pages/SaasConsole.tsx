@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Download, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import { ProfileModal } from '../components/ProfileModal';
@@ -141,6 +141,39 @@ export function SaasConsole() {
     }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
   }
 
+  const mesesCadastro=useMemo(()=>{
+    const now=new Date();
+    return Array.from({length:6},(_,i)=>{
+      const date=new Date(now.getFullYear(),now.getMonth()-5+i,1);
+      const key=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0');
+      return {label:date.toLocaleString('pt-BR',{month:'short'}).replace('.',''),key,
+        value:empresas.filter(e=>{
+          const created=new Date(e.criadoEm);
+          return created.getFullYear()===date.getFullYear() && created.getMonth()===date.getMonth();
+        }).length};
+    });
+  },[empresas]);
+
+  function exportarResumo() {
+    // Neutralize formula injection when viewed in Excel and preserve UTF-8 accents.
+    const safe=(value:unknown)=>{
+      const raw=String(value??'');
+      const escaped=/^[\s]*[=+\-@]/.test(raw)?"'"+raw:raw;
+      return '"'+escaped.replace(/"/g,'""')+'"';
+    };
+    const lines=[
+      ['Empresa','Identificador','Status','Plano','Mensalidade potencial (R$)','Funcionarios','Produtos','Vendas','Criada em'],
+      ...empresas.map(e=>[e.nomeFantasia,e.slug,e.status,e.plano?.nome||'Sem plano',
+        Number(e.plano?.precoMensal||0).toFixed(2),e._count.funcionarios,
+        e._count.produtos,e._count.vendas,new Date(e.criadoEm).toLocaleDateString('pt-BR')]),
+    ];
+    const csv='\uFEFF'+lines.map(r=>r.map(safe).join(';')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    const link=document.createElement('a');
+    link.href=url;link.download='bebfy-resumo-saas.csv';document.body.appendChild(link);
+    link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
   async function openCompany(id:number) {
     setBusy(true);setAlert('');
     try {setSelected(await saasApi.empresa(id));setSection('empresas');setMobileMenu(false);}catch(e){setAlert(errorMessage(e));}
@@ -271,13 +304,23 @@ export function SaasConsole() {
 
           {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
           {section==='visao'&&<>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Visão geral da <span className="text-emerald-300">plataforma.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Nova distribuidora</button></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Visão geral da <span className="text-emerald-300">plataforma.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={exportarResumo} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-white/5"><Download size={17}/> Exportar relatório CSV</button><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Nova distribuidora</button></div></div>
             <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
               <StatCard icon={Building2} label="Distribuidoras" value={String(empresas.length)} subtitle="Total cadastradas no SaaS"/>
               <StatCard icon={Activity} label="Ativas" value={String(empresas.filter(e=>e.status==='ATIVA').length)} subtitle="Empresas com status ativo"/>
               <StatCard icon={Users} label="Em teste" value={String(empresas.filter(e=>e.status==='EM_TESTE').length)} subtitle="Contas no período experimental"/>
               <StatCard icon={Wallet} label="Receita potencial / mês" value={money(receitaEstimada)} subtitle="Soma dos preços dos planos, não recebimentos reais"/>
             </div>
+            <section className={card+' p-6'} aria-label="Gráfico de distribuidoras cadastradas nos últimos seis meses">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-base font-extrabold">Novas distribuidoras</h3><p className="mt-1 text-xs text-slate-400">Cadastros nos últimos seis meses</p></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">Dados de cadastro</span></div>
+              <div className="flex h-40 items-end justify-between gap-2 border-b border-white/10 pb-2">
+                {mesesCadastro.map(m=><div key={m.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                  <strong className="text-[11px] text-slate-200">{m.value}</strong>
+                  <div className="w-full max-w-[72px] rounded-t-lg bg-[#5addad]" style={{height:Math.max(5,Math.round(m.value/Math.max(1,...mesesCadastro.map(x=>x.value))*104))+'px'}} title={m.value+' novas distribuidoras em '+m.label}/>
+                  <span className="text-[11px] font-semibold text-slate-400">{m.label}</span>
+                </div>)}
+              </div>
+            </section>
             <div className="grid gap-5 xl:grid-cols-[1.65fr_1fr]">
               <section className={`${card} overflow-hidden`}><div className="flex items-center justify-between border-b border-white/[.07] px-6 py-5"><div><h3 className="font-extrabold">Últimas distribuidoras</h3><p className="mt-1 text-xs text-slate-500">Cadastros recentes da plataforma</p></div><button onClick={()=>nav('empresas')} className="flex items-center gap-1 text-xs font-bold text-emerald-300">Ver todas <ArrowRight size={16}/></button></div>
                 <div className="divide-y divide-white/[.06]">{empresas.slice(0,6).map(e=><button key={e.id} onClick={()=>void openCompany(e.id)} className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left hover:bg-white/[.03]"><div className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-white/[.07] text-emerald-300"><Building2 size={18}/></span><div className="min-w-0"><strong className="block truncate text-sm">{e.nomeFantasia}</strong><span className="text-xs text-slate-500">{e.slug}</span></div></div><StatusBadge value={e.status}/></button>)}{!empresas.length&&<p className="px-6 py-12 text-center text-sm text-slate-500">Nenhuma distribuidora cadastrada.</p>}</div>
