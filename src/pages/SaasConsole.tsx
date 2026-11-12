@@ -40,7 +40,6 @@ const maskPhone = (raw: string) => {
   return '('+digits.slice(0,2)+') '+digits.slice(2,cut)+'-'+digits.slice(cut);
 };
 const moneyInput = (raw: string) => cleanDigits(raw).slice(0,11);
-const maskMoney = (raw: string) => money(Number(moneyInput(raw))/100);
 
 const errorMessage = (err:unknown) => {
   const e = err as { response?:{data?:{ message?:string|string[]; error?:{ message?:string } };status?:number};message?:string };
