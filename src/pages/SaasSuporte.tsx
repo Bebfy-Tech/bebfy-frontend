@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ClipboardList, Code2, Filter, MessageCircle, Plus, RefreshCcw, Search, ShieldCheck, Timer, X } from 'lucide-react';
+import { ClipboardList, Code2, Filter, MessageCircle, Plus, RefreshCcw, Search, ShieldCheck, Timer, X } from 'lucide-react';
 import { saasApi } from '../services/saas';
 import type { SaasChamado, SaasChamadoEvento, CriarSaasChamado, AtualizarSaasChamado, ChamadoStatus, ChamadoCategoria, ChamadoPrioridade, EmpresaSaas } from '../services/saas';
 import { saasAuthApi } from '../services/saasAuth';
