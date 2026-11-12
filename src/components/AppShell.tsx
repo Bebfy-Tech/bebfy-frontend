@@ -4,7 +4,7 @@ import {
   BarChart3, Boxes, Building2, ChevronRight, ClipboardList, CreditCard,
   FileBarChart, HandCoins, Layers3, LogOut, Menu, Package, ReceiptText,
   Settings, ShoppingCart, Truck, UserRound, Users, Wallet, Warehouse,
-  X, ShieldCheck, ArrowLeft, FileUp, CircleHelp,
+  X, ArrowLeft, FileUp, CircleHelp,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileModal } from './ProfileModal';
