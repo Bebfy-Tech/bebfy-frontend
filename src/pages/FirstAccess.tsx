@@ -69,7 +69,7 @@ export function FirstAccess() {
         </label>
         <label className="block text-sm font-bold">Nova senha
           <span className="relative mt-2 block"><input required type={mostrar?'text':'password'} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)} autoComplete="new-password"
-            className="w-full rounded-xl border border-white/10 bg-[#081d24] px-4 py-3 pr-12 outline-none focus:border-emerald-300" placeholder="Mínimo de 10 caracteres"/>
+            className="w-full rounded-xl border border-white/10 bg-[#081d24] px-4 py-3 pr-12 outline-none focus:border-emerald-300" placeholder="Informe sua nova senha"/>
             <button type="button" onClick={()=>setMostrar(!mostrar)} aria-label={mostrar?'Esconder senha':'Mostrar senha'} className="absolute right-3 top-3 text-slate-400">{mostrar?<EyeOff size={20}/>:<Eye size={20}/>}</button></span>
         </label>
         <label className="block text-sm font-bold">Confirmar nova senha
