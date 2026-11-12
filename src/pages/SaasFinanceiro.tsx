@@ -29,7 +29,7 @@ const statusColor:Record<SaasCobrancaFinanceiro['status'],string>={
   PARCIAL:'bg-blue-400/10 text-blue-200',PENDENTE:'bg-amber-400/10 text-amber-200',
 };
 
-export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}){
+export function SaasFinanceiro({onOpenCompany,initialCompanyId}:{onOpenCompany:(id:number)=>void;initialCompanyId?:number|null}){
   const [data,setData]=useState<SaasFinanceiroResumo|null>(null);
   const [tab,setTab]=useState<Tab>('geral');
   const [selectedId,setSelectedId]=useState<number|null>(null);
@@ -61,6 +61,15 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
   useEffect(()=>{void refresh();},[refresh]);
   const companies=data?.empresas??[];
   const bills=data?.cobrancas??[];
+  useEffect(()=>{
+    if(!initialCompanyId||!data?.empresas.some(c=>c.id===initialCompanyId))return;
+    setSelectedId(initialCompanyId);
+    const settings=data.empresas.find(c=>c.id===initialCompanyId)?.configuracaoCobrancaSaas;
+    setRecurring(!!settings?.recorrente);setDueDay(settings?.diaVencimento??15);
+    void Promise.all([saasApi.historicoFinanceiro(initialCompanyId),saasApi.anexosFinanceiros(initialCompanyId)])
+      .then(([events,docs])=>{setHistory(events);setAttachments(docs);})
+      .catch(e=>setError(errorText(e)));
+  },[initialCompanyId,data]);
   const chosen=companies.find(e=>e.id===selectedId)??null;
   const customerBills=bills.filter(b=>b.empresaId===selectedId);
   const totals=useMemo(()=>bills.reduce((acc,b)=>{
