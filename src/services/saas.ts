@@ -55,6 +55,10 @@ export interface EmpresaSaas {
     vendas: number;
     clientes?: number;
   };
+  funcionarios?: Array<{
+    id: string; codigo: number | null; nome: string; cpf: string; telefone: string | null;
+    usuario?: { email: string; ativo: boolean } | null;
+  }>;
   config?: {
     nomeEmpresa: string;
     telefone: string | null;
@@ -73,12 +77,19 @@ export interface CriarEmpresaSaas {
   senhaInicial: string;
 }
 
+export interface AtualizarEmpresaSaas {
+  nomeFantasia?: string; razaoSocial?: string; documento?: string; telefone?: string;
+  nomeResponsavel?: string; cpfResponsavel?: string; emailResponsavel?: string; senhaTemporaria?: string;
+}
+
 export const saasApi = {
   empresas: () => saasClient.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
   empresa: (id: number) => saasClient.get<EmpresaSaas>(`/saas/admin/empresas/${id}`).then(r => r.data),
   planos: () => saasClient.get<PlanoSaas[]>('/saas/admin/planos').then(r => r.data),
   criarPlano: (dados: PlanoEntrada) => saasClient.post<PlanoSaas>('/saas/admin/planos', dados).then(r => r.data),
   editarPlano: (id: number, dados: PlanoEntrada) => saasClient.patch<PlanoSaas>(`/saas/admin/planos/${id}`, dados).then(r => r.data),
+  editarEmpresa: (id: number, dados: AtualizarEmpresaSaas) =>
+    saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}`, dados).then(r => r.data),
   criarEmpresa: (dados: CriarEmpresaSaas) => saasClient.post('/saas/admin/empresas', dados).then(r => r.data),
   definirInadimplencia: (id: number, inadimplente: boolean) =>
     saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/inadimplencia`, { inadimplente }).then(r => r.data),
