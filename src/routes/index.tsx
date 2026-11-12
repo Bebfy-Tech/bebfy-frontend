@@ -6,6 +6,7 @@ import { LandingPage } from '../pages/LandingPage';
 import { StoreLookup } from '../pages/StoreLookup';
 import { Login } from '../pages/Login';
 import { FirstAccess } from '../pages/FirstAccess';
+import { RecuperarSenha } from '../pages/RecuperarSenha';
 import { Dashboard } from '../pages/Dashboard';
 import { PDV } from '../pages/PDV';
 import { SaasAccess } from '../pages/SaasAccess';
@@ -43,6 +44,7 @@ export const AppRoutes = () => (
       <Route path="/:tenant" element={<TenantGate />}>
         <Route index element={<Login />} />
         <Route path="primeiro-acesso" element={<FirstAccess />} />
+        <Route path="recuperar-senha" element={<RecuperarSenha />} />
         <Route element={<PrivateRoute />}>
           <Route element={<AppShell />}>
             <Route path="dashboard" element={<Dashboard />} />
