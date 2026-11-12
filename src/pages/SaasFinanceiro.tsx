@@ -50,6 +50,9 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
   const [payment,setPayment]=useState({valor:'',pagoEm:new Date().toISOString().slice(0,10),forma:'PIX',observacao:''});
   const [days,setDays]=useState(7);
   const [reason,setReason]=useState('Prazo adicional para regularização do pagamento.');
+  const [recurring,setRecurring]=useState(false);
+  const [dueDay,setDueDay]=useState(15);
+  const [competence,setCompetence]=useState(()=>new Date().toISOString().slice(0,7));
   const refresh=useCallback(async()=>{
     try {setData(await saasApi.financeiro());setError('');}
     catch(e){setError(errorText(e));}
@@ -81,6 +84,8 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
   };
   const selectCustomer=async(id:number)=>{
     setSelectedId(id);setError('');setHistory([]);setAttachments([]);
+    const settings=companies.find(c=>c.id===id)?.configuracaoCobrancaSaas;
+    setRecurring(!!settings?.recorrente);setDueDay(settings?.diaVencimento??15);
     try{
       const [events,files]=await Promise.all([saasApi.historicoFinanceiro(id),saasApi.anexosFinanceiros(id)]);
       setHistory(events);setAttachments(files);
@@ -120,6 +125,25 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
     await perform(()=>saasApi.liberarTemporariamente(c.id,days,reason),'Liberação temporária registrada.');
     void selectCustomer(c.id);
   };
+  const configureRecurring=async()=>{
+    if(!chosen)return;
+    if(!Number.isInteger(dueDay)||dueDay<1||dueDay>28){setError('Escolha um dia entre 1 e 28.');return;}
+    const ok=await perform(()=>saasApi.configurarRecorrencia(chosen.id,{recorrente:recurring,diaVencimento:dueDay}),
+      'Configuração mensal atualizada.');
+    if(ok)void selectCustomer(chosen.id);
+  };
+  const generateMonthly=async()=>{
+    if(!/^20\\d{2}-(0[1-9]|1[0-2])$/.test(competence)){setError('Informe uma competência no formato AAAA-MM.');return;}
+    if(!window.confirm('Gerar as mensalidades de '+competence+' somente para distribuidoras ativas com recorrência habilitada?'))return;
+    if(busy)return;setBusy(true);setError('');setSuccess('');
+    try{
+      const result=await saasApi.gerarMensalidades(competence);
+      await refresh();
+      setSuccess(result.geradas+' mensalidade(s) criada(s); '+result.ignoradas+' ignorada(s). Nenhum boleto bancário foi emitido.');
+    }catch(e){setError(errorText(e));}
+    finally{setBusy(false);}
+  };
+
   const uploadDocument=async(e:React.FormEvent)=>{
     e.preventDefault();
     if(!chosen||!documentFile)return;
@@ -161,6 +185,15 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
         {([['Previsto',totals.previsto,CalendarDays],['Recebido',totals.recebido,CheckCircle2],['A receber',totals.saldo,Wallet],['Em atraso',totals.vencido,AlertTriangle]] as const).map(([title,value,Icon])=>
           <div key={title} className={panel}><div className="flex items-center justify-between text-xs text-slate-400"><span>{title}</span><Icon size={17} className="text-emerald-300"/></div><strong className="mt-4 block text-xl">{money(value)}</strong><p className="mt-2 text-xs text-slate-500">Cobranças registradas</p></div>)}
       </div>
+      <section className="rounded-2xl border border-emerald-300/15 bg-[#21312e] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h3 className="text-sm font-bold text-emerald-200">Preparar mensalidades recorrentes</h3><p className="mt-1 text-xs text-slate-400">Geração assistida, sem emissão de boleto nem débito automático. Somente clientes ativos que optaram pela recorrência.</p></div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-xs text-slate-300">Competência<input type="month" className={field+' mt-1'} value={competence} onChange={e=>setCompetence(e.target.value)}/></label>
+            <button type="button" disabled={busy} onClick={()=>void generateMonthly()} className="min-h-11 rounded-xl border border-emerald-300/30 px-4 py-2 text-xs font-bold text-emerald-200 disabled:opacity-40">Gerar mensalidades do mês</button>
+          </div>
+        </div>
+      </section>
       <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">{([
         ['geral','Visão geral'],['clientes','Clientes'],['cobrancas','Cobranças'],['inadimplencia','Inadimplência'],['relatorios','Relatórios'],
       ] as [Tab,string][]).map(([key,title])=><button type="button" key={key} onClick={()=>{setTab(key);setSelectedId(null);setQuery('');}} className={'rounded-xl px-4 py-2.5 text-xs font-bold '+(tab===key?'bg-emerald-300 text-[#112a24]':'bg-white/5 text-slate-300 hover:bg-white/10')}>{title}</button>)}</div>
@@ -168,6 +201,15 @@ export function SaasFinanceiro({onOpenCompany}:{onOpenCompany:(id:number)=>void}
         <button type="button" onClick={()=>setSelectedId(null)} className="flex items-center gap-2 text-sm text-slate-300"><ArrowLeft size={16}/> Voltar</button>
         <section className={panel}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs text-slate-400">FICHA FINANCEIRA</p><h3 className="mt-1 text-xl font-bold">{chosen.nomeFantasia}</h3><p className="mt-1 text-xs text-slate-400">{chosen.plano?.nome||'Sem plano'} · {chosen.slug}</p></div><button className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold" onClick={()=>onOpenCompany(chosen.id)}>Cadastro da distribuidora</button></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-white/5 p-4"><p className="text-xs text-slate-400">Valor do plano</p><b>{money(Number(chosen.plano?.precoMensal||0))}/mês</b></div><div className="rounded-xl bg-white/5 p-4"><p className="text-xs text-slate-400">Saldo em aberto</p><b>{money(customerBills.reduce((v,b)=>v+b.saldo,0))}</b></div><div className="rounded-xl bg-white/5 p-4"><p className="text-xs text-slate-400">Acesso financeiro</p><b>{!chosen.inadimplente?'Regular':chosen.liberacaoFinanceiraAte&&new Date(chosen.liberacaoFinanceiraAte).getTime()>Date.now()?'Liberado temporariamente':'Bloqueado'}</b></div></div>
+        </section>
+        <section className={panel}>
+          <h3 className="font-bold">Configuração de mensalidade recorrente</h3>
+          <p className="mt-1 text-xs text-slate-400">O lançamento mensal só será preparado ao utilizar a ação Gerar mensalidades. Desativado por padrão para evitar cobranças não autorizadas.</p>
+          <div className="mt-4 flex flex-wrap items-end gap-4">
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={recurring} onChange={e=>setRecurring(e.target.checked)}/> Habilitar geração mensal</label>
+            <label className="text-xs">Dia de vencimento (1–28)<input type="number" min={1} max={28} className={field+' mt-1 w-28'} value={dueDay} onChange={e=>setDueDay(Number(e.target.value))}/></label>
+            <button type="button" disabled={busy} onClick={()=>void configureRecurring()} className="min-h-11 rounded-xl border border-emerald-300/30 px-4 py-2 text-xs font-bold text-emerald-200">Salvar regra mensal</button>
+          </div>
         </section>
         <section className={panel}><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold">Boletos e cobranças</h3><p className="mt-1 text-xs text-slate-400">Registro manual; o Bebfy não emite boletos bancários.</p></div><button type="button" className="flex items-center gap-2 rounded-xl bg-emerald-300 px-4 py-3 text-xs font-bold text-[#102a22]" onClick={()=>setNewCharge(true)}><Plus size={16}/> Nova cobrança</button></div>
           <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[680px] text-left"><thead className="text-xs text-slate-400"><tr><th className="p-4">CLIENTE / REFERÊNCIA</th><th className="p-4">VALOR</th><th className="p-4">VENCIMENTO</th><th className="p-4">STATUS</th><th className="p-4">AÇÃO</th></tr></thead><tbody>{customerBills.map(renderBill)}</tbody></table>{!customerBills.length&&<p className="p-5 text-sm text-slate-400">Nenhuma cobrança cadastrada.</p>}</div>
