@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { tenantFromPath, tenantPath } from '../services/tenantUrls';
+import { BebfyBrand } from '../components/BebfyBrand';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   ArrowLeft, ArrowRight, AlertCircle, Boxes, CreditCard, Eye, EyeOff,
@@ -79,7 +80,7 @@ export const Login: React.FC = () => {
       <section className="flex flex-col justify-between bg-[#082d29] px-6 pb-7 pt-7 text-white sm:px-10 sm:pb-9 sm:pt-9 lg:px-12 lg:pb-10 lg:pt-11" aria-labelledby="bebfy-login-about">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/" aria-label="Bebfy, página inicial" className="inline-flex">
-            <img src="/bebfy-logo.svg" alt="bebfy" className="h-[61px] w-[154px] object-contain brightness-0 invert" />
+            <BebfyBrand light compact />
           </Link>
           <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100/90">ACESSO DO CLIENTE</span>
         </div>
