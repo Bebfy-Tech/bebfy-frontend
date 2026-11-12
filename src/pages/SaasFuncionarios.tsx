@@ -22,6 +22,7 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
   const [selected, setSelected] = useState<SaasFuncionario | null>(null);
   const [editCode, setEditCode] = useState('');
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [editActive, setEditActive] = useState(true);
@@ -74,20 +75,20 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
   };
 
   const openEditor = (u: SaasFuncionario) => {
-    setSelected(u); setEditCode(String(u.codigo)); setEditName(u.nome);
+    setSelected(u); setEditCode(String(u.codigo)); setEditName(u.nome); setEditEmail(u.email || '');
     setEditPassword(''); setEditPermissions([...u.permissoes]); setEditActive(u.ativo);
     setError(''); setMessage(''); setShowEditPassword(false);
   };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selected || selected.cargo === 'SUPER_ADMIN' || busy) return;
+    if (!selected || busy) return;
     setBusy(true); setError('');
     try {
-      await saasAuthApi.alterarFuncionario(selected.id, {
-        codigo: Number(editCode), nome: editName.trim(), permissoes: editPermissions,
-        ativo: editActive, ...(editPassword ? { senha: editPassword } : {}),
-      });
+      await saasAuthApi.alterarFuncionario(selected.id, selected.cargo === 'SUPER_ADMIN'
+        ? { nome: editName.trim(), email: editEmail.trim() }
+        : { codigo: Number(editCode), nome: editName.trim(), email: editEmail.trim(), permissoes: editPermissions,
+            ativo: editActive, ...(editPassword ? { senha: editPassword } : {}) });
       setSelected(null); await reload(); setMessage('Cadastro atualizado com sucesso.');
     } catch (err) {
       const response = err as { response?: { data?: { message?: string } } };
@@ -133,26 +134,31 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
     <section className="saas-card space-y-4 rounded-2xl p-6">
       <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold">Equipe cadastrada</h3><Users size={20} className="text-emerald-300"/></div>
       {loading && <p className="text-sm text-slate-400">Carregando colaboradores...</p>}
-      {!loading && users.map(u=><button type="button" key={u.id} onClick={()=>u.cargo!=='SUPER_ADMIN'&&openEditor(u)} disabled={u.cargo==='SUPER_ADMIN'}
-        className="flex w-full flex-col gap-3 rounded-xl border border-white/10 bg-white/[.025] p-4 text-left transition hover:border-emerald-400/35 hover:bg-white/[.04] disabled:cursor-default sm:flex-row sm:items-center sm:justify-between">
+      {!loading && users.map(u=><button type="button" key={u.id} onClick={()=>openEditor(u)}
+        className="flex w-full flex-col gap-3 rounded-xl border border-white/10 bg-white/[.025] p-4 text-left transition hover:border-emerald-400/35 hover:bg-white/[.04] sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><strong>{u.nome}</strong><span className={'rounded-full px-2 py-0.5 text-[10px] font-bold ' + (u.ativo?'bg-emerald-400/10 text-emerald-200':'bg-slate-400/15 text-slate-300')}>{u.ativo?'Ativo':'Desativado'}</span></div>
           <p className="mt-1 text-xs text-slate-400">Código {u.codigo} · {u.cargo==='SUPER_ADMIN'?'Administrador geral':'Operador SaaS'}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">{u.permissoes.map(p=><span key={p} className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold text-slate-300">{options.find(([key])=>key===p)?.[1]||p}</span>)}</div>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-2 text-xs font-bold text-emerald-300">{u.cargo==='SUPER_ADMIN'?<><Shield size={16}/> Protegido</>:<><Pencil size={16}/> Editar funcionário</>}</span>
+        <span className="inline-flex shrink-0 items-center gap-2 text-xs font-bold text-emerald-300">{u.cargo==='SUPER_ADMIN'?<><Shield size={16}/> Editar administrador</>:<><Pencil size={16}/> Editar funcionário</>}</span>
       </button>)}
       {!loading && !users.length && <p className="py-8 text-center text-sm text-slate-400">Nenhum funcionário cadastrado.</p>}
     </section>
 
     {selected && <div role="dialog" aria-modal="true" aria-labelledby="saas-staff-modal-title" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
       <form onSubmit={e=>void save(e)} className="max-h-[95dvh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-white/15 bg-[#202b2e] p-6 text-white shadow-2xl sm:p-8">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">EQUIPE SAAS</p><h2 id="saas-staff-modal-title" className="mt-1 text-2xl font-extrabold">Editar funcionário</h2></div><button type="button" onClick={()=>setSelected(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={20}/></button></div>
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">EQUIPE SAAS</p><h2 id="saas-staff-modal-title" className="mt-1 text-2xl font-extrabold">{selected.cargo==='SUPER_ADMIN'?'Editar administrador':'Editar funcionário'}</h2></div><button type="button" onClick={()=>setSelected(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={20}/></button></div>
         {error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-200">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-semibold">Nome completo<input className={field} minLength={2} required value={editName} onChange={e=>setEditName(e.target.value)}/></label>
-          <label className="text-sm font-semibold">Código de acesso<input className={field} type="number" min="3" required value={editCode} onChange={e=>setEditCode(e.target.value)}/></label>
+          <label className="text-sm font-semibold">Código de acesso<input className={field} type="number" min={selected.cargo==='SUPER_ADMIN'?1:3} disabled={selected.cargo==='SUPER_ADMIN'} required value={editCode} onChange={e=>setEditCode(e.target.value)}/></label>
         </div>
+        <label className="block text-sm font-semibold">E-mail<input className={field} type="email" value={editEmail} onChange={e=>setEditEmail(e.target.value)} placeholder="nome@dominio.com"/></label>
+        {selected.cargo==='SUPER_ADMIN'?
+          <p className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-xs leading-5 text-emerald-100">
+            Administradores principais (códigos 1 e 2): nome e e-mail podem ser alterados aqui. Os códigos, privilégios e ativação permanecem protegidos. Cada administrador altera a própria senha em Meu perfil, informando a senha atual.
+          </p> : <>
         <label className="block text-sm font-semibold">Nova senha (opcional)
           <span className="relative block"><input className={field+' pr-12'} type={showEditPassword?'text':'password'} autoComplete="new-password" value={editPassword} onChange={e=>setEditPassword(e.target.value)} placeholder="Mantenha em branco para não alterar"/>
             <button type="button" onClick={()=>setShowEditPassword(!showEditPassword)} aria-label={showEditPassword?'Ocultar senha':'Mostrar senha'} className="absolute right-3 top-4 p-2 text-slate-300">{showEditPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button>
@@ -161,6 +167,7 @@ export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
         <div className="flex justify-between gap-3"><h3 className="text-sm font-bold">Permissões</h3><button type="button" onClick={()=>setEditPermissions(editPermissions.length===options.length?[]:options.map(([key])=>key))} className="text-xs font-bold text-emerald-300">{editPermissions.length===options.length?'Desmarcar todas':'Marcar todas'}</button></div>
         {permissionList(editPermissions,setEditPermissions)}
         <label className="flex items-center gap-3 rounded-xl border border-white/10 p-4 text-sm"><input type="checkbox" checked={editActive} onChange={e=>setEditActive(e.target.checked)}/> Acesso ativo</label>
+        </>}
         <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setSelected(null)} className="rounded-xl border border-white/15 px-5 py-3 text-sm font-bold">Cancelar</button><button type="submit" disabled={busy} className={btn}>{busy?'Salvando...':'Salvar alterações'}</button></div>
       </form>
     </div>}
