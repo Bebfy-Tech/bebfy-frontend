@@ -88,7 +88,37 @@ export interface AtualizarEmpresaSaas {
   nomeResponsavel?: string; cpfResponsavel?: string; emailResponsavel?: string; senhaTemporaria?: string;
 }
 
+
+export interface SaasPagamento {
+  id: string; cobrancaId: string; valor: number; pagoEm: string;
+  forma: string; observacao: string | null; operadorId: string; criadoEm: string;
+}
+export interface SaasCobrancaFinanceiro extends SaasCobranca {
+  recebido: number; saldo: number;
+  status: 'PAGO' | 'VENCIDO' | 'PENDENTE' | 'PARCIAL';
+  pagamentos: SaasPagamento[];
+}
+export interface SaasFinanceiroEmpresa {
+  id: number; nomeFantasia: string; slug: string; status: StatusEmpresa;
+  inadimplente: boolean; liberacaoFinanceiraAte: string | null;
+  plano: {nome: string; precoMensal: number|string} | null;
+}
+export interface SaasFinanceiroResumo {
+  empresas: SaasFinanceiroEmpresa[];
+  cobrancas: SaasCobrancaFinanceiro[];
+}
+export interface SaasFinanceiroEvento {
+  id: string; empresaId: number; operadorId: string;
+  acao: string; descricao: string; criadoEm: string;
+}
+export interface RegistrarPagamentoSaas {
+  valor: number; pagoEm: string; forma: string; observacao?: string;
+}
+
 export const saasApi = {
+  financeiro: () => saasClient.get<SaasFinanceiroResumo>('/saas/admin/financeiro').then(r=>r.data),
+  historicoFinanceiro: (id:number) => saasClient.get<SaasFinanceiroEvento[]>(`/saas/admin/financeiro/empresas/${id}/historico`).then(r=>r.data),
+  registrarPagamento: (id:number,cobrancaId:string,dados:RegistrarPagamentoSaas) => saasClient.post<SaasPagamento>(`/saas/admin/financeiro/empresas/${id}/cobrancas/${cobrancaId}/pagamentos`,dados).then(r=>r.data),
   cobrancas: (id:number) => saasClient.get<SaasCobranca[]>('/saas/admin/empresas/'+id+'/cobrancas').then(r=>r.data),
   criarCobranca: (id:number,dados:CriarSaasCobranca) => saasClient.post<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas',dados).then(r=>r.data),
   marcarPagamento: (id:number,cobrancaId:string,pago:boolean) => saasClient.patch<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas/'+cobrancaId+'/pagamento',{pago}).then(r=>r.data),
