@@ -24,7 +24,7 @@ export function FirstAccess() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!dados || busy) return;
-    if (novaSenha.length < 10) { setErro('A nova senha precisa ter pelo menos 10 caracteres.'); return; }
+
     if (novaSenha !== confirmacao) { setErro('As novas senhas não conferem.'); return; }
     if (novaSenha === senhaAtual) { setErro('A nova senha deve ser diferente da senha inicial.'); return; }
     setBusy(true); setErro('');
@@ -68,7 +68,7 @@ export function FirstAccess() {
             className="mt-2 w-full rounded-xl border border-white/10 bg-[#092521] px-4 py-3 text-white"/>
         </label>
         <label className="block text-sm font-bold">Nova senha
-          <span className="relative mt-2 block"><input required minLength={10} type={mostrar?'text':'password'} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)} autoComplete="new-password"
+          <span className="relative mt-2 block"><input required type={mostrar?'text':'password'} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)} autoComplete="new-password"
             className="w-full rounded-xl border border-white/10 bg-[#081d24] px-4 py-3 pr-12 outline-none focus:border-emerald-300" placeholder="Mínimo de 10 caracteres"/>
             <button type="button" onClick={()=>setMostrar(!mostrar)} aria-label={mostrar?'Esconder senha':'Mostrar senha'} className="absolute right-3 top-3 text-slate-400">{mostrar?<EyeOff size={20}/>:<Eye size={20}/>}</button></span>
         </label>
