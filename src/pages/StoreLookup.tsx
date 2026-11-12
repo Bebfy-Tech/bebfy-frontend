@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Building2, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { BebfyBrand } from '../components/BebfyBrand';
 import { tenantPath, validSlug } from '../services/tenantUrls';
 
 /** Public identifier lookup. Authentication still happens on the tenant's login route. */
@@ -26,7 +27,7 @@ export function StoreLookup() {
       <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-5 sm:px-8 lg:px-12">
         <header className="flex h-20 items-center justify-between border-b border-white/10">
           <Link to="/" aria-label="Bebfy, voltar ao início" className="inline-flex items-center">
-            <img src="/bebfy-logo.svg" alt="bebfy" className="h-[54px] w-[155px] object-contain brightness-0 invert" />
+            <BebfyBrand light compact />
           </Link>
           <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-50/75 transition hover:text-emerald-200 sm:text-sm">
             <ArrowLeft size={17} /> Voltar ao início
