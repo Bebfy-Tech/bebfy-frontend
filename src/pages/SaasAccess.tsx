@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Building2, CreditCard, Eye, EyeOff, Layers3, Loa
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { saasPanelPath } from '../services/tenantUrls';
 import './saas-premium.css';
+import { BebfyBrand } from '../components/BebfyBrand';
 
 const resources = [
   { icon: Building2, title: 'Distribuidoras', description: 'Cadastros e gestão de clientes.' },
@@ -46,7 +47,7 @@ export function SaasAccess() {
     <div className="saas-login-panel relative z-10 grid w-full max-w-[1080px] overflow-hidden rounded-[26px] border border-white/15 shadow-[0_35px_90px_rgba(0,0,0,.30)] lg:min-h-[640px] lg:grid-cols-2">
       <aside className="saas-login-intro flex flex-col justify-between bg-[#082e2b] px-7 py-8 text-white sm:px-10 sm:py-10 lg:px-12">
         <div className="flex items-center justify-between gap-3">
-          <Link to="/" aria-label="Bebfy, início" className="inline-flex"><img src="/bebfy-logo.svg" alt="bebfy" className="h-[63px] w-[157px] object-contain brightness-0 invert"/></Link>
+          <Link to="/" aria-label="Bebfy, início" className="inline-flex"><BebfyBrand light compact /></Link>
           <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100">ACESSO INTERNO</span>
         </div>
         <div className="mt-8 lg:my-auto lg:py-10">
