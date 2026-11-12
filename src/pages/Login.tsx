@@ -156,7 +156,7 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          <p className={`mt-5 text-center text-xs leading-5 ${theme === 'dark' ? 'text-emerald-50/55' : 'text-[#6f8278]'}`}>Esqueceu sua senha? Solicite uma redefinição ao administrador da distribuidora.</p>
+          <p className={`mt-5 text-center text-xs leading-5 ${theme === 'dark' ? 'text-emerald-50/55' : 'text-[#6f8278]'}`}><Link to={tenantPath('recuperar-senha')} className="font-extrabold text-emerald-300 hover:underline">Recuperar acesso por e-mail</Link></p>
           <Link to="/acessar" className={`mt-6 flex items-center justify-center gap-2 text-xs font-bold transition-colors ${theme === 'dark' ? 'text-emerald-200 hover:text-white' : 'text-[#17684f] hover:text-[#0d4937]'}`}><ArrowLeft size={16}/> Trocar de distribuidora</Link>
         </div>
 
