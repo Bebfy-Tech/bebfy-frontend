@@ -26,7 +26,7 @@ export function RecuperarSenha() {
     try {
       if(token) {
         if(senha!==confirmacao) {setError('As senhas não conferem.');return;}
-        if(senha.length<10) {setError('A senha deve conter pelo menos 10 caracteres.');return;}
+
         await api.post('/auth/recuperar-senha/confirmar',{token,novaSenha:senha,confirmarNovaSenha:confirmacao});
         setConcluido(true);setMessage('Senha alterada. Você já pode entrar com a nova senha.');
       }else{
@@ -52,8 +52,8 @@ export function RecuperarSenha() {
         {!token?<label className="block text-sm font-semibold">Código do funcionário ou CPF
           <input required autoFocus inputMode="numeric" className="mt-2 min-h-14 w-full rounded-xl border border-white/20 bg-[#182529] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-300" placeholder="Ex.: 1" value={codigo} onChange={e=>setCodigo(e.target.value)}/>
         </label>:<>
-          <label className="block text-sm font-semibold">Nova senha<input required minLength={10} autoComplete="new-password" type={mostrar?'text':'password'} className="mt-2 min-h-14 w-full rounded-xl border border-white/20 bg-[#182529] px-4 text-sm text-white outline-none focus:border-emerald-300" value={senha} onChange={e=>setSenha(e.target.value)}/></label>
-          <label className="block text-sm font-semibold">Confirme a nova senha<input required minLength={10} autoComplete="new-password" type={mostrar?'text':'password'} className="mt-2 min-h-14 w-full rounded-xl border border-white/20 bg-[#182529] px-4 text-sm text-white outline-none focus:border-emerald-300" value={confirmacao} onChange={e=>setConfirmacao(e.target.value)}/></label>
+          <label className="block text-sm font-semibold">Nova senha<input required autoComplete="new-password" type={mostrar?'text':'password'} className="mt-2 min-h-14 w-full rounded-xl border border-white/20 bg-[#182529] px-4 text-sm text-white outline-none focus:border-emerald-300" value={senha} onChange={e=>setSenha(e.target.value)}/></label>
+          <label className="block text-sm font-semibold">Confirme a nova senha<input required autoComplete="new-password" type={mostrar?'text':'password'} className="mt-2 min-h-14 w-full rounded-xl border border-white/20 bg-[#182529] px-4 text-sm text-white outline-none focus:border-emerald-300" value={confirmacao} onChange={e=>setConfirmacao(e.target.value)}/></label>
           <button type="button" className="inline-flex items-center gap-2 text-xs font-bold text-emerald-200" onClick={()=>setMostrar(!mostrar)}>{mostrar?<EyeOff size={17}/>:<Eye size={17}/>} {mostrar?'Ocultar senhas':'Mostrar senhas'}</button>
         </>}
         <button type="submit" disabled={busy} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#54daad] px-4 text-sm font-extrabold text-[#0b3229] disabled:opacity-50">{busy?'Processando...':token?'Salvar nova senha':'Enviar link de recuperação'} <ArrowRight size={18}/></button>
