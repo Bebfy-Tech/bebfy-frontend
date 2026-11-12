@@ -102,6 +102,7 @@ export interface SaasFinanceiroEmpresa {
   id: number; nomeFantasia: string; slug: string; status: StatusEmpresa;
   inadimplente: boolean; liberacaoFinanceiraAte: string | null;
   plano: {nome: string; precoMensal: number|string} | null;
+  configuracaoCobrancaSaas?: {recorrente:boolean;diaVencimento:number}|null;
 }
 export interface SaasFinanceiroResumo {
   empresas: SaasFinanceiroEmpresa[];
@@ -160,6 +161,8 @@ export const saasApi = {
     return saasClient.post<SaasAnexoFinanceiro>(`/saas/admin/financeiro/empresas/${id}/anexos`,form).then(r=>r.data);
   },
   baixarAnexoFinanceiro: (id:number,anexoId:string) => saasClient.get<Blob>(`/saas/admin/financeiro/empresas/${id}/anexos/${anexoId}`,{responseType:'blob'}).then(r=>r.data),
+  configurarRecorrencia: (id:number,dados:{recorrente:boolean;diaVencimento:number}) => saasClient.patch('/saas/admin/financeiro/empresas/'+id+'/recorrencia',dados).then(r=>r.data),
+  gerarMensalidades: (competencia:string) => saasClient.post<{competencia:string;geradas:number;ignoradas:number;elegiveis:number}>('/saas/admin/financeiro/gerar-mensalidades',{competencia}).then(r=>r.data),
   financeiro: () => saasClient.get<SaasFinanceiroResumo>('/saas/admin/financeiro').then(r=>r.data),
   historicoFinanceiro: (id:number) => saasClient.get<SaasFinanceiroEvento[]>(`/saas/admin/financeiro/empresas/${id}/historico`).then(r=>r.data),
   registrarPagamento: (id:number,cobrancaId:string,dados:RegistrarPagamentoSaas) => saasClient.post<SaasPagamento>(`/saas/admin/financeiro/empresas/${id}/cobrancas/${cobrancaId}/pagamentos`,dados).then(r=>r.data),
