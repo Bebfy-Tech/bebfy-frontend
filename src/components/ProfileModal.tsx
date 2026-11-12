@@ -66,8 +66,7 @@ export function ProfileModal({ mode, open, onClose }: {mode:Mode;open:boolean;on
     e.preventDefault();if(busy)return;
     if(novaSenha!==confirmar){setError('A confirmação da senha não corresponde.');return;}
     if(novaSenha===senhaAtual){setError('A nova senha precisa ser diferente da atual.');return;}
-    const min=mode==='saas'?12:10;
-    if(novaSenha.length<min){setError('A senha precisa ter pelo menos '+min+' caracteres.');return;}
+
     setBusy(true);setError('');setMessage('');
     try {
       if(mode==='saas'){
@@ -112,7 +111,7 @@ export function ProfileModal({ mode, open, onClose }: {mode:Mode;open:boolean;on
         <p className="text-xs leading-5 text-slate-400">A troca de senha exige a senha atual e encerrará esta sessão por segurança.</p>
         <label className="block text-xs font-bold text-slate-300">Senha atual<input type={mostrar?'text':'password'} required autoComplete="current-password" className={input} value={senhaAtual} onChange={e=>setSenhaAtual(e.target.value)}/></label>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-bold text-slate-300">Nova senha<input type={mostrar?'text':'password'} required minLength={mode==='saas'?12:10} autoComplete="new-password" className={input} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)}/></label>
+          <label className="text-xs font-bold text-slate-300">Nova senha<input type={mostrar?'text':'password'} required autoComplete="new-password" className={input} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)}/></label>
           <label className="text-xs font-bold text-slate-300">Confirmar senha<input type={mostrar?'text':'password'} required autoComplete="new-password" className={input} value={confirmar} onChange={e=>setConfirmar(e.target.value)}/></label>
         </div>
         <button type="button" onClick={()=>setMostrar(!mostrar)} className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-200">{mostrar?<EyeOff size={17}/>:<Eye size={17}/>} {mostrar?'Ocultar senhas':'Visualizar senhas'}</button>
