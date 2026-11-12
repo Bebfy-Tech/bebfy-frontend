@@ -130,7 +130,7 @@ export function CadastroPage({resource}:{resource:Recurso}){
   }
   async function saveAcesso(e:React.FormEvent){
     e.preventDefault();if(!acesso||busy)return;
-    if(senha.length<10){setErro('A senha inicial precisa de pelo menos 10 caracteres.');return;}
+
     setBusy(true);setErro('');
     try{
       await api.post(`/funcionarios/${encodeURIComponent(String(acesso.id))}/acesso`,{
@@ -194,7 +194,7 @@ export function CadastroPage({resource}:{resource:Recurso}){
     {deleteTarget&&<Modal title="Confirmar remoção" onClose={()=>setDeleteTarget(null)}><p className="text-sm text-slate-600">Deseja realmente remover ou desativar este registro? Esta ação pode alterar o estoque ou impedir novas operações.</p><p className="my-4 rounded-xl bg-slate-50 p-4 font-bold">{String(deleteTarget.nome||deleteTarget.razaoSocial||deleteTarget.numeroLote||deleteTarget.id)}</p><div className="flex justify-end gap-2"><button className={secondary} onClick={()=>setDeleteTarget(null)}>Cancelar</button><button className={`${btn} !bg-rose-600`} onClick={()=>void remove()} disabled={busy}>{busy?'Removendo...':'Confirmar'}</button></div></Modal>}
     {acesso&&<Modal title={`Acesso · ${String(acesso.nome)}`} onClose={()=>setAcesso(null)}><form onSubmit={e=>void saveAcesso(e)} className="space-y-4"><p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">A nova senha é temporária. O funcionário deverá alterá-la no primeiro acesso. Reconfigurar um acesso revoga a sessão anterior.</p>
       <div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-semibold">Código do operador<input type="number" min={1} className={`${input} mt-2`} value={codigo} onChange={e=>setCodigo(e.target.value)}/></label><label className="block text-sm font-semibold">E-mail de acesso<input type="email" required className={`${input} mt-2`} value={email} onChange={e=>setEmail(e.target.value)}/></label></div>
-      <label className="block text-sm font-semibold">Nova senha inicial (mínimo 10 caracteres)<input type="password" required minLength={10} autoComplete="new-password" className={`${input} mt-2`} value={senha} onChange={e=>setSenha(e.target.value)}/></label>
+      <label className="block text-sm font-semibold">Nova senha inicial<input type="password" required autoComplete="new-password" className={`${input} mt-2`} value={senha} onChange={e=>setSenha(e.target.value)}/></label>
       <h3 className="flex items-center gap-2 pt-2 font-bold text-slate-800"><LockKeyhole size={18}/> Permissões específicas</h3><p className="text-xs text-slate-500">O servidor valida as permissões de cada operação. Gestores possuem alçadas definidas pelo cargo.</p>
       <div className="grid gap-2 sm:grid-cols-2">{PERMISSOES.map(([chave,nome])=><label key={chave} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm"><input type="checkbox" className="accent-teal-700" checked={permissoes.includes(chave)} onChange={e=>setPermissoes(p=>e.target.checked?[...p,chave]:p.filter(x=>x!==chave))}/>{nome}</label>)}</div>
       {erro&&<Notice message={erro}/>}<div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" className={secondary} onClick={()=>setAcesso(null)}>Cancelar</button><button disabled={busy} type="submit" className={btn}>{busy?'Salvando...':'Salvar acesso'}</button></div>
