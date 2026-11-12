@@ -148,6 +148,9 @@ export interface AtualizarSaasChamado {
   categoria?:ChamadoCategoria;prioridade?:ChamadoPrioridade;status?:ChamadoStatus;
   comDev?:boolean;responsavelId?:string;devResponsavel?:string;solucao?:string;
 }
+export interface SaasAuditEvent {
+  id:string;operadorId:string;metodo:string;rota:string;campos:string[];recursoId:string|null;criadoEm:string;
+}
 export interface SaasTenantMonitor {
   id:number;nomeFantasia:string;slug:string;status:StatusEmpresa;
   inadimplente:boolean;criadoEm:string;
@@ -155,6 +158,7 @@ export interface SaasTenantMonitor {
   usuariosAtivos:number;usuariosRecentes:number;ultimoAcesso:string|null;
 }
 export const saasApi = {
+  auditoria: () => saasClient.get<SaasAuditEvent[]>('/saas/admin/auditoria').then(r=>r.data),
   monitoramento: () => saasClient.get<SaasTenantMonitor[]>('/saas/admin/monitoramento').then(r=>r.data),
   empresasSuporte: () => saasClient.get<Array<{id:number;nomeFantasia:string;slug:string;status:StatusEmpresa}>>('/saas/admin/suporte/empresas').then(r=>r.data),
   operadoresSuporte: () => saasClient.get<Array<{id:string;nome:string;codigo:number}>>('/saas/admin/suporte/operadores').then(r=>r.data),
