@@ -77,6 +77,11 @@ export interface CriarEmpresaSaas {
   senhaInicial: string;
 }
 
+export interface SaasCobranca {
+  id:string;empresaId:number;referencia:string;valor:number|string;vencimento:string;
+  pagoEm:string|null;linhaDigitavel:string|null;observacao:string|null;criadoEm:string;
+}
+export interface CriarSaasCobranca {referencia:string;valor:number;vencimento:string;linhaDigitavel?:string;observacao?:string;}
 export interface SaasModuloDescricao { modulo: NomeModulo; nome: string; descricao: string; atualizadoEm: string }
 export interface AtualizarEmpresaSaas {
   nomeFantasia?: string; razaoSocial?: string; documento?: string; telefone?: string;
@@ -84,6 +89,9 @@ export interface AtualizarEmpresaSaas {
 }
 
 export const saasApi = {
+  cobrancas: (id:number) => saasClient.get<SaasCobranca[]>('/saas/admin/empresas/'+id+'/cobrancas').then(r=>r.data),
+  criarCobranca: (id:number,dados:CriarSaasCobranca) => saasClient.post<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas',dados).then(r=>r.data),
+  marcarPagamento: (id:number,cobrancaId:string,pago:boolean) => saasClient.patch<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas/'+cobrancaId+'/pagamento',{pago}).then(r=>r.data),
   descricoesModulos: () => saasClient.get<SaasModuloDescricao[]>('/saas/admin/modulos').then(r=>r.data),
   personalizarModulo: (modulo: NomeModulo, dados: {nome:string;descricao:string}) => saasClient.patch<SaasModuloDescricao>('/saas/admin/modulos/'+modulo,dados).then(r=>r.data),
   empresas: () => saasClient.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
