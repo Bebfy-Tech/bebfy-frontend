@@ -119,7 +119,38 @@ export interface RegistrarPagamentoSaas {
   valor: number; pagoEm: string; forma: string; observacao?: string;
 }
 
+export type ChamadoStatus = 'PENDENTE'|'EM_ATENDIMENTO'|'AGUARDANDO_CLIENTE'|'COM_DEV'|'RESOLVIDO'|'CANCELADO';
+export type ChamadoPrioridade = 'BAIXA'|'NORMAL'|'ALTA'|'URGENTE';
+export type ChamadoCategoria = 'DUVIDA'|'ERRO'|'CONFIGURACAO'|'FINANCEIRO'|'SOLICITACAO'|'OUTRO';
+export interface SaasChamadoEvento {
+  id: string; chamadoId: string; operadorId: string; acao: string; mensagem: string; criadoEm: string;
+}
+export interface SaasChamado {
+  id:string;numero:number;empresaId:number;titulo:string;descricao:string;
+  contatoNome:string|null; contatoTelefone:string|null;
+  categoria:ChamadoCategoria;prioridade:ChamadoPrioridade;status:ChamadoStatus;
+  comDev:boolean;responsavelId:string|null;devResponsavel:string|null;
+  solucao:string|null;abertoPorId:string;resolvidoEm:string|null;criadoEm:string;atualizadoEm:string;
+  empresa:{id:number;nomeFantasia:string;slug:string};
+  eventos?:SaasChamadoEvento[];
+  _count?:{eventos:number};
+}
+export interface CriarSaasChamado {
+  empresaId:number;titulo:string;descricao:string;contatoNome?:string;contatoTelefone?:string;
+  categoria?:ChamadoCategoria;prioridade?:ChamadoPrioridade;responsavelId?:string;
+}
+export interface AtualizarSaasChamado {
+  titulo?:string;descricao?:string;contatoNome?:string;contatoTelefone?:string;
+  categoria?:ChamadoCategoria;prioridade?:ChamadoPrioridade;status?:ChamadoStatus;
+  comDev?:boolean;responsavelId?:string;devResponsavel?:string;solucao?:string;
+}
 export const saasApi = {
+  chamadosSuporte: () => saasClient.get<SaasChamado[]>('/saas/admin/suporte/chamados').then(r=>r.data),
+  chamadoSuporte: (id:string) => saasClient.get<SaasChamado>('/saas/admin/suporte/chamados/'+id).then(r=>r.data),
+  criarChamadoSuporte: (data:CriarSaasChamado) => saasClient.post<SaasChamado>('/saas/admin/suporte/chamados',data).then(r=>r.data),
+  atualizarChamadoSuporte: (id:string,data:AtualizarSaasChamado) => saasClient.patch<SaasChamado>('/saas/admin/suporte/chamados/'+id,data).then(r=>r.data),
+  registrarInteracaoSuporte: (id:string,mensagem:string) => saasClient.post<SaasChamadoEvento>('/saas/admin/suporte/chamados/'+id+'/interacoes',{mensagem}).then(r=>r.data),
+
   anexosFinanceiros: (id:number) => saasClient.get<SaasAnexoFinanceiro[]>(`/saas/admin/financeiro/empresas/${id}/anexos`).then(r=>r.data),
   anexarFinanceiro: (id:number,arquivo:File,tipo:'BOLETO'|'COMPROVANTE',cobrancaId?:string) => {
     const form=new FormData();form.append('arquivo',arquivo);form.append('tipo',tipo);
