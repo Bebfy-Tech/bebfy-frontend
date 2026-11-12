@@ -1,7 +1,7 @@
 name: Bebfy Frontend CI
 on:
   push:
-    branches: [main, refactor/conexao-backend-chatgpt]
+    branches: [main, refactor/conexao-backend-chatgpt, refactor/conexao-backend-chatgpt-2]
   pull_request:
     branches: [main]
 jobs:
