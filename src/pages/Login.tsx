@@ -74,10 +74,10 @@ export const Login: React.FC = () => {
     void realizarLogin(false);
   };
 
-  return <div className="bebfy-access-viewport relative isolate flex items-center justify-center overflow-hidden bg-[#101b20] p-3 font-sans text-[#14352e] selection:bg-emerald-200 sm:p-6 lg:p-10">
+  return <div className="bebfy-access-viewport relative isolate flex items-center justify-center overflow-hidden bg-[#041d1e] p-3 font-sans text-[#14352e] selection:bg-emerald-200 sm:p-6 lg:p-10">
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_10%,rgba(30,134,97,.35),transparent_48%),radial-gradient(ellipse_at_4%_90%,rgba(18,93,74,.35),transparent_36%)]" />
-    <main className="bebfy-login-panel relative z-10 grid w-full max-w-[1050px] min-h-0 overflow-hidden rounded-[24px] border border-[#32464a] bg-[#f7f8f5] shadow-[0_30px_75px_rgba(0,0,0,.3)] lg:grid-cols-2">
-      <section className="bebfy-login-intro flex min-h-0 flex-col justify-between bg-[#152e30] px-6 py-6 text-white sm:px-8 sm:py-7 lg:px-10" aria-labelledby="bebfy-login-about">
+    <main className="bebfy-login-panel relative z-10 grid w-full max-w-[1050px] min-h-0 overflow-hidden rounded-[24px] border border-[#285446] bg-[#f8f6ef] shadow-[0_30px_75px_rgba(0,0,0,.3)] lg:grid-cols-2">
+      <section className="bebfy-login-intro flex min-h-0 flex-col justify-between bg-[#06332d] px-6 py-6 text-white sm:px-8 sm:py-7 lg:px-10" aria-labelledby="bebfy-login-about">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/" aria-label="Bebfy, página inicial" className="inline-flex">
             <BebfyBrand light compact />
@@ -109,7 +109,7 @@ export const Login: React.FC = () => {
         <p className="mt-3 hidden text-[11px] text-emerald-50/40 lg:block">Bebfy · Gestão inteligente para o mercado de bebidas</p>
       </section>
 
-      <section className={`bebfy-login-form flex min-h-0 min-w-0 flex-col justify-between px-6 py-6 transition-colors sm:px-8 sm:py-7 lg:px-10 ${theme === 'dark' ? 'bg-[#0d1e20] text-white' : 'bg-[#f7f8f5] text-[#173a31]'}`} aria-labelledby="bebfy-login-title">
+      <section className={`bebfy-login-form flex min-h-0 min-w-0 flex-col justify-between px-6 py-6 transition-colors sm:px-8 sm:py-7 lg:px-10 ${theme === 'dark' ? 'bg-[#0d1e20] text-white' : 'bg-[#f8f6ef] text-[#14322e]'}`} aria-labelledby="bebfy-login-title">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className={`text-[11px] font-extrabold uppercase tracking-[.13em] ${theme === 'dark' ? 'text-emerald-300' : 'text-[#178463]'}`}>ÁREA DE ACESSO</p>
@@ -151,7 +151,7 @@ export const Login: React.FC = () => {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={carregando} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#42d4a0] px-5 text-sm font-extrabold text-[#073328] transition hover:bg-[#6ce5b5] disabled:cursor-wait disabled:opacity-60">
+            <button type="submit" disabled={carregando} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#43dbab] px-5 text-sm font-extrabold text-[#073328] transition hover:bg-[#68e8b8] disabled:cursor-wait disabled:opacity-60">
               {carregando ? <><span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-[#06352c] border-t-transparent"/> Entrando...</> : <>Entrar no sistema <ArrowRight size={19}/></>}
             </button>
           </form>
