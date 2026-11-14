@@ -57,8 +57,8 @@ export function AppShell() {
   const leave = () => { logout(); navigate(tenantPath(), { replace: true }); };
 
   const sidebar = (
-    <aside className={`bebfy-sidebar fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col overflow-y-auto border-r border-[#1f2937] bg-[#0a0f1d] text-white transition-transform duration-200 lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="border-b border-[#1f2937] px-6 py-6">
+    <aside className={`bebfy-sidebar fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col overflow-y-auto border-r border-[#285446] bg-[#082b28] text-white transition-transform duration-200 lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="border-b border-[#285446] px-6 py-6">
         <Link to={tenantPath('dashboard')} onClick={close} className="flex items-center gap-3 text-[29px] font-black tracking-tighter">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/20"><Layers3 size={24}/></span>
           bebfy<span className="-ml-3 text-emerald-400">.</span>
@@ -81,7 +81,7 @@ export function AppShell() {
             </NavLink>)}
         </section>)}
       </nav>
-      <div className="border-t border-[#1f2937] p-4">
+      <div className="border-t border-[#285446] p-4">
         <div className="mb-3 flex items-center gap-3 px-2">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-500/10 text-sm font-black text-emerald-300">{(user?.nome || 'U')[0]}</span>
           <div className="min-w-0"><p className="truncate text-sm font-semibold">{user?.nome}</p><p className="text-xs text-slate-500">{user?.cargo?.replaceAll('_', ' ')}</p></div>
@@ -91,12 +91,12 @@ export function AppShell() {
     </aside>
   );
 
-  return <div className={`bebfy-workspace min-h-screen bg-[#07090d] text-slate-100 lg:h-dvh lg:overflow-hidden ${isPdv ? 'bebfy-pdv-mode' : ''}`}>
-    {!isPdv && <div className="sticky top-0 z-40 flex items-center justify-between border-b border-[#1f2937] bg-[#0a0f1d] px-4 py-3 lg:hidden">
+  return <div className={`bebfy-workspace min-h-screen bg-[#041d1e] text-slate-100 lg:h-dvh lg:overflow-hidden ${isPdv ? 'bebfy-pdv-mode' : ''}`}>
+    {!isPdv && <div className="sticky top-0 z-40 flex items-center justify-between border-b border-[#285446] bg-[#082b28] px-4 py-3 lg:hidden">
       <Link to={tenantPath('dashboard')} className="flex items-center gap-2 text-xl font-black text-white"><Layers3 size={24} className="text-emerald-400"/>bebfy<span className="-ml-2 text-emerald-400">.</span></Link>
-      <div className="flex items-center gap-2"><button type="button" title="Meu perfil" onClick={()=>setProfileOpen(true)} aria-label="Meu perfil e configurações" className="rounded-xl border border-[#273449] p-3 text-emerald-200"><Settings size={20}/></button><button type="button" onClick={() => setOpen(!open)} aria-label="Abrir navegação" className="rounded-xl border border-[#273449] p-3 text-white">{open ? <X/> : <Menu/>}</button></div>
+      <div className="flex items-center gap-2"><button type="button" title="Meu perfil" onClick={()=>setProfileOpen(true)} aria-label="Meu perfil e configurações" className="rounded-xl border border-[#386251] p-3 text-emerald-200"><Settings size={20}/></button><button type="button" onClick={() => setOpen(!open)} aria-label="Abrir navegação" className="rounded-xl border border-[#386251] p-3 text-white">{open ? <X/> : <Menu/>}</button></div>
     </div>}
-    {isPdv ? <div className="border-b border-[#1f2937] bg-[#0a0f1d] px-4 py-3 sm:px-7">
+    {isPdv ? <div className="border-b border-[#285446] bg-[#082b28] px-4 py-3 sm:px-7">
       <div className="mx-auto flex max-w-[1760px] items-center justify-between gap-4">
         <Link to={tenantPath('dashboard')} className="flex items-center gap-3 text-sm font-bold text-slate-300 hover:text-white"><ArrowLeft size={18}/> <span className="hidden sm:inline">Voltar ao painel</span><span className="sm:hidden">Voltar</span></Link>
         <span className="flex items-center gap-2 text-lg font-black tracking-tight text-white"><Layers3 size={21} className="text-emerald-400"/>bebfy<span className="-ml-2 text-emerald-400">.</span><span className="ml-2 text-xs font-bold tracking-widest text-blue-400">PDV</span></span>
@@ -107,14 +107,14 @@ export function AppShell() {
       {sidebar}
     </>}
     <div className={`min-w-0 lg:flex lg:h-dvh lg:min-h-0 lg:flex-col ${isPdv ? '' : 'lg:ml-[280px]'}`}>
-      {!isPdv && <header className="hidden items-center justify-between gap-4 border-b border-[#1f2937] bg-[#0a0f1d] px-8 py-4 lg:flex">
+      {!isPdv && <header className="hidden items-center justify-between gap-4 border-b border-[#285446] bg-[#082b28] px-8 py-4 lg:flex">
         <div className="flex items-center gap-2 text-xs font-bold tracking-[.18em] text-slate-400"><span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981]"/> BEBFY OPERACIONAL</div>
         <div className="flex items-center gap-4 text-sm text-slate-400"><span>{empresa?.nomeFantasia}</span><span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300">{user?.nome}</span><button type="button" title="Meu perfil e configurações" aria-label="Meu perfil e configurações" onClick={()=>setProfileOpen(true)} className="rounded-xl border border-white/15 p-2.5 text-emerald-200 hover:bg-white/5"><Settings size={19}/></button></div>
       </header>}
       <main className={`mx-auto w-full lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain ${isPdv ? 'max-w-[1760px] p-4 sm:p-6' : 'max-w-[1540px] p-4 pb-28 sm:p-7 lg:pb-6 xl:p-7'}`}><Outlet/></main>
       {!isPdv && <footer className="hidden py-2 text-center text-xs text-slate-600 lg:block">Bebfy · Gestão inteligente de distribuidoras · Comprovantes não fiscais</footer>}
     </div>
-    {!isPdv && <nav aria-label="Navegação rápida" className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-[#263247] bg-[#0a0f1d]/95 px-2 py-2 pb-[max(8px,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
+    {!isPdv && <nav aria-label="Navegação rápida" className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-[#285446] bg-[#082b28]/95 px-2 py-2 pb-[max(8px,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
       {[
         { to: 'dashboard', label: 'Início', icon: BarChart3 },
         { to: 'pdv', label: 'PDV', icon: ShoppingCart },
