@@ -21,7 +21,7 @@ export function StoreLookup() {
     navigate(tenantPath('', normalized));
   };
 
-  return <div className="bebfy-access-viewport bg-[#101b20] text-white selection:bg-emerald-300 selection:text-[#101b20]">
+  return <div className="bebfy-access-viewport bg-[#041d1e] text-white selection:bg-emerald-300 selection:text-[#041d1e]">
     <div className="relative isolate h-full overflow-hidden">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_75%_28%,rgba(35,137,102,.22),transparent_47%),radial-gradient(ellipse_at_12%_94%,rgba(22,110,81,.18),transparent_40%)]" />
       <div className="bebfy-lookup-layout relative mx-auto flex h-full max-w-7xl min-h-0 flex-col px-5 sm:px-8 lg:px-12">
@@ -55,7 +55,7 @@ export function StoreLookup() {
               </div>
             </div>
           </section>
-          <section aria-labelledby="lookup-heading" className="rounded-[24px] border border-[#314f51] bg-[#1b2b30]/95 p-5 shadow-[0_25px_65px_rgba(0,0,0,.26)] sm:p-7">
+          <section aria-labelledby="lookup-heading" className="rounded-[24px] border border-[#386251] bg-[#0b332d]/95 p-5 shadow-[0_25px_65px_rgba(0,0,0,.26)] sm:p-7">
             <div className="flex items-center justify-between gap-3">
               <span className="grid h-14 w-14 place-items-center rounded-2xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-200"><Building2 size={26}/></span>
               <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100">ÁREA DO CLIENTE</span>
