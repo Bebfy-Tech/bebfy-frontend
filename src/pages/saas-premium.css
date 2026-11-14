@@ -145,22 +145,14 @@
   }
 }
 
-/* Graphite-first palette: mint is reserved for actions and meaningful states. */
-.saas-premium { background:#111719; color:#f1f5f4; }
-.saas-premium aside[class*="fixed"] {
-  background:linear-gradient(180deg,#191f22 0%,#12191b 100%);
-  border-color:#303d40;
-}
-.saas-premium :is(header,div)[class*="bg-\\[\\#0a0f1d\\]"] {background-color:#1c2527 !important;}
-.saas-premium :is(div,section,form)[class*="bg-\\[\\#0a0f1d\\]"]:not(.saas-card) {background-color:#20292b !important;}
-.saas-premium .saas-card { background:#20292b; border-color:#364447; }
-.saas-premium :is(div,section,form)[class*="bg-\\[\\#101829\\]"] {background-color:#1a2629 !important;}
-.saas-premium thead[class*="bg-\\[\\#131c2c\\]"] {background:#283436 !important;}
-.saas-premium tbody tr:hover { background:#2d393a !important; }
-.saas-premium [role="dialog"] > :is(div,form) {background:#222e30 !important; border-color:#465758 !important;}
-.saas-premium [role="dialog"] input:not([type="checkbox"]),
-.saas-premium [role="dialog"] select,
-.saas-premium [role="dialog"] textarea {background:#192527;border-color:#415356;}
-.saas-premium .saas-field {background:#1c2829;border-color:#405356;}
-.saas-login-workspace { background:#141b1d; }
-.saas-login-workspace .saas-login-intro {background:#1d2829;}
+
+/* Same brand tones as the landing page; preserve meaningful status colors. */
+.saas-premium { background: radial-gradient(ellipse at 80% 0,rgba(22,103,78,.14),transparent 45%),#041d1e; }
+.saas-premium aside[class*="fixed"] { background: linear-gradient(180deg,#06332d,#041d1e); border-color:#285446; }
+.saas-premium .saas-card { background:#0c332e; border-color:#285446; }
+.saas-premium .saas-field { background:#103b32; border-color:#386251; }
+.saas-premium :is(header,div)[class*="bg-\\[\\#0a0f1d\\]"] { background-color:#082b28 !important; }
+.saas-premium [role="dialog"] > :is(div,form) { background:#0c332e !important; border-color:#386251 !important; }
+.saas-premium [role="dialog"] :is(input:not([type="checkbox"]), select, textarea) { background:#103b32 !important; border-color:#386251 !important; color:#f0fff5; }
+.saas-login-workspace { background:#041d1e; }
+.saas-login-workspace .saas-login-intro { background:linear-gradient(145deg,#06332d,#041d1e); }
