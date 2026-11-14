@@ -1,0 +1,158 @@
+/* Bebfy SaaS — visual language shared by login and administrative console.
+   Kept scoped to avoid affecting tenant-facing screens. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+.saas-premium,.saas-login-workspace {
+  font-family: 'DM Sans',system-ui,sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.saas-premium { background: #061f1e; color: #edfaf4; min-height: 100vh; }
+.saas-premium h1,.saas-premium h2,.saas-login-workspace h1,.saas-login-workspace h2 {
+  font-family: 'Manrope','DM Sans',system-ui,sans-serif;
+  letter-spacing: -.035em;
+}
+.saas-premium :is(a,button,input,select,textarea):focus-visible,
+.saas-login-workspace :is(a,button,input):focus-visible {
+  outline: 2px solid #5ae5b2;
+  outline-offset: 3px;
+}
+.saas-premium :is(button,a) { transition: color .18s,background-color .18s,border-color .18s; }
+.saas-premium aside[ class*="fixed" ] {
+  background: linear-gradient(180deg,#082d29 0%,#062521 67%,#061d1d 100%);
+  border-right: 1px solid rgba(121,224,175,.19);
+}
+.saas-premium aside nav button {
+  color: #b3cec2;
+  font-weight: 650;
+}
+.saas-premium aside nav button:hover {
+  color: #f0fff8;
+  background: rgba(107,232,180,.09);
+}
+.saas-premium aside nav button[class*="bg-emerald-400\/15"] {
+  background: #165e4a !important;
+  color: #d0ffe7 !important;
+  box-shadow: inset 3px 0 #62dfac;
+}
+.saas-premium :is(header,div)[class*="bg-\[\#0a0f1d\]"] {
+  background-color: #0a2d29 !important;
+}
+.saas-premium header {
+  border-bottom-color: #2c5447 !important;
+}
+.saas-premium header h1 { color: #f0fff8; }
+.saas-premium header p[class*="uppercase"] {
+  color: #72e6b4;
+}
+.saas-premium .saas-card {
+  background: #0c302a;
+  border: 1px solid #30594c;
+  box-shadow: 0 10px 32px rgba(0,0,0,.11);
+}
+.saas-premium :is(div,section,form)[class*="bg-\[\#0a0f1d\]"]:not(.saas-card) {
+  background: #0d302b !important;
+}
+.saas-premium :is(div,section,form)[class*="bg-\[\#101829\]"] {
+  background: #0a2926 !important;
+}
+.saas-premium :is(thead)[class*="bg-\[\#131c2c\]"] {
+  background: #164437 !important;
+}
+.saas-premium table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.saas-premium thead th {
+  color: #a9dcc5;
+  font-size: 11px;
+  letter-spacing: .07em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.saas-premium tbody tr:hover { background: #18463a !important; }
+.saas-premium th,.saas-premium td { border-color: rgba(154,226,187,.13); }
+.saas-premium :is(.saas-field,input:not([type="checkbox"]),select,textarea) {
+  color-scheme: dark;
+}
+.saas-premium :is(.saas-field,input:not([type="checkbox"]),select,textarea):focus-visible {
+  outline-color: #5de1ab;
+}
+.saas-premium input[type="checkbox"] {
+  accent-color: #31ca93;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.saas-premium :is(button[class*="bg-emerald-400"],button[class*="bg-emerald-300"]) {
+  background-color: #4cdbab !important;
+  color: #06372b !important;
+  box-shadow: none;
+}
+.saas-premium :is(button[class*="bg-emerald-400"],button[class*="bg-emerald-300"]):hover {
+  background-color: #86efc7 !important;
+}
+.saas-premium :is(button[class*="text-emerald-300"],a[class*="text-emerald-300"]) {
+  color: #7aebbb;
+}
+.saas-premium .saas-staff label { line-height: 1.5; }
+.saas-premium .saas-staff :is(form,section) > h3 { font-size: 16px; font-weight: 800; }
+.saas-premium .saas-staff p[class*="text-slate-400"] { color: #a6c2b4; }
+.saas-premium [role="dialog"] > :is(div,form) {
+  background-color: #10352e !important;
+  border-color: #416959 !important;
+  box-shadow: 0 30px 80px rgba(0,0,0,.4);
+}
+.saas-premium [role="dialog"] input:not([type="checkbox"]),
+.saas-premium [role="dialog"] select,
+.saas-premium [role="dialog"] textarea {
+  background: #092924;
+  border-color: #416958;
+  color: #f0fff5;
+}
+.saas-premium [role="dialog"] :is(input,select,textarea):focus {
+  border-color: #5ae6ac;
+}
+.saas-premium [role="dialog"] p[class*="text-slate-400"] {
+  color: #abcaba;
+}
+.saas-premium div[class*="text-slate-500"],
+.saas-premium p[class*="text-slate-500"] {
+  color: #94b7a6;
+}
+.saas-login-workspace .saas-login-panel {
+  box-shadow: 0 36px 90px rgba(0,0,0,.32);
+}
+.saas-login-workspace .saas-login-intro {
+  background: #082d29;
+}
+.saas-login-workspace .saas-login-input {
+  color-scheme: light;
+}
+@media(max-width:1023px) {
+  .saas-premium aside[class*="fixed"] { max-height: 100dvh; overflow-y: auto; }
+}
+@media(max-width:640px) {
+  .saas-login-workspace .saas-login-intro { padding-block: 24px; }
+  .saas-login-workspace .saas-login-intro h2 { font-size: 27px; }
+  .saas-premium header h1 { font-size: 19px; }
+  .saas-premium .saas-card { border-radius: 15px; }
+  .saas-premium table { font-size: 12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .saas-premium *, .saas-login-workspace * {
+    transition: none !important;
+    animation-duration: .01ms !important;
+  }
+}
+
+
+/* Same brand tones as the landing page; preserve meaningful status colors. */
+.saas-premium { background: radial-gradient(ellipse at 80% 0,rgba(22,103,78,.14),transparent 45%),#041d1e; }
+.saas-premium aside[class*="fixed"] { background: linear-gradient(180deg,#06332d,#041d1e); border-color:#285446; }
+.saas-premium .saas-card { background:#0c332e; border-color:#285446; }
+.saas-premium .saas-field { background:#103b32; border-color:#386251; }
+.saas-premium :is(header,div)[class*="bg-\\[\\#0a0f1d\\]"] { background-color:#082b28 !important; }
+.saas-premium [role="dialog"] > :is(div,form) { background:#0c332e !important; border-color:#386251 !important; }
+.saas-premium [role="dialog"] :is(input:not([type="checkbox"]), select, textarea) { background:#103b32 !important; border-color:#386251 !important; color:#f0fff5; }
+.saas-login-workspace { background:#041d1e; }
+.saas-login-workspace .saas-login-intro { background:linear-gradient(145deg,#06332d,#041d1e); }

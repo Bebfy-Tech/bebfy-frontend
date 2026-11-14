@@ -12,6 +12,19 @@
   --color-petrol-400: #2698a3;
   --color-petrol-300: #4fc3ce; /* Tom brilhante para alto contraste no dark mode */
   --color-amber-500: #f59e0b;
+  --color-bebfy-bg: #041d1e;
+  --color-bebfy-surface: #092c28;
+  --color-bebfy-border: #255146;
+  --color-bebfy-primary: #43dbab;
+  --color-bebfy-blue: #16866b;
+}
+
+:root {
+  --bebfy-bg: #041d1e;
+  --bebfy-surface: #092c28;
+  --bebfy-border: #255146;
+  --bebfy-emerald: #43dbab;
+  --bebfy-electric-blue: #16866b;
 }
 
 body {
@@ -33,5 +46,186 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+
+/* Bebfy 4.0: migration layer for legacy operational pages. Global tokens live
+   here while each page is progressively refined. Scoped to the tenant app. */
+.bebfy-workspace { color-scheme: dark; }
+.bebfy-workspace [class~="bg-white"]:not(.print-area) { background-color: #092c28; }
+.bebfy-workspace [class~="bg-slate-50"],
+.bebfy-workspace [class~="bg-slate-100"],
+.bebfy-workspace [class~="bg-[#f5faf7]"],
+.bebfy-workspace [class~="bg-[#f7faf8]"] { background-color: #103830; }
+.bebfy-workspace [class~="text-slate-900"],
+.bebfy-workspace [class~="text-slate-800"],
+.bebfy-workspace [class~="text-slate-700"],
+.bebfy-workspace [class~="text-[#10353a]"] { color: #e2e8f0; }
+.bebfy-workspace [class~="text-teal-700"],
+.bebfy-workspace [class~="text-teal-800"] { color: #6ee7b7; }
+.bebfy-workspace [class~="text-slate-600"] { color: #a8b4c6; }
+.bebfy-workspace [class~="text-slate-500"] { color: #94a3b8; }
+.bebfy-workspace [class~="border-slate-200"],
+.bebfy-workspace [class~="border-slate-100"],
+.bebfy-workspace [class~="border-slate-300"] { border-color: #285446; }
+.bebfy-workspace [class~="bg-teal-50"],
+.bebfy-workspace [class~="bg-emerald-50"],
+.bebfy-workspace [class~="bg-amber-50"] { background-color: #164436; }
+.bebfy-workspace [class~="text-emerald-800"],
+.bebfy-workspace [class~="text-emerald-900"],
+.bebfy-workspace [class~="text-emerald-700"] { color: #6ee7b7; }
+.bebfy-workspace [class~="text-amber-700"],
+.bebfy-workspace [class~="text-amber-800"] { color: #fcd34d; }
+.bebfy-workspace [class~="text-rose-600"] { color: #fda4af; }
+.bebfy-workspace table { border-collapse: separate; border-spacing: 0; }
+.bebfy-workspace table thead { background: #123c32; }
+.bebfy-workspace table thead th { color: #b1ddcb; font-size: .69rem; letter-spacing: .08em; }
+.bebfy-workspace table tbody tr { transition: background-color .15s ease; }
+.bebfy-workspace table tbody tr:hover { background-color: #184b3d; }
+.bebfy-workspace input,
+.bebfy-workspace select,
+.bebfy-workspace textarea { accent-color: #43dbab; }
+.bebfy-workspace input:focus-visible,
+.bebfy-workspace button:focus-visible,
+.bebfy-workspace select:focus-visible,
+.bebfy-workspace textarea:focus-visible { outline: 2px solid #68e8b8; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .bebfy-workspace .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
+
+/* Only the explicitly requested commercial receipt is printed. */
+@media print {
+  body, html, #root { background: white !important; overflow: visible !important; }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: black !important;
+  }
+  @page { margin: 0; }
+}
+
+/* Login and tenant selector: viewport-bound desktop layouts, accessible small screens. */
+.bebfy-access-viewport { height: 100vh; height: 100dvh; min-height: 0; }
+.bebfy-login-panel, .saas-login-panel { max-height: calc(100dvh - 24px); }
+.bebfy-login-form, .saas-login-form, .bebfy-login-intro, .saas-login-intro { min-height: 0; }
+@media (min-width: 1024px) {
+  .bebfy-login-panel, .saas-login-panel { height: min(690px, calc(100dvh - 24px)); }
+  .bebfy-login-form, .saas-login-form { overflow-y: auto; overscroll-behavior: contain; }
+  .bebfy-login-intro, .saas-login-intro { overflow-y: auto; }
+  .bebfy-lookup-layout { overflow: hidden; }
+  .bebfy-lookup-main { overflow-y: auto; overscroll-behavior: contain; }
+}
+@media (min-width: 1024px) and (max-height: 760px) {
+  .bebfy-login-highlights { display: none !important; }
+  .bebfy-login-intro h1, .saas-login-intro h2 { font-size: 1.85rem; }
+  .bebfy-lookup-main h1 { font-size: 2.6rem; }
+  .bebfy-login-form .min-h-14, .saas-login-form .min-h-14 { min-height: 46px; }
+  .bebfy-login-form input.py-4 { padding-top: 10px; padding-bottom: 10px; }
+  .bebfy-login-form > div, .saas-login-form > form { flex-shrink: 0; }
+}
+@media (max-width: 1023px) {
+  .bebfy-access-viewport { min-height: 100dvh; height: auto; overflow: visible; }
+  .bebfy-login-panel, .saas-login-panel { max-height: none; }
+  .bebfy-lookup-layout { min-height: 100dvh; height: auto; }
+  .bebfy-lookup-main { padding-block: 32px; }
+}
+@media (max-width: 639px) {
+  .bebfy-login-intro { padding-block: 18px; }
+  .bebfy-login-intro .bebfy-login-highlights { display: none; }
+  .bebfy-login-form { padding-block: 20px; }
+}
+
+/* Brand identity shared by every authenticated Bebfy workspace.
+   Matches the public landing's dark petrol / mint / off-white palette. */
+:root {
+  --bebfy-ink: #14322e;
+  --bebfy-petrol: #041d1e;
+  --bebfy-petrol-soft: #06332d;
+  --bebfy-panel: #092c28;
+  --bebfy-panel-raised: #103b32;
+  --bebfy-line: #285446;
+  --bebfy-mint: #43dbab;
+  --bebfy-mint-light: #68e8b8;
+  --bebfy-cream: #f8f6ef;
+}
+.bebfy-workspace {
+  background: radial-gradient(ellipse at 80% 0, rgba(24,105,81,.17), transparent 46%), #041d1e;
+  color: #eefaf3;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+.bebfy-workspace h1, .bebfy-workspace h2, .bebfy-workspace h3 {
+  font-family: 'Manrope', 'DM Sans', system-ui, sans-serif;
+  letter-spacing: -.035em;
+}
+.bebfy-workspace .bebfy-sidebar {
+  background: linear-gradient(180deg,#062b28 0%,#041e1f 100%) !important;
+  border-color: #295244 !important;
+}
+.bebfy-workspace header {
+  background-color: #082b28 !important;
+  border-color: #285146 !important;
+}
+.bebfy-workspace main :is(article,section,div)[class*="bg-\\[\\#0a0f1d\\]"],
+.bebfy-workspace main :is(article,section,div)[class*="bg-\\[\\#101829\\]"] {
+  background-color: #0c332e !important;
+}
+.bebfy-workspace [class*="bg-\\[\\#0a0f1d\\]"] { background-color: #092c28 !important; }
+.bebfy-workspace [class*="bg-\\[\\#101829\\]"] { background-color: #103b32 !important; }
+.bebfy-workspace [class*="bg-\\[\\#111b2d\\]"],
+.bebfy-workspace [class*="bg-\\[\\#0d1423\\]"] { background-color: #103830 !important; }
+.bebfy-workspace [class*="border-\\[\\#1f2937\\]"],
+.bebfy-workspace [class*="border-\\[\\#29364b\\]"],
+.bebfy-workspace [class*="border-\\[\\#283347\\]"] { border-color: #285446 !important; }
+.bebfy-workspace main :is(input, select, textarea) {
+  accent-color: #43dbab;
+}
+.bebfy-workspace main :is(input,select,textarea):focus-visible,
+.bebfy-workspace :is(a,button):focus-visible {
+  outline: 2px solid #68e8b8;
+  outline-offset: 2px;
+}
+.bebfy-workspace main button:disabled { cursor: not-allowed; }
+.bebfy-workspace main table tbody tr:hover { background: rgba(86,219,171,.07); }
+.bebfy-workspace main th { color: #b9ddce; }
+.bebfy-workspace :is(.shadow-xl,.shadow-2xl) { box-shadow: 0 22px 54px rgba(0,0,0,.23); }
+.bebfy-login-panel, .saas-login-panel {
+  border-radius: 18px !important; /* retain rectangular, enterprise-style access panels */
+}
+.bebfy-login-panel h1, .bebfy-login-panel h2, .bebfy-login-panel h3,
+.saas-login-panel h1, .saas-login-panel h2, .saas-login-panel h3 {
+  font-family: 'Manrope', 'DM Sans', system-ui, sans-serif;
+  letter-spacing: -.04em;
+}
+.bebfy-access-viewport {
+  background: radial-gradient(ellipse at 75% 20%, rgba(17,105,84,.4), transparent 51%),
+              linear-gradient(115deg,#041d1e,#06332d 65%,#072c29) !important;
+}
+.bebfy-login-intro, .saas-login-intro {
+  background: linear-gradient(145deg,#06332d,#041d1e) !important;
+}
+.bebfy-login-form, .saas-login-form { scrollbar-width: thin; scrollbar-color: #94baa8 transparent; }
+.bebfy-login-panel input:focus-visible, .saas-login-panel input:focus-visible {
+  outline: 2px solid #43dbab; outline-offset: 1px;
+}
+@media (max-width: 639px) {
+  .bebfy-login-panel, .saas-login-panel { border-radius: 14px !important; }
 }

@@ -13,6 +13,7 @@ export interface Usuario {
   nome: string;
   cargo: Cargo;
   funcionarioId: string;
+  permissoes?: string[];
 }
 
 export interface Empresa {
@@ -30,6 +31,21 @@ export interface AuthResponse {
 export interface LoginCredentials {
   login: string;
   senha: string;
+  assumirSessao?: boolean;
+}
+
+export interface PrimeiroAcessoResponse {
+  trocaSenhaObrigatoria: true;
+  tokenTroca: string;
+}
+
+export type LoginResponse = AuthResponse | PrimeiroAcessoResponse;
+
+export interface TrocaSenhaPrimeiroAcesso {
+  tokenTroca: string;
+  senhaAtual: string;
+  novaSenha: string;
+  confirmarNovaSenha: string;
 }
 
 export interface ValidarGerenteDto {
@@ -38,10 +54,8 @@ export interface ValidarGerenteDto {
 }
 
 export interface ValidarGerenteResponse {
-  valido: boolean;
-  gerente: {
-    id: string;
-    nome: string;
-    cargo: Cargo;
-  };
+  autorizado: boolean;
+  gerenteId: string;
+  codigoGerente: number | null;
+  nomeGerente: string;
 }
