@@ -122,3 +122,34 @@ html, body, #root {
   }
   @page { margin: 0; }
 }
+
+/* Login and tenant selector: viewport-bound desktop layouts, accessible small screens. */
+.bebfy-access-viewport { height: 100vh; height: 100dvh; min-height: 0; }
+.bebfy-login-panel, .saas-login-panel { max-height: calc(100dvh - 24px); }
+.bebfy-login-form, .saas-login-form, .bebfy-login-intro, .saas-login-intro { min-height: 0; }
+@media (min-width: 1024px) {
+  .bebfy-login-panel, .saas-login-panel { height: min(690px, calc(100dvh - 24px)); }
+  .bebfy-login-form, .saas-login-form { overflow-y: auto; overscroll-behavior: contain; }
+  .bebfy-login-intro, .saas-login-intro { overflow-y: auto; }
+  .bebfy-lookup-layout { overflow: hidden; }
+  .bebfy-lookup-main { overflow-y: auto; overscroll-behavior: contain; }
+}
+@media (min-width: 1024px) and (max-height: 760px) {
+  .bebfy-login-highlights { display: none !important; }
+  .bebfy-login-intro h1, .saas-login-intro h2 { font-size: 1.85rem; }
+  .bebfy-lookup-main h1 { font-size: 2.6rem; }
+  .bebfy-login-form .min-h-14, .saas-login-form .min-h-14 { min-height: 46px; }
+  .bebfy-login-form input.py-4 { padding-top: 10px; padding-bottom: 10px; }
+  .bebfy-login-form > div, .saas-login-form > form { flex-shrink: 0; }
+}
+@media (max-width: 1023px) {
+  .bebfy-access-viewport { min-height: 100dvh; height: auto; overflow: visible; }
+  .bebfy-login-panel, .saas-login-panel { max-height: none; }
+  .bebfy-lookup-layout { min-height: 100dvh; height: auto; }
+  .bebfy-lookup-main { padding-block: 32px; }
+}
+@media (max-width: 639px) {
+  .bebfy-login-intro { padding-block: 18px; }
+  .bebfy-login-intro .bebfy-login-highlights { display: none; }
+  .bebfy-login-form { padding-block: 20px; }
+}
