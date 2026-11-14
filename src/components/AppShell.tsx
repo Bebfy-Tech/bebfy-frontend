@@ -91,7 +91,7 @@ export function AppShell() {
     </aside>
   );
 
-  return <div className={`bebfy-workspace min-h-screen bg-[#07090d] text-slate-100 ${isPdv ? 'bebfy-pdv-mode' : ''}`}>
+  return <div className={`bebfy-workspace min-h-screen bg-[#07090d] text-slate-100 lg:h-dvh lg:overflow-hidden ${isPdv ? 'bebfy-pdv-mode' : ''}`}>
     {!isPdv && <div className="sticky top-0 z-40 flex items-center justify-between border-b border-[#1f2937] bg-[#0a0f1d] px-4 py-3 lg:hidden">
       <Link to={tenantPath('dashboard')} className="flex items-center gap-2 text-xl font-black text-white"><Layers3 size={24} className="text-emerald-400"/>bebfy<span className="-ml-2 text-emerald-400">.</span></Link>
       <div className="flex items-center gap-2"><button type="button" title="Meu perfil" onClick={()=>setProfileOpen(true)} aria-label="Meu perfil e configurações" className="rounded-xl border border-[#273449] p-3 text-emerald-200"><Settings size={20}/></button><button type="button" onClick={() => setOpen(!open)} aria-label="Abrir navegação" className="rounded-xl border border-[#273449] p-3 text-white">{open ? <X/> : <Menu/>}</button></div>
@@ -106,13 +106,13 @@ export function AppShell() {
       {open && <button aria-label="Fechar navegação" className="fixed inset-0 z-40 bg-black/70 lg:hidden" onClick={close}/>}
       {sidebar}
     </>}
-    <div className={`min-w-0 ${isPdv ? '' : 'lg:ml-[280px]'}`}>
+    <div className={`min-w-0 lg:flex lg:h-dvh lg:min-h-0 lg:flex-col ${isPdv ? '' : 'lg:ml-[280px]'}`}>
       {!isPdv && <header className="hidden items-center justify-between gap-4 border-b border-[#1f2937] bg-[#0a0f1d] px-8 py-4 lg:flex">
         <div className="flex items-center gap-2 text-xs font-bold tracking-[.18em] text-slate-400"><span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_#10b981]"/> BEBFY OPERACIONAL</div>
         <div className="flex items-center gap-4 text-sm text-slate-400"><span>{empresa?.nomeFantasia}</span><span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300">{user?.nome}</span><button type="button" title="Meu perfil e configurações" aria-label="Meu perfil e configurações" onClick={()=>setProfileOpen(true)} className="rounded-xl border border-white/15 p-2.5 text-emerald-200 hover:bg-white/5"><Settings size={19}/></button></div>
       </header>}
-      <main className={`mx-auto ${isPdv ? 'max-w-[1760px] p-4 sm:p-6' : 'max-w-[1540px] p-4 pb-28 sm:p-7 lg:pb-8 xl:p-9'}`}><Outlet/></main>
-      {!isPdv && <footer className="hidden py-6 text-center text-xs text-slate-600 lg:block">Bebfy · Gestão inteligente de distribuidoras · Comprovantes não fiscais</footer>}
+      <main className={`mx-auto w-full lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain ${isPdv ? 'max-w-[1760px] p-4 sm:p-6' : 'max-w-[1540px] p-4 pb-28 sm:p-7 lg:pb-6 xl:p-7'}`}><Outlet/></main>
+      {!isPdv && <footer className="hidden py-2 text-center text-xs text-slate-600 lg:block">Bebfy · Gestão inteligente de distribuidoras · Comprovantes não fiscais</footer>}
     </div>
     {!isPdv && <nav aria-label="Navegação rápida" className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-[#263247] bg-[#0a0f1d]/95 px-2 py-2 pb-[max(8px,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
       {[
