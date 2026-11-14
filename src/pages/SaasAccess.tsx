@@ -42,10 +42,10 @@ export function SaasAccess() {
     }
   };
 
-  return <main className="saas-login-workspace bebfy-access-viewport relative isolate grid place-items-center overflow-hidden bg-[#101b20] px-3 py-3 sm:px-5">
+  return <main className="saas-login-workspace bebfy-access-viewport relative isolate grid place-items-center overflow-hidden bg-[#041d1e] px-3 py-3 sm:px-5">
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_15%,rgba(31,122,93,.32),transparent_48%),radial-gradient(ellipse_at_7%_95%,rgba(18,105,78,.23),transparent_45%)]" />
     <div className="saas-login-panel relative z-10 grid w-full max-w-[1050px] min-h-0 overflow-hidden rounded-[24px] border border-white/15 shadow-[0_35px_90px_rgba(0,0,0,.30)] lg:grid-cols-2">
-      <aside className="saas-login-intro flex min-h-0 flex-col justify-between bg-[#162e30] px-6 py-6 text-white sm:px-8 sm:py-7 lg:px-10">
+      <aside className="saas-login-intro flex min-h-0 flex-col justify-between bg-[#06332d] px-6 py-6 text-white sm:px-8 sm:py-7 lg:px-10">
         <div className="flex items-center justify-between gap-3">
           <Link to="/" aria-label="Bebfy, início" className="inline-flex"><BebfyBrand light compact /></Link>
           <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100">ACESSO INTERNO</span>
@@ -64,7 +64,7 @@ export function SaasAccess() {
         </div>
         <p className="mt-4 hidden border-t border-white/10 pt-4 text-[11px] text-emerald-50/50 lg:block">Bebfy · Gestão da plataforma</p>
       </aside>
-      <section className="saas-login-form flex min-h-0 flex-col justify-between bg-[#f7f8f5] px-6 py-6 text-[#173c33] sm:px-8 sm:py-7 lg:px-10" aria-labelledby="saas-login-title">
+      <section className="saas-login-form flex min-h-0 flex-col justify-between bg-[#f8f6ef] px-6 py-6 text-[#173c33] sm:px-8 sm:py-7 lg:px-10" aria-labelledby="saas-login-title">
         <div className="flex items-center justify-between gap-3">
           <div><span className="text-[11px] font-extrabold tracking-[.14em] text-[#147756]">CONTROL CENTER</span><h1 id="saas-login-title" className="mt-2 text-xl font-extrabold">Administração SaaS</h1></div>
           <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#d5e3d7] bg-white text-[#147756]"><LockKeyhole size={20}/></span>
