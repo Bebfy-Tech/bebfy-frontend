@@ -42,35 +42,35 @@ export function SaasAccess() {
     }
   };
 
-  return <main className="saas-login-workspace relative isolate grid min-h-screen place-items-center overflow-x-hidden bg-[#062b27] px-4 py-10 sm:px-6">
+  return <main className="saas-login-workspace bebfy-access-viewport relative isolate grid place-items-center overflow-hidden bg-[#101b20] px-3 py-3 sm:px-5">
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_15%,rgba(31,122,93,.32),transparent_48%),radial-gradient(ellipse_at_7%_95%,rgba(18,105,78,.23),transparent_45%)]" />
-    <div className="saas-login-panel relative z-10 grid w-full max-w-[1080px] overflow-hidden rounded-[26px] border border-white/15 shadow-[0_35px_90px_rgba(0,0,0,.30)] lg:min-h-[640px] lg:grid-cols-2">
-      <aside className="saas-login-intro flex flex-col justify-between bg-[#082e2b] px-7 py-8 text-white sm:px-10 sm:py-10 lg:px-12">
+    <div className="saas-login-panel relative z-10 grid w-full max-w-[1050px] min-h-0 overflow-hidden rounded-[24px] border border-white/15 shadow-[0_35px_90px_rgba(0,0,0,.30)] lg:grid-cols-2">
+      <aside className="saas-login-intro flex min-h-0 flex-col justify-between bg-[#162e30] px-6 py-6 text-white sm:px-8 sm:py-7 lg:px-10">
         <div className="flex items-center justify-between gap-3">
           <Link to="/" aria-label="Bebfy, início" className="inline-flex"><BebfyBrand light compact /></Link>
           <span className="rounded-full border border-emerald-200/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100">ACESSO INTERNO</span>
         </div>
-        <div className="mt-8 lg:my-auto lg:py-10">
+        <div className="mt-5 lg:my-auto lg:py-5">
           <span className="inline-flex items-center gap-2 text-xs font-extrabold tracking-[.12em] text-[#6ee5b9]"><ShieldCheck size={17}/> ADMINISTRAÇÃO CENTRAL</span>
           <h2 className="mt-5 max-w-md text-3xl font-extrabold leading-[1.16] tracking-[-.04em] sm:text-[39px]">Sua plataforma, sob controle.</h2>
           <p className="mt-4 max-w-sm text-sm leading-7 text-emerald-50/70">Gerencie distribuidoras, planos, módulos e colaboradores em um único ambiente administrativo.</p>
-          <div className="mt-8 hidden grid-cols-2 gap-3 sm:grid">
-            {resources.map(({icon:Icon,title,description})=><div key={title} className="rounded-2xl border border-white/10 bg-white/[.045] p-4">
+          <div className="bebfy-login-highlights mt-5 hidden grid-cols-2 gap-2 sm:grid">
+            {resources.map(({icon:Icon,title,description})=><div key={title} className="rounded-2xl border border-white/10 bg-white/[.045] p-3">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-300/10 text-emerald-200"><Icon size={19}/></span>
               <strong className="mt-3 block text-[13px]">{title}</strong>
               <p className="mt-1 text-[11px] leading-5 text-emerald-50/60">{description}</p>
             </div>)}
           </div>
         </div>
-        <p className="mt-8 hidden border-t border-white/10 pt-4 text-[11px] text-emerald-50/50 lg:block">Bebfy · Gestão da plataforma</p>
+        <p className="mt-4 hidden border-t border-white/10 pt-4 text-[11px] text-emerald-50/50 lg:block">Bebfy · Gestão da plataforma</p>
       </aside>
-      <section className="saas-login-form flex flex-col justify-between bg-[#f8f6ef] px-7 py-8 text-[#173c33] sm:px-10 sm:py-10 lg:px-12" aria-labelledby="saas-login-title">
+      <section className="saas-login-form flex min-h-0 flex-col justify-between bg-[#f7f8f5] px-6 py-6 text-[#173c33] sm:px-8 sm:py-7 lg:px-10" aria-labelledby="saas-login-title">
         <div className="flex items-center justify-between gap-3">
           <div><span className="text-[11px] font-extrabold tracking-[.14em] text-[#147756]">CONTROL CENTER</span><h1 id="saas-login-title" className="mt-2 text-xl font-extrabold">Administração SaaS</h1></div>
           <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#d5e3d7] bg-white text-[#147756]"><LockKeyhole size={20}/></span>
         </div>
-        <form onSubmit={e=>void entrar(e)} className="my-auto space-y-5 py-10">
-          <div className="mb-8"><h2 className="text-[30px] font-extrabold tracking-[-.04em]">Bem-vindo de volta.</h2><p className="mt-2 text-sm leading-6 text-[#647c70]">Entre com suas credenciais administrativas.</p></div>
+        <form onSubmit={e=>void entrar(e)} className="my-auto space-y-4 py-5">
+          <div className="mb-5"><h2 className="text-[30px] font-extrabold tracking-[-.04em]">Bem-vindo de volta.</h2><p className="mt-2 text-sm leading-6 text-[#647c70]">Entre com suas credenciais administrativas.</p></div>
           {error && <p role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm font-medium text-rose-700">{error}</p>}
           <div><label htmlFor="saas-codigo" className="mb-2 block text-[13px] font-bold">Código de acesso</label>
             <input id="saas-codigo" autoFocus required min="1" step="1" type="number" inputMode="numeric" autoComplete="username" value={codigo} onChange={e=>{setCodigo(e.target.value);setError('');}} placeholder="Ex.: 1" className="saas-login-input min-h-14 w-full rounded-xl border border-[#cfddd2] bg-white px-4 text-sm font-semibold text-[#173c33] outline-none transition placeholder:font-normal placeholder:text-[#91a69b] focus:border-[#29ad7a] focus:ring-2 focus:ring-emerald-200"/>
