@@ -121,3 +121,36 @@
 @media(max-width:760px){.lv-navbar-wrap{padding:12px;}.lv-navbar{min-height:60px;}.lv-desktop-nav,.lv-nav-cta{display:none;}.lv-mobile-toggle{display:inline-flex;}.lv-hero{padding:110px 0 40px;min-height:auto;}.lv-hero-grid{grid-template-columns:1fr;}.lv-hero-copy{padding-block:15px;}.lv-hero h1{font-size:clamp(40px,10vw,64px);}.lv-hero-art{height:440px;max-width:540px;width:100%;margin:auto;}.lv-section{padding:70px 0;}.lv-demo-grid,.lv-faq-grid{grid-template-columns:1fr;gap:30px;}.lv-demo-grid{margin-top:32px;}.lv-steps{gap:24px;}.lv-footer-main{flex-direction:column;gap:20px;}.lv-section h2{font-size:clamp(30px,7vw,46px);}}
 @media(max-width:520px){.lv-container{width:calc(100% - 34px);}.lv-hero{padding-top:96px;}.lv-hero h1{font-size:43px;}.lv-hero-copy>p{font-size:15px;}.lv-hero-art{height:340px;}.lv-screen{left:9%;top:18%;height:66%;width:85%;border-radius:14px;}.lv-screen-sidebar{width:36px;gap:4px;padding:9px 2px;}.lv-screen-sidebar>span:not(.lv-screen-logo){width:28px;height:28px;}.lv-screen-logo{font-size:20px;}.lv-screen-main{padding:10px;}.lv-screen-head strong{font-size:12px;}.lv-screen-head>span{font-size:8px;padding:4px;}.lv-screen-search{margin-top:8px;font-size:9px;padding:7px;}.lv-screen-list{margin-top:7px;}.lv-screen-list>div{padding:6px;font-size:9px;}.lv-screen-total strong{font-size:14px;}.lv-screen-submit{padding:7px;margin-top:5px;}.lv-scanner{transform:scale(.6);transform-origin:left bottom;}.lv-crate{transform:scale(.6);transform-origin:left top;}.lv-boxes{transform:scale(.65);transform-origin:right bottom;}.lv-float-badge{padding:8px 10px;}.lv-float-badge strong{font-size:13px;}.lv-badge-stock{right:0;top:4%;}.lv-badge-sale{right:14%;bottom:1%;}.lv-module-grid{grid-template-columns:1fr;gap:12px;margin-top:33px;}.lv-module-card{min-height:unset;padding:20px;}.lv-steps{grid-template-columns:1fr;gap:24px;}.lv-preview-tabs button{padding:10px;font-size:11px;gap:5px;}.lv-preview-stats>div{padding:10px 7px;}.lv-preview-chart{height:110px;}.lv-section{padding:55px 0;}.lv-faq-grid{gap:8px;}.lv-footer-main nav{gap:14px;}}
 @media(prefers-reduced-motion:reduce){.lv-landing *, .lv-landing *::before,.lv-landing *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}.lv-reveal:not(.lv-revealed){opacity:1;transform:none;}}
+
+/* Original Lovable image assets (transparent optimized WebP): keep their proportions. */
+.lv-scene img.lv-original-asset {
+  display: block;
+  object-fit: contain;
+  background: transparent;
+  border: 0;
+}
+.lv-scene img.lv-crate {
+  width: 200px;
+  height: 169px;
+  top: 5%;
+  left: -2%;
+  transform: rotate(-10deg);
+}
+.lv-scene img.lv-boxes {
+  width: 155px;
+  height: 212px;
+  right: 0;
+  bottom: 0;
+}
+.lv-scene img.lv-scanner {
+  width: 150px;
+  height: 225px;
+  left: 0;
+  bottom: 2%;
+  transform: rotate(-12deg);
+}
+@media (max-width: 520px) {
+  .lv-scene img.lv-crate { width: 150px; height: 127px; left: -4%; top: 6%; }
+  .lv-scene img.lv-boxes { width: 113px; height: 155px; right: -2%; bottom: -2%; }
+  .lv-scene img.lv-scanner { width: 107px; height: 160px; left: 0; bottom: 2%; }
+}
