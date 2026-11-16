@@ -1,12 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight, ArrowUpRight, BarChart3, Boxes, Building2, CheckCircle2,
-  ChevronDown, CreditCard, FileUp, Menu, Package, ShieldCheck,
-  ShoppingCart, Users, Wallet, X,
-} from 'lucide-react';
-import './landing.css';
-import { BebfyBrand } from '../components/BebfyBrand';
+import { ArrowRight, ArrowUpRight, BarChart3, Boxes, Building2, CheckCircle2, ChevronDown, FileUp, Menu, Package, ShieldCheck, ShoppingCart, Sparkles, Users, Wallet, X } from 'lucide-react';
+import HeroScene from '../components/landing/HeroScene';
+import './lovable-landing.css';
 
 const modules = [
   { icon: ShoppingCart, title: 'Frente de caixa', description: 'Registre vendas e pagamentos no balcão.' },
@@ -18,167 +14,84 @@ const modules = [
   { icon: ShieldCheck, title: 'Equipe e acessos', description: 'Funcionários e permissões por perfil.' },
   { icon: Package, title: 'Produtos', description: 'Cadastros e preços centralizados.' },
 ];
-
 const previews = {
-  dashboard: {
-    kicker: 'VISÃO GERAL',
-    title: 'Enxergue o movimento do negócio.',
-    description: 'Indicadores do dia, produtos mais vendidos e atalhos para a operação, em uma visão clara do que acontece na distribuidora.',
-    rows: [['Vendas do dia', '142'], ['Caixas em operação', '2'], ['Ticket médio', 'R$ 59,30']],
-  },
-  pdv: {
-    kicker: 'FRENTE DE CAIXA',
-    title: 'Mais agilidade na hora de vender.',
-    description: 'Busca rápida de produtos, carrinho, várias formas de pagamento registradas manualmente e comprovante não fiscal.',
-    rows: [['Produto adicionado', 'Cerveja 350 ml'], ['Quantidade', '2 unidades'], ['Total demonstrativo', 'R$ 9,80']],
-  },
-  estoque: {
-    kicker: 'ESTOQUE',
-    title: 'Tenha clareza sobre cada produto.',
-    description: 'Acompanhe quantidades, lotes, validade e entradas de mercadorias sem depender de planilhas espalhadas.',
-    rows: [['Produtos cadastrados', '1.284'], ['Movimentação', 'Entrada de estoque'], ['Origem', 'Registro manual / XML']],
-  },
+  dashboard: {label:'Visão geral',icon:BarChart3,title:'Enxergue o movimento do negócio.',description:'Indicadores do dia, produtos mais vendidos e atalhos para a operação.',rows:[['Vendas do dia','142'],['Caixas em operação','2'],['Ticket médio','R$ 59,30']]},
+  pdv: {label:'PDV',icon:ShoppingCart,title:'Mais agilidade na hora de vender.',description:'Busca rápida de produtos, carrinho, formas de pagamento e comprovante não fiscal.',rows:[['Produto adicionado','Cerveja 350 ml'],['Quantidade','2 unidades'],['Total ilustrativo','R$ 9,80']]},
+  estoque: {label:'Estoque',icon:Boxes,title:'Clareza sobre cada produto.',description:'Acompanhe quantidades, lotes, validade e entradas sem planilhas espalhadas.',rows:[['Produtos cadastrados','1.284'],['Movimentação','Entrada de estoque'],['Origem','Manual / XML']]},
 } as const;
-
 type Preview = keyof typeof previews;
-
-function Logo({ light = false }: { light?: boolean }) {
-  return <Link to="/" className={`lp-brand ${light ? 'lp-brand-light' : ''}`} aria-label="Bebfy — página inicial">
-    <BebfyBrand light={light} compact />
-  </Link>;
-}
-
-function DashboardMock() {
-  return <div className="lp-dashboard-mock" aria-label="Painel ilustrativo do Bebfy, com dados fictícios">
-    <div className="lp-mock-sidebar">
-      <div className="lp-mock-mark"><img src="/bebfy-symbol.svg" alt="Símbolo Bebfy"/></div>
-      <span className="selected"><BarChart3 size={14}/> <span>Visão geral</span></span>
-      <span><ShoppingCart size={14}/> <span>PDV</span></span>
-      <span><Package size={14}/> <span>Produtos</span></span>
-      <span><Boxes size={14}/> <span>Estoque</span></span>
-      <span><Wallet size={14}/> <span>Financeiro</span></span>
+const questions = [
+  ['Para quais negócios o Bebfy foi pensado?','Distribuidoras, adegas, empórios e atacados de bebidas que precisam organizar vendas e operações.'],
+  ['Posso controlar funcionários e permissões?','Sim. O Bebfy oferece gestão de funcionários com permissões por perfil.'],
+  ['O Bebfy emite notas fiscais?','Nesta fase, não há emissão de NF-e nem NFC-e. É possível importar arquivos XML de NF-e manualmente.'],
+  ['O sistema confirma pagamentos automaticamente?','Não. Pix e cartão são registrados manualmente, sem integração automática com bancos.'],
+  ['Como entro na minha distribuidora?','Clique em Já sou cliente, informe o endereço da sua distribuidora e depois entre com seu código e senha.'],
+];
+const navigation = [['#funcionalidades','Funcionalidades'],['#demonstracao','Demonstração'],['#como-funciona','Como funciona'],['#duvidas','Dúvidas']];
+function Reveal({children,className=''}:{children:ReactNode,className?:string}) { return <div className={`lv-reveal ${className}`}>{children}</div>; }
+function Brand(){ return <Link to="/" className="lv-brand" aria-label="Bebfy, página inicial"><img src="/bebfy-symbol.svg" alt="" aria-hidden="true"/><span>bebfy<b>.</b></span></Link>; }
+function DashboardPreview() {
+  return <div className="lv-preview-screen" aria-label="Prévia ilustrativa do painel Bebfy">
+    <div className="lv-preview-header"><strong>Visão geral</strong><span>Últimos 30 dias</span></div>
+    <div className="lv-preview-stats">
+      {[['Faturamento','R$ 24.780'],['Vendas','412'],['Clientes','186']].map(([label,value])=><div key={label}><small>{label}</small><strong>{value}</strong></div>)}
     </div>
-    <div className="lp-mock-main">
-      <div className="lp-mock-heading"><strong>Visão geral</strong><span>Últimos 30 dias</span></div>
-      <div className="lp-mock-stats">
-        <div><small>Faturamento</small><strong>R$ 24.780</strong><span>Exemplo</span></div>
-        <div><small>Vendas</small><strong>412</strong><span>Exemplo</span></div>
-        <div><small>Ticket médio</small><strong>R$ 60,14</strong><span>Exemplo</span></div>
-      </div>
-      <div className="lp-mock-chart">
-        <div className="lp-mock-chart-head"><strong>Movimento de vendas</strong><span>Dados ilustrativos</span></div>
-        <svg viewBox="0 0 450 160" preserveAspectRatio="none" aria-hidden="true">
-          <defs><linearGradient id="lp-chart-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#21bb89" stopOpacity=".27"/><stop offset="1" stopColor="#21bb89" stopOpacity="0"/></linearGradient></defs>
-          <path d="M0 138 L35 117 L70 125 L110 89 L150 101 L190 65 L228 77 L267 43 L302 59 L345 21 L385 38 L425 12 L450 22 L450 160 L0 160Z" fill="url(#lp-chart-gradient)"/>
-          <path d="M0 138 L35 117 L70 125 L110 89 L150 101 L190 65 L228 77 L267 43 L302 59 L345 21 L385 38 L425 12 L450 22" stroke="#12aa77" strokeWidth="3.5" strokeLinejoin="round" fill="none"/>
-        </svg>
-        <div className="lp-mock-axis"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span><span>DOM</span></div>
-      </div>
-    </div>
+    <svg viewBox="0 0 450 140" preserveAspectRatio="none" className="lv-preview-chart" role="img" aria-label="Gráfico ilustrativo de crescimento">
+      <defs><linearGradient id="lv-grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#62e5ad" stopOpacity=".4"/><stop offset="1" stopColor="#62e5ad" stopOpacity="0"/></linearGradient></defs>
+      <path d="M0 128 L35 107 L70 115 L110 79 L150 91 L190 55 L228 67 L267 33 L302 49 L345 15 L385 28 L425 6 L450 14 L450 140 L0 140Z" fill="url(#lv-grad)"/>
+      <path d="M0 128 L35 107 L70 115 L110 79 L150 91 L190 55 L228 67 L267 33 L302 49 L345 15 L385 28 L425 6 L450 14" fill="none" stroke="#62e5ad" strokeWidth="3.5" strokeLinejoin="round"/>
+    </svg>
+    <span className="lv-demo-disclaimer">Dados ilustrativos</span>
   </div>;
 }
-
-function PdvMock() {
-  return <div className="lp-pdv-mock" aria-label="Frente de caixa ilustrativa do Bebfy">
-    <div className="lp-pdv-top"><strong>Frente de caixa</strong><span>PDV</span></div>
-    <div className="lp-pdv-search">Buscar produto ou código de barras</div>
-    <div className="lp-pdv-products">
-      {[['Cerveja 350ml', 'R$ 4,90'], ['Refrigerante 2L', 'R$ 7,50'], ['Água mineral', 'R$ 2,50'], ['Suco 1L', 'R$ 6,90']].map(([name,price])=>
-        <div key={name}><span className="lp-pdv-product-icon"><Package size={16}/></span><small>{name}</small><strong>{price}</strong></div>)}
-    </div>
-    <div className="lp-pdv-total"><span>Total da venda</span><strong>R$ 14,90</strong></div>
-    <div className="lp-pdv-button">Finalizar venda</div>
-  </div>;
-}
-
 export function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [preview, setPreview] = useState<Preview>('dashboard');
-  const active = previews[preview];
-
-  return <div className="lp-new">
-    <div className="lp-dark-top" id="inicio">
-      <header className="lp-topbar">
-        <div className="lp-wrap lp-nav">
-          <Logo light />
-          <nav id="lp-navigation" className={`lp-links ${menuOpen ? 'is-open' : ''}`} aria-label="Navegação principal">
-            <a href="#inicio" onClick={()=>setMenuOpen(false)}>Início</a>
-            <a href="#funcionalidades" onClick={()=>setMenuOpen(false)}>Funcionalidades</a>
-            <a href="#demonstracao" onClick={()=>setMenuOpen(false)}>Demonstração</a>
-            <a href="#como-funciona" onClick={()=>setMenuOpen(false)}>Como funciona</a>
-            <a href="#duvidas" onClick={()=>setMenuOpen(false)}>Dúvidas</a>
-          </nav>
-          <div className="lp-nav-actions">
-            <Link className="lp-nav-login" to="/acessar">Acessar sistema <ArrowRight size={16}/></Link>
-            <button type="button" className="lp-menu-toggle" onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Fechar menu':'Abrir menu'} aria-expanded={menuOpen} aria-controls="lp-navigation">{menuOpen?<X size={22}/>:<Menu size={22}/>}</button>
+  const [menuOpen,setMenuOpen]=useState(false);
+  const [preview,setPreview]=useState<Preview>('dashboard');
+  const active=previews[preview];
+  useEffect(()=>{const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('lv-revealed');observer.unobserve(e.target);}}),{threshold:.08});document.querySelectorAll('.lv-reveal').forEach(el=>observer.observe(el));return()=>observer.disconnect()},[]);
+  return <div className="lv-landing">
+    <header className="lv-navbar-wrap">
+      <div className="lv-navbar">
+        <Brand/>
+        <nav className="lv-desktop-nav" aria-label="Navegação principal">{navigation.map(([href,label])=><a key={href} href={href}>{label}</a>)}</nav>
+        <Link to="/acessar" className="lv-nav-cta">Acessar sistema <ArrowRight size={16}/></Link>
+        <button type="button" className="lv-mobile-toggle" onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Fechar menu':'Abrir menu'} aria-expanded={menuOpen}>{menuOpen?<X/>:<Menu/>}</button>
+      </div>
+      {menuOpen&&<nav className="lv-mobile-menu" aria-label="Menu móvel">{navigation.map(([href,label])=><a key={href} href={href} onClick={()=>setMenuOpen(false)}>{label}</a>)}<Link to="/acessar" onClick={()=>setMenuOpen(false)}>Acessar sistema</Link></nav>}
+    </header>
+    <main>
+      <section id="inicio" className="lv-hero">
+        <div className="lv-gridlines" aria-hidden="true"/>
+        <div className="lv-container lv-hero-grid">
+          <div className="lv-hero-copy">
+            <div className="lv-eyebrow"><Sparkles size={15}/> Gestão para o mercado de bebidas</div>
+            <h1>Sua distribuidora <em>no controle.</em></h1>
+            <p>Vendas, estoque, financeiro e equipe em uma plataforma completa, simples e organizada.</p>
+            <div className="lv-hero-actions"><a href="#demonstracao" className="lv-button-primary">Ver demonstração <ArrowRight size={19}/></a><Link to="/acessar" className="lv-button-outline">Já sou cliente <ArrowRight size={17}/></Link></div>
+            <div className="lv-trust"><span><CheckCircle2 size={16}/> Operação conectada</span><span><ShieldCheck size={16}/> Acesso por distribuidora</span></div>
+          </div>
+          <div className="lv-hero-art">
+            <HeroScene/>
+            <div className="lv-float-badge lv-badge-sale"><small>Venda finalizada</small><strong>+ R$ 14,90</strong></div>
+            <div className="lv-float-badge lv-badge-stock"><small>Estoque</small><strong>1.284 itens</strong></div>
+            <span className="lv-illustration-label">Demonstração ilustrativa · Dados fictícios</span>
           </div>
         </div>
-      </header>
-      <main>
-        <section className="lp-hero-new">
-          <div className="lp-wrap lp-hero-inner">
-            <div className="lp-hero-words">
-              <div className="lp-eyebrow"><span className="lp-eyebrow-mark"/> GESTÃO INTELIGENTE PARA O MERCADO DE BEBIDAS</div>
-              <h1>Sua distribuidora <em>no controle.</em></h1>
-              <p>Vendas, estoque, financeiro e equipe em uma plataforma completa, simples e organizada. Feita para distribuidoras, adegas, empórios e atacados de bebidas.</p>
-              <div className="lp-hero-ctas">
-                <a href="#demonstracao" className="lp-cta-primary">Ver demonstração <ArrowRight size={19}/></a>
-                <Link to="/acessar" className="lp-cta-outline">Já sou cliente <ArrowRight size={18}/></Link>
-              </div>
-              <div className="lp-hero-footnote"><CheckCircle2 size={15}/> Operação conectada <span>·</span> <ShieldCheck size={15}/> Acesso por distribuidora</div>
-            </div>
-            <div className="lp-hero-graphic">
-              <div className="lp-laptop">
-                <div className="lp-laptop-screen"><DashboardMock/></div>
-                <div className="lp-laptop-base"/>
-              </div>
-              <div className="lp-pdv-floating"><PdvMock/></div>
-              <span className="lp-example-note">PRÉVIA ILUSTRATIVA · DADOS FICTÍCIOS</span>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-    <div className="lp-benefit-strip"><div className="lp-wrap lp-benefits">
-      {[
-        { icon: ShoppingCart, title: 'Vendas ágeis', desc: 'Um PDV direto para o balcão' },
-        { icon: Boxes, title: 'Estoque organizado', desc: 'Produtos, quantidades e lotes' },
-        { icon: CreditCard, title: 'Finanças mais claras', desc: 'Registros e indicadores' },
-        { icon: Users, title: 'Equipe sob controle', desc: 'Acessos e permissões' },
-      ].map(({icon:Icon,title,desc})=><div className="lp-benefit" key={title}><span><Icon size={23}/></span><div><strong>{title}</strong><small>{desc}</small></div></div>)}
-    </div></div>
-    <section className="lp-modules" id="funcionalidades"><div className="lp-wrap lp-modules-content">
-      <div className="lp-modules-intro"><span className="lp-section-label">MÓDULOS DO BEBFY</span><h2>Tudo o que você precisa, <em>em um só lugar.</em></h2><p>Do primeiro atendimento à conferência do estoque, mais organização para a rotina da sua distribuidora.</p><a href="#demonstracao" className="lp-link">Conheça a plataforma <ArrowRight size={17}/></a></div>
-      <div className="lp-module-grid">{modules.map(({icon:Icon,title,description})=><article className="lp-module" key={title}><Icon size={24}/><h3>{title}</h3><p>{description}</p></article>)}</div>
-    </div></section>
-    <section className="lp-how" id="como-funciona"><div className="lp-wrap lp-how-content">
-      <div className="lp-how-intro"><span className="lp-section-label">COMO FUNCIONA</span><h2>Em poucos passos, sua operação mais organizada.</h2></div>
-      <div className="lp-steps">
-        {[
-          {icon: Building2,title:'Configure sua distribuidora',text:'Organize os dados, a equipe e os acessos.'},
-          {icon: Boxes,title:'Cadastre e controle',text:'Gerencie produtos, preços e estoque.'},
-          {icon: BarChart3,title:'Venda com clareza',text:'Registre vendas e acompanhe indicadores.'},
-        ].map(({icon:Icon,title,text},i)=><article key={title}><span className="lp-step-number">{i+1}</span><Icon size={27}/><h3>{title}</h3><p>{text}</p></article>)}
-      </div>
-    </div></section>
-    <section className="lp-demo-section" id="demonstracao"><div className="lp-wrap">
-      <div className="lp-demo-heading"><span className="lp-section-label">CONHEÇA O BEBFY POR DENTRO</span><h2>Uma plataforma para quem está na operação.</h2><p>Conheça os principais fluxos do sistema. Os números e exemplos abaixo são ilustrativos.</p></div>
-      <div className="lp-tabs" role="tablist" aria-label="Prévia de módulos">{([
-        ['dashboard','Visão geral',BarChart3],['pdv','PDV',ShoppingCart],['estoque','Estoque',Boxes]
-      ] as const).map(([key,label,Icon])=><button key={key} type="button" role="tab" aria-selected={preview===key} className={preview===key?'active':''} onClick={()=>setPreview(key)}><Icon size={17}/>{label}</button>)}</div>
-      <div className="lp-demo-card"><div className="lp-demo-copy"><span>{active.kicker}</span><h3>{active.title}</h3><p>{active.description}</p><a href="#duvidas">Saiba mais sobre o Bebfy <ArrowUpRight size={17}/></a></div><div className="lp-demo-panel" aria-label="Dados ilustrativos da funcionalidade selecionada"><div className="lp-demo-panel-head"><span>Exemplo de operação</span><span>DEMONSTRAÇÃO</span></div>{active.rows.map(([label,value])=><div key={label} className="lp-demo-row"><span>{label}</span><strong>{value}</strong></div>)}<div className="lp-demo-panel-foot"><CheckCircle2 size={16}/> Interface demonstrativa</div></div></div>
-    </div></section>
-    <section className="lp-faq-new" id="duvidas"><div className="lp-wrap lp-faq-layout">
-      <div><span className="lp-section-label">DÚVIDAS FREQUENTES</span><h2>O essencial, sem complicação.</h2><p>Veja como o Bebfy atende a rotina do mercado de bebidas.</p></div>
-      <div className="lp-questions">{[
-        ['Para quais negócios o Bebfy foi pensado?', 'Distribuidoras, adegas, empórios e atacados de bebidas que precisam organizar vendas e operações.'],
-        ['Posso controlar funcionários e permissões?', 'Sim. O sistema possui gestão de funcionários e controle de permissões por perfil.'],
-        ['O Bebfy emite notas fiscais?', 'Não nesta fase. O sistema permite a importação manual de XML de NF-e, mas não emite NF-e nem NFC-e.'],
-        ['O sistema confirma pagamentos automaticamente?', 'Não. Pagamentos como Pix e cartão são registrados manualmente, sem integração automática com bancos ou adquirentes.'],
-        ['Como entro na minha distribuidora?', 'Clique em “Já sou cliente”, informe o identificador da sua empresa e prossiga com seu código e senha.'],
-      ].map(([question,answer])=><details key={question}><summary>{question}<ChevronDown size={18}/></summary><p>{answer}</p></details>)}</div>
-    </div></section>
-    <section className="lp-final"><div className="lp-wrap lp-final-inner"><span className="lp-section-label">SEU NEGÓCIO NO PRÓXIMO NÍVEL</span><h2>Mais organização para o presente. <em>Mais espaço para crescer.</em></h2><p>Descubra como o Bebfy pode simplificar a gestão da sua distribuidora.</p><a href="#demonstracao" className="lp-cta-primary">Explorar a demonstração <ArrowRight size={18}/></a></div></section>
-    <footer className="lp-footer-new"><div className="lp-wrap lp-footer-content"><div><Logo light/><p>Gestão inteligente para quem movimenta o mercado de bebidas.</p></div><nav aria-label="Links do rodapé"><a href="#funcionalidades">Funcionalidades</a><a href="#demonstracao">Demonstração</a><Link to="/acessar">Área do cliente</Link><Link to="/SaaS/admin">Gestão SaaS</Link></nav></div><div className="lp-wrap lp-copyright">© {new Date().getFullYear()} Bebfy. Todos os direitos reservados.</div></footer>
+      </section>
+      <div className="lv-marquee" aria-label="Bebfy para distribuidoras, adegas, empórios, atacados e depósitos de bebidas"><div>{[0,1].map(k=><span key={k}>Distribuidoras <b>✦</b> Adegas <b>✦</b> Empórios <b>✦</b> Atacados <b>✦</b> Depósitos de bebidas <b>✦</b></span>)}</div></div>
+      <section id="funcionalidades" className="lv-section lv-modules-section"><div className="lv-container">
+        <Reveal><p className="lv-section-kicker">MÓDULOS DO BEBFY</p><h2>Tudo o que você precisa, <em>em um só lugar.</em></h2></Reveal>
+        <div className="lv-module-grid">{modules.map(({icon:Icon,title,description})=><Reveal key={title}><article className="lv-module-card"><span className="lv-module-icon"><Icon size={23}/></span><h3>{title}</h3><p>{description}</p></article></Reveal>)}</div>
+      </div></section>
+      <section id="demonstracao" className="lv-section lv-demo-section"><div className="lv-gridlines" aria-hidden="true"/><div className="lv-container lv-demo-inner">
+        <Reveal className="lv-centered"><p className="lv-section-kicker">CONHEÇA POR DENTRO</p><h2>Uma plataforma para quem está na operação.</h2></Reveal>
+        <div className="lv-preview-tabs" role="tablist" aria-label="Prévia de módulos">{(Object.keys(previews) as Preview[]).map(key=>{const Icon=previews[key].icon;return <button type="button" role="tab" aria-selected={preview===key} key={key} className={preview===key?'is-selected':''} onClick={()=>setPreview(key)}><Icon size={17}/>{previews[key].label}</button>})}</div>
+        <div className="lv-demo-grid"><div key={preview} className="lv-demo-description"><h3>{active.title}</h3><p>{active.description}</p><div className="lv-demo-rows">{active.rows.map(([label,value])=><div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></div><DashboardPreview/></div>
+      </div></section>
+      <section id="como-funciona" className="lv-section lv-process-section"><div className="lv-container"><Reveal><h2>Em poucos passos, sua operação organizada.</h2></Reveal><div className="lv-steps">{[[Building2,'Configure sua distribuidora','Organize os dados, a equipe e os acessos.'],[Boxes,'Cadastre e controle','Gerencie produtos, preços e estoque.'],[BarChart3,'Venda com clareza','Registre vendas e acompanhe indicadores.']].map(([Icon,title,description],i)=>{const IconComponent=Icon as typeof Boxes;return <Reveal key={title as string}><article><span className="lv-step-number">0{i+1}</span><IconComponent size={31}/><h3>{title as string}</h3><p>{description as string}</p></article></Reveal>})}</div></div></section>
+      <section id="duvidas" className="lv-section lv-faq-section"><div className="lv-container lv-faq-grid"><Reveal><p className="lv-section-kicker">DÚVIDAS FREQUENTES</p><h2>O essencial, sem complicação.</h2><p>Veja como o Bebfy atende a rotina do mercado de bebidas.</p></Reveal><div className="lv-faq-list">{questions.map(([question,answer])=><details key={question}><summary>{question}<ChevronDown size={20}/></summary><p>{answer}</p></details>)}</div></div></section>
+      <section className="lv-final-section"><div className="lv-container lv-centered"><p className="lv-section-kicker">SEU NEGÓCIO NO PRÓXIMO NÍVEL</p><h2>Mais organização para o presente. <em>Mais espaço para crescer.</em></h2><p>Descubra como o Bebfy pode simplificar a gestão da sua distribuidora.</p><a className="lv-button-primary" href="#demonstracao">Explorar a demonstração <ArrowUpRight size={18}/></a></div></section>
+    </main>
+    <footer className="lv-footer"><div className="lv-container lv-footer-main"><div><Brand/><p>Gestão inteligente para quem movimenta o mercado de bebidas.</p></div><nav aria-label="Links do rodapé"><a href="#funcionalidades">Funcionalidades</a><a href="#demonstracao">Demonstração</a><Link to="/acessar">Área do cliente</Link><Link to="/SaaS/admin">Gestão SaaS</Link></nav></div><div className="lv-container lv-footer-bottom">© {new Date().getFullYear()} Bebfy. Todos os direitos reservados.</div></footer>
   </div>;
 }
