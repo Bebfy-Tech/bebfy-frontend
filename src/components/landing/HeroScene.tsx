@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, Boxes, CreditCard, Package, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
+import { BarChart3, Boxes, Package, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
 
 /** Lightweight layered 3D scene based on the Lovable design, isolated from the tenant app. */
 export default function HeroScene() {
