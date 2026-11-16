@@ -11,8 +11,8 @@ export default function HeroScene() {
   const tilt={transform:`rotateY(${pointer.x*7}deg) rotateX(${pointer.y*-6}deg)`};
   return <div className="lv-scene" onPointerMove={e=>{const box=e.currentTarget.getBoundingClientRect();setPointer({x:(e.clientX-box.left)/box.width-.5,y:(e.clientY-box.top)/box.height-.5})}} onPointerLeave={()=>setPointer({x:0,y:0})}>
     <div className="lv-scene-glow"/>
-    <div className="lv-floating lv-crate" aria-hidden="true"><div className="lv-crate-side"/><div className="lv-crate-body"><div/><div/><div/><div/></div></div>
-    <div className="lv-floating lv-boxes" aria-hidden="true"><div className="lv-box lv-box-a"/><div className="lv-box lv-box-b"/><div className="lv-box lv-box-c"/></div>
+    <img className="lv-floating lv-crate lv-original-asset" src="/lovable-landing-assets/crate.webp" width="174" height="147" alt="" aria-hidden="true" decoding="async" />
+    <img className="lv-floating lv-boxes lv-original-asset" src="/lovable-landing-assets/boxes.webp" width="127" height="174" alt="" aria-hidden="true" decoding="async" />
     <div className="lv-screen lv-floating" style={tilt}>
       <aside className="lv-screen-sidebar"><span className="lv-screen-logo">b<span>·</span></span>{[ShoppingCart,BarChart3,Package,Boxes,Wallet].map((Icon,i)=><span key={i} className={i===0?'is-active':''}><Icon size={18}/></span>)}</aside>
       <div className="lv-screen-main">
@@ -23,6 +23,6 @@ export default function HeroScene() {
         <div className="lv-screen-submit">Finalizar venda</div>
       </div>
     </div>
-    <div className="lv-floating lv-scanner" aria-label="Leitor de código de barras ilustrativo"><div className="lv-scanner-head"><div className="lv-scanner-lens"><ScanLine size={45}/><span/></div></div><div className="lv-scanner-handle"/></div>
+    <img className="lv-floating lv-scanner lv-original-asset" src="/lovable-landing-assets/scanner.webp" width="116" height="174" alt="Leitor de código de barras ilustrativo" decoding="async" />
   </div>;
 }
