@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { hasModule } from '../services/moduleAccess';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, LockKeyhole, Pencil, Search, Trash2, Shield, Package, KeyRound } from 'lucide-react';
@@ -44,6 +45,8 @@ const initial=(fields:Campo[]):Valores=>Object.fromEntries(fields.map(f=>[f.key,
 
 export function CadastroPage({resource}:{resource:Recurso}){
   const cfg=definicoes[resource];
+  const [params,setParams]=useSearchParams();
+  const filtro=resource==='lotes'?params.get('filtro'):null;
   const {user,modules}=useAuth();
   const isManager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
   const permissao=(chave:string)=>isManager||Boolean(user?.permissoes?.includes(chave));
@@ -88,9 +91,16 @@ export function CadastroPage({resource}:{resource:Recurso}){
   },[cfg]);
   useEffect(()=>{setItems([]);setBusca('');void reload();},[reload]);
 
-  const filtered=useMemo(()=>items.filter(item=>Object.values(item).some(x=>
-    ['string','number'].includes(typeof x)&&String(x).toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR'))
-  )),[items,busca]);
+  const filtered=useMemo(()=>items.filter(item=>{
+    if(resource==='lotes'&&['vencidos','avencer'].includes(filtro||'')){
+      if(!item.dataVencimento||Number(item.quantidade)<=0)return false;
+      const hoje=new Date();hoje.setHours(0,0,0,0);const limite=new Date(hoje);limite.setDate(limite.getDate()+31);
+      const data=new Date(String(item.dataVencimento));
+      if(filtro==='vencidos'?data>=hoje:(data<hoje||data>=limite))return false;
+    }
+    return Object.values(item).some(x=>['string','number'].includes(typeof x)&&String(x).toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR')));
+  }),[items,busca,filtro,resource]);
+
 
   function openNew(){setEditing(null);setDraft(initial(cfg.fields));setErro('');setSuccess('');}
   function openEdit(item:Linha){setEditing(item);setDraft(Object.fromEntries(cfg.fields.map(f=>[
@@ -152,7 +162,7 @@ export function CadastroPage({resource}:{resource:Recurso}){
     <section className={`${card} bf-register-list overflow-hidden`}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
         <div className="relative max-w-lg flex-1"><Search size={18} className="absolute left-3 top-3.5 text-slate-400"/><input aria-label="Pesquisar cadastros" className={`${input} pl-10`} placeholder="Buscar nos registros..." value={busca} onChange={e=>setBusca(e.target.value)}/></div>
-        <span className="text-xs font-semibold text-slate-500">{filtered.length} registro(s)</span>
+        {resource==="lotes"&&<select aria-label="Filtrar validade" className={input+" !w-auto"} value={filtro||""} onChange={e=>setParams(e.target.value?{filtro:e.target.value}:{},{replace:true})}><option value="">Todos os lotes</option><option value="avencer">A vencer em 30 dias</option><option value="vencidos">Vencidos</option></select>}<span className="text-xs font-semibold text-slate-500">{filtered.length} registro(s)</span>
       </div>
       {loading?<div className="p-10 text-center text-sm text-slate-500">Carregando {cfg.title.toLowerCase()}...</div>:filtered.length===0?<div className="p-5"><Empty>Nenhum cadastro encontrado. Comece usando “Novo cadastro” acima.</Empty></div>:
       <><div className="space-y-3 p-3 sm:hidden">{filtered.map(row=><article key={String(row.id)} className="rounded-2xl border border-[#29374c] bg-[#101a2a] p-4">

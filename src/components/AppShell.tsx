@@ -37,7 +37,7 @@ const groups: { title: string; items: MenuItem[] }[] = [
   ] },
   { title: 'ADMINISTRAÇÃO', items: [
     { to: '/financeiro', label: 'Financeiro', icon: CreditCard, manager: true },
-    { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
+    { to: '/relatorios', label: 'Relatórios', icon: FileBarChart, manager: true },
     { to: '/funcionarios', label: 'Funcionários e acessos', icon: UserRound, manager: true },
     { to: '/configuracoes', label: 'Minha conta', icon: Settings },
   ] },

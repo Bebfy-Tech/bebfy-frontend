@@ -9,12 +9,13 @@ import type { Dashboard } from '../services/bebfy';
 import { card, dinheiro, Empty, mensagemErro, Notice, PageTitle } from '../components/ui';
 
 export function RelatoriosPage(){
-  const {modules}=useAuth();
+  const {modules,user}=useAuth();
+  const manager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
   const [dados,setDados]=useState<Dashboard|null>(null);
   const [loading,setLoading]=useState(true);
   const [erro,setErro]=useState('');
   const load=useCallback(async()=>{setLoading(true);setErro('');try{setDados(await bebfy.dashboard());}catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}},[]);
-  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{if(manager)void load();},[load,manager]);
   const ranking=useMemo(()=>dados?.topProdutosMaisVendidos??[],[dados]);
   const maximo=Math.max(1,...ranking.map(x=>Number(x.quantidadeVendida)));
   const cards=[
@@ -23,6 +24,7 @@ export function RelatoriosPage(){
     {title:'Fiado a receber',value:dinheiro(dados?.totalFiadoAReceber),desc:'Saldo de clientes',icon:CreditCard},
     {title:'Caixas ativos',value:String(dados?.caixasAtivos?.length??0),desc:'Turnos em operação',icon:Wallet},
   ];
+  if(!manager)return <Notice message="Relatórios gerenciais restritos a gestores."/>;
   return <>
     <PageTitle title="Relatórios e indicadores" subtitle="Acompanhe resultados e produtos mais vendidos, calculados pelo backend." onReload={()=>void load()} loading={loading}/>
     <Notice message={erro}/>

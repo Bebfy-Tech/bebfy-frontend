@@ -10,6 +10,7 @@ export interface Produto {
   nome: string;
   codigoBarras: string | null;
   estoqueAtual: number;
+  estoqueMinimo?: number;
   unidadeMedida: string;
   precoVendaVarejo: string | number;
   precoVendaAtacado: string | number | null;
@@ -104,7 +105,17 @@ export interface ComprovanteNaoFiscal {
   pagamentos: Array<{ forma: FormaPagamento; valor: number; troco: number }>;
 }
 
+export interface DashboardOperacional {
+  estoqueBaixo:number;
+  caixaAberto:boolean;
+  caixaAbertoEm:string|null;
+}
 export interface Dashboard {
+  vendasHorasHoje?: Array<{data:string;faturamento:number;quantidade:number}>;
+  vendasDiasMes?: Array<{data:string;faturamento:number;quantidade:number}>;
+  pagamentosHoje?: Array<{formaPagamento:FormaPagamento;valor:number}>;
+  pagamentos7Dias?: Array<{formaPagamento:FormaPagamento;valor:number}>;
+  alertas?: {estoqueBaixo:number;lotesVencidos:number|null;lotesAVencer:number|null;entregasPendentes:number|null;clientesComVasilhames:number|null};
   vendasUltimos7Dias?: Array<{ data: string; faturamento: number; quantidade: number }>;
   pagamentosMes?: Array<{ formaPagamento: FormaPagamento; valor: number }>;
   faturamentoHoje: number;
@@ -126,6 +137,7 @@ const obter = async <T>(url: string): Promise<T> =>
 
 export const bebfy = {
   dashboard: () => obter<Dashboard>('/relatorios/dashboard'),
+  dashboardOperacional: () => obter<DashboardOperacional>('/relatorios/dashboard/operacional'),
   produtos: {
     listar: () => obter<Produto[]>('/produtos'),
     buscar: (q: string) => api.get<Produto[]>('/produtos/buscar', { params: { q } }).then(r => r.data),
