@@ -11,6 +11,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { PDV } from '../pages/PDV';
 import { SaasAccess } from '../pages/SaasAccess';
 import { SaasConsole } from '../pages/SaasConsole';
+import { ProdutosPage } from '../pages/ProdutosPage';
 import { CadastroPage } from '../pages/CadastroPage';
 import { EstoquePage } from '../pages/EstoquePage';
 import { ImportarXmlPage } from '../pages/ImportarXmlPage';
@@ -52,7 +53,7 @@ export const AppRoutes = () => (
             <Route element={<ModuleRoute modulo="CAIXA_PDV" />}><Route path="vendas" element={<VendasPage />} /></Route>
             <Route element={<ModuleRoute modulo="CAIXA_PDV" />}><Route path="caixas" element={<CaixasPage />} /></Route>
             <Route element={<ModuleRoute modulo="ENTREGAS_DELIVERY" />}><Route path="delivery" element={<DeliveryPage />} /></Route>
-            <Route path="produtos" element={<CadastroPage resource="produtos" />} />
+            <Route path="produtos" element={<ProdutosPage />} />
             <Route path="categorias" element={<CadastroPage resource="categorias" />} />
             <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<CadastroPage resource="fornecedores" />} /></Route>

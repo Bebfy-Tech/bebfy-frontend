@@ -17,7 +17,7 @@ async function compress(file:File):Promise<string>{
       canvas.height=Math.max(1,Math.round(bitmap.height*scale));
       ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
       const base64=canvas.toDataURL('image/jpeg',.72).split(',')[1];
-      if(base64&&base64.length<=87384)return base64;
+      if(base64&&Math.floor(base64.length*3/4)-(base64.endsWith('==')?2:base64.endsWith('=')?1:0)<=65536)return base64;
     }
     throw new Error('Não foi possível reduzir a foto.');
   }finally{bitmap.close();}
