@@ -20,6 +20,7 @@ export interface Produto {
 }
 
 export interface Cliente {
+  criadoEm?:string;
   id: string;
   nome: string;
   saldoDevedor: string | number;
@@ -29,6 +30,7 @@ export interface Cliente {
 }
 
 export interface Caixa {
+  operador?:{id:string;nome:string};
   totalVendas?:number;
   quantidadeVendas?:number;
   id: string;
@@ -67,6 +69,7 @@ export interface NovaVenda {
 }
 
 export interface Venda {
+  tipoEntrega?:TipoEntrega;
   id: string;
   codigoVenda: number;
   valorTotal: string | number;
@@ -77,6 +80,8 @@ export interface Venda {
   itens: Array<{
     id: string;
     produtoId: number;
+    produto?:Produto|null;
+    unidadesEstoque?:number|null;
     quantidade: number;
     precoUnitario: string | number;
     precoTotal: string | number;
@@ -151,7 +156,7 @@ export const bebfy = {
   caixa: {
     listar: () => obter<Caixa[]>('/caixa'),
     abertoPorOperador: (id: string) =>
-      obter<Caixa>(`/caixa/aberto/operador/${encodeURIComponent(id)}`),
+      obter<Caixa|null>(`/caixa/aberto/operador/${encodeURIComponent(id)}`),
     abrir: (dados: { operadorId: string; saldoInicial: number }) =>
       api.post<Caixa>('/caixa/abrir', dados).then(r => r.data),
     fechar: (id: string, saldoFinalFisico?: number) =>
