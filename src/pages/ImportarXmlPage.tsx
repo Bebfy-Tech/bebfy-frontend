@@ -56,7 +56,7 @@ export function ImportarXmlPage() {
      setResultado(data);setPreview(null);setXml('');
    }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
  }
- return <main className="space-y-6">
+ return <div className="bf-xml space-y-3">
   <div className="flex flex-wrap items-center justify-between gap-3">
    <div><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-400">ESTOQUE / COMPRAS</p><h1 className="mt-2 text-3xl font-black text-white">Importar nota fiscal XML</h1><p className="mt-2 text-sm text-slate-400">Importe uma NF-e modelo 55 a partir do XML fornecido pelo fornecedor, sem consultar a SEFAZ.</p></div>
    <Link to={tenantPath('estoque')} className={secondary}><ArrowLeft size={17}/> Voltar ao estoque</Link>
@@ -71,7 +71,7 @@ export function ImportarXmlPage() {
   {!resultado&&<>
    <section className={`${card} p-6 sm:p-8`}>
     <div className="mb-5 flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-xl bg-blue-500/10 text-blue-300"><FileUp size={24}/></span><div><h2 className="text-lg font-extrabold">1. Selecione seu XML</h2><p className="text-xs text-slate-400">Arquivo NF-e autorizado ou recebido do fornecedor (.xml, até 1 MB)</p></div></div>
-    <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#304660] bg-[#101829] px-5 py-8 text-center transition hover:border-blue-500">
+    <label className="bf-xml-upload flex cursor-pointer flex-wrap items-center gap-3 rounded-lg border border-dashed border-[#386251] bg-[#103830] px-4 py-3 transition hover:border-emerald-400">
      <FileCode2 size={31} className="text-blue-300"/>
      <strong className="text-sm">{nomeArquivo||'Clique para escolher o arquivo XML'}</strong>
      <span className="text-xs text-slate-400">O conteúdo só será importado após sua confirmação. Não há consulta à SEFAZ.</span>
@@ -92,14 +92,7 @@ export function ImportarXmlPage() {
     <section className={`${card} p-5 sm:p-6`}>
      <div className="flex items-center gap-2"><Link2 className="text-emerald-300"/><h2 className="text-lg font-extrabold">3. Associe os produtos (De-Para)</h2></div>
      <p className="mt-2 text-sm text-slate-400">Confira cada item da nota e escolha seu produto correspondente. Produtos não encontrados precisam ser cadastrados antes de finalizar.</p>
-     <div className="mt-5 space-y-3">{preview.itens.map(item=><div key={item.indice} className="grid gap-3 rounded-xl border border-[#2a384c] bg-[#101829] p-4 lg:grid-cols-[1fr_40px_1fr] lg:items-center">
-      <div><strong className="block text-sm">{item.nome}</strong><p className="mt-1 text-xs text-slate-400">{item.quantidade} unidade(s) · {dinheiro(item.valorUnitario)} / un. · EAN {item.ean||'não informado'}</p></div>
-      <ArrowRight size={18} className="hidden text-blue-300 lg:block"/>
-      <select aria-label={`Associar produto ${item.nome}`} required className={input} value={associacoes[item.indice]||''} onChange={e=>setAssociacoes(a=>({...a,[item.indice]:e.target.value}))}>
-       <option value="">Escolher produto cadastrado...</option>
-       {preview.produtos.map(p=><option key={p.id} value={p.id}>{p.nome} · estoque: {p.estoqueAtual}</option>)}
-      </select>
-     </div>)}</div>
+     <div className="bf-table-scroll mt-3 overflow-x-auto"><table className="w-full min-w-[780px] text-left text-sm"><thead><tr><th>Item</th><th>Produto do fornecedor</th><th>EAN</th><th>Qtd.</th><th>Valor unit.</th><th>Produto no Bebfy (De-Para)</th></tr></thead><tbody>{preview.itens.map(item=><tr key={item.indice}><td>{item.indice}</td><td className="font-semibold">{item.nome}</td><td>{item.ean||'—'}</td><td>{item.quantidade}</td><td className="whitespace-nowrap">{dinheiro(item.valorUnitario)}</td><td><select aria-label={`Associar produto ${item.nome}`} required className={input} value={associacoes[item.indice]||''} onChange={e=>setAssociacoes(a=>({...a,[item.indice]:e.target.value}))}><option value="">Escolher produto cadastrado...</option>{preview.produtos.map(p=><option key={p.id} value={p.id}>{p.nome} · estoque: {p.estoqueAtual}</option>)}</select></td></tr>)}</tbody></table></div>
      <Link to={tenantPath('produtos')} className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-blue-300">Cadastrar produto que está faltando <ArrowRight size={16}/></Link>
     </section>
     <section className={`${card} p-6`}>
@@ -113,5 +106,5 @@ export function ImportarXmlPage() {
     </section>
    </>}
   </>}
- </main>;
+ </div>;
 }
