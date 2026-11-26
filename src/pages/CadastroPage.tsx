@@ -1,3 +1,4 @@
+import { hasModule } from '../services/moduleAccess';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, LockKeyhole, Pencil, Search, Trash2, Shield, Package, KeyRound } from 'lucide-react';
 import { api } from '../services/api';
@@ -41,7 +42,7 @@ const initial=(fields:Campo[]):Valores=>Object.fromEntries(fields.map(f=>[f.key,
 
 export function CadastroPage({resource}:{resource:Recurso}){
   const cfg=definicoes[resource];
-  const {user}=useAuth();
+  const {user,modules}=useAuth();
   const isManager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
   const permissao=(chave:string)=>isManager||Boolean(user?.permissoes?.includes(chave));
   const canCreate=resource==='produtos'||resource==='categorias'?permissao('PRODUTOS_GERENCIAR')
@@ -202,9 +203,9 @@ export function CadastroPage({resource}:{resource:Recurso}){
           {cfg.fields.filter(c=>!['nome','codigoBarras','estoqueAtual','estoqueMinimo','precoCusto','precoVendaVarejo','precoVendaAtacado'].includes(c.key)).map(c=><div key={c.key} className="bf-read-field"><small>{c.label}</small><strong>{c.key==='categoriaId'?String(valor(detalhe,'categoria.nome')??'—'):c.type==='checkbox'?(detalhe[c.key]?'Sim':'Não'):String(detalhe[c.key]??'—')}</strong></div>)}
           <div className="bf-read-field"><small>Situação</small><FormatCell row={detalhe} keyName="ativo" format="boolean"/></div>
         </div></section>
-        <section className="bf-record-section"><h3 className="bf-section-caption flex items-center gap-2"><Package size={16}/> Lotes cadastrados</h3>
+        {hasModule(modules,'ESTOQUE_LOTES')&&<section className="bf-record-section"><h3 className="bf-section-caption flex items-center gap-2"><Package size={16}/> Lotes cadastrados</h3>
           <div className="bf-table-scroll overflow-x-auto"><table className="w-full min-w-[430px] text-left text-sm"><thead><tr><th>Lote</th><th>Validade</th><th className="text-right">Quantidade</th></tr></thead><tbody>{Array.isArray(detalhe.lotes)&&(detalhe.lotes as Linha[]).map(l=><tr key={String(l.id)}><td>{String(l.numeroLote||l.id)}</td><td>{dataBR(l.dataVencimento)}</td><td className="text-right font-semibold">{String(l.quantidade??0)} un.</td></tr>)}</tbody></table>{(!Array.isArray(detalhe.lotes)||!detalhe.lotes.length)&&<p className="bf-empty-text">Sem lotes cadastrados para este produto.</p>}</div>
-        </section>
+        </section>}
       </>:<div className="bf-field-grid">{cfg.columns.map(c=><div key={c.key} className="bf-read-field"><small>{c.label}</small><div className="text-sm font-bold"><FormatCell row={detalhe} keyName={c.key} format={c.format}/></div></div>)}</div>}
       <div className="bf-record-actions mt-4 flex justify-end"><button className={secondary} onClick={()=>setDetalhe(null)}>Fechar ficha</button></div>
     </Modal>}

@@ -1,3 +1,5 @@
+import { hasModule, routeModules } from '../services/moduleAccess';
+import { useAuth } from '../contexts/AuthContext';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, CircleHelp, FileUp, Package, Search, ShoppingCart, Wallet, Keyboard, ShieldCheck } from 'lucide-react';
@@ -22,6 +24,7 @@ const help=[
   {q:'O Bebfy emite nota fiscal?',a:'Não nesta fase. Os comprovantes do PDV são internos e não fiscais. A importação de XML de compra não equivale à emissão fiscal.'},
 ];
 export function AjudaPage(){
+  const {modules}=useAuth();
   const [query,setQuery]=useState('');
   const matches=useMemo(()=>help.filter(h=>[h.q,h.a].join(' ').toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))),[query]);
   return <main className="space-y-6">
@@ -34,7 +37,7 @@ export function AjudaPage(){
     <section aria-label="Primeiros passos">
       <h2 className="mb-4 text-xl font-extrabold text-white">Comece por aqui</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        {steps.map(({n,title,desc,to,icon:Icon})=><Link to={tenantPath(to)} key={n} className={`${card} group flex items-start gap-4 p-5 transition hover:border-blue-500/40 hover:bg-[#1c1e24]`}>
+        {steps.filter(s=>hasModule(modules,routeModules[s.to])).map(({n,title,desc,to,icon:Icon})=><Link to={tenantPath(to)} key={n} className={`${card} group flex items-start gap-4 p-5 transition hover:border-blue-500/40 hover:bg-[#1c1e24]`}>
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-300"><Icon size={23}/></div>
           <div className="min-w-0 flex-1"><span className="text-xs font-black tracking-widest text-emerald-300">PASSO {n}</span><h3 className="mt-1 text-base font-extrabold text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p><span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-300">Abrir tela <ArrowRight size={15}/></span></div>
         </Link>)}

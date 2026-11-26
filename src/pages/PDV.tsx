@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Boxes, CreditCard, Minus, Plus, Printer, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { hasModule } from '../services/moduleAccess';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
 import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
@@ -35,7 +36,10 @@ function Comprovante({dados}:{dados:ComprovanteNaoFiscal}){
 }
 
 export function PDV(){
-  const {user,empresa}=useAuth();
+  const {user,empresa,modules}=useAuth();
+  const deliveryAtivo=hasModule(modules,'ENTREGAS_DELIVERY');
+  const fiadoAtivo=hasModule(modules,'FIADOS');
+  const cascosAtivo=hasModule(modules,'VASILHAMES_RETORNAVEIS');
   const searchRef=useRef<HTMLInputElement>(null);
   const finalizeRef=useRef<()=>void>(()=>{});
   const [produtos,setProdutos]=useState<Produto[]>([]);
@@ -75,7 +79,7 @@ export function PDV(){
 
   const subtotal=useMemo(()=>carrinho.reduce((s,i)=>s+price(i)*i.quantidade,0),[carrinho]);
   const descontoVal=Math.max(0,Number(desconto)||0);
-  const entregaVal=entrega==='DELIVERY'?Math.max(0,Number(taxaEntrega)||0):0;
+  const entregaVal=deliveryAtivo&&entrega==='DELIVERY'?Math.max(0,Number(taxaEntrega)||0):0;
   const total=Math.max(0,Math.round((subtotal-descontoVal+entregaVal)*100)/100);
   const pago=pagamentos.reduce((s,p)=>s+(Number(p.valor)||0),0);
   const diferenca=Math.round((total-pago)*100)/100;
@@ -125,8 +129,10 @@ export function PDV(){
     setErro('');setSucesso('');
     if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}
     if(total<=0){setErro('Venda precisa ter valor positivo.');return;}
+    if(!deliveryAtivo&&entrega==='DELIVERY'){setErro('Delivery foi desativado. Selecione retirada no balcão.');setEntrega('RETIRADA_BALCAO');return;}
+    if(!fiadoAtivo&&pagamentos.some(p=>p.forma==='FIADO')){setErro('Fiado foi desativado. Escolha outra forma de pagamento.');return;}
     if(entrega==='DELIVERY'&&!enderecoEntrega.trim()){setErro('Informe o endereço da entrega.');return;}
-    if(Number(cascosDevolvidos)>0&&!clienteId){setErro('Selecione o cliente para devolução de cascos.');return;}
+    if(cascosAtivo&&Number(cascosDevolvidos)>0&&!clienteId){setErro('Selecione o cliente para devolução de cascos.');return;}
     if(pagamentos.some(p=>!Number.isFinite(Number(p.valor))||Number(p.valor)<=0)){
       setErro('Informe um valor positivo em todos os pagamentos.');return;
     }
@@ -142,7 +148,7 @@ export function PDV(){
         ...(clienteId?{clienteId}:{}),desconto:descontoVal,
         tipoEntrega:entrega,taxaEntrega:entregaVal,
         ...(entrega==='DELIVERY'?{enderecoEntrega}:{}),
-        ...(Number(cascosDevolvidos)>0?{cascosDevolvidos:Number(cascosDevolvidos)}:{}),
+        ...(cascosAtivo&&Number(cascosDevolvidos)>0?{cascosDevolvidos:Number(cascosDevolvidos)}:{}),
         itens:carrinho.map(i=>({produtoId:i.produto.id,quantidade:i.quantidade,
           precoUnitario:price(i),isFardo:i.isFardo})),
         pagamentos:pagamentoNet(),
@@ -183,12 +189,12 @@ export function PDV(){
         <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
           <label className="block text-xs font-bold text-slate-600">Cliente (opcional; obrigatório para fiado)<select className={`${input} mt-1`} value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));}}><option value="">Venda avulsa / balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome} · Fiado {dinheiro(c.saldoDevedor)}</option>)}</select></label>
           {escolhido&&<p className="text-[11px] text-slate-500">Limite: {dinheiro(escolhido.limiteCredito)} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
-          <div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Entrega<select className={`${input} mt-1`} value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option><option value="DELIVERY">Delivery</option></select></label><label className="block text-xs font-bold text-slate-600">Desconto (R$)<input className={`${input} mt-1`} type="number" min={0} step=".01" value={desconto} onChange={e=>setDesconto(e.target.value)}/></label></div>
-          {entrega==='DELIVERY'&&<div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Taxa de entrega<input className={`${input} mt-1`} type="number" min={0} step=".01" value={taxaEntrega} onChange={e=>setTaxaEntrega(e.target.value)}/></label><label className="block text-xs font-bold text-slate-600">Endereço<input className={`${input} mt-1`} required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
-          {clienteId&&<label className="block text-xs font-bold text-slate-600">Cascos devolvidos<input className={`${input} mt-1`} type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
+          <div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Entrega<select className={`${input} mt-1`} value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option>{deliveryAtivo&&<option value="DELIVERY">Delivery</option>}</select></label><label className="block text-xs font-bold text-slate-600">Desconto (R$)<input className={`${input} mt-1`} type="number" min={0} step=".01" value={desconto} onChange={e=>setDesconto(e.target.value)}/></label></div>
+          {deliveryAtivo&&entrega==='DELIVERY'&&<div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Taxa de entrega<input className={`${input} mt-1`} type="number" min={0} step=".01" value={taxaEntrega} onChange={e=>setTaxaEntrega(e.target.value)}/></label><label className="block text-xs font-bold text-slate-600">Endereço<input className={`${input} mt-1`} required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
+          {cascosAtivo&&clienteId&&<label className="block text-xs font-bold text-slate-600">Cascos devolvidos<input className={`${input} mt-1`} type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
           <div className="flex justify-between text-sm"><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div><div className="flex justify-between text-xl font-black"><span>Total da venda</span><span className="text-emerald-300">{dinheiro(total)}</span></div>
           <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
-            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><input aria-label={`Valor ${i+1}`} type="number" min=".01" step=".01" className={input} value={p.valor} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:e.target.value}:x))} placeholder="Valor R$"/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
+            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><input aria-label={`Valor ${i+1}`} type="number" min=".01" step=".01" className={input} value={p.valor} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:e.target.value}:x))} placeholder="Valor R$"/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
             <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
           </div>
           <button className={`${btn} w-full`} onClick={()=>void finalizar()} disabled={busy||!carrinho.length||total<=0}>{busy?'Registrando venda...':'Finalizar venda · F9'}</button><p className="text-center text-[11px] leading-relaxed text-slate-500">PIX e cartão são recebimentos informados pelo operador. Não existe confirmação automática da instituição financeira. O comprovante não tem valor fiscal.</p>

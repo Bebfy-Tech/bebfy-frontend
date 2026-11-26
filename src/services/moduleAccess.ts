@@ -1,10 +1,6 @@
 import type { NomeModulo } from './saas';
 
-/**
- * A route is hidden only when its module was explicitly disabled.
- * Legacy module configurations without an EmpresaModulo record remain enabled,
- * exactly like ModuloAtivoGuard on the backend.
- */
+/** The server returns effective entitlements; missing paid modules are denied. */
 export type TenantModules = Partial<Record<NomeModulo, boolean>>;
 
 export const routeModules: Record<string, NomeModulo> = {
@@ -21,4 +17,4 @@ export const routeModules: Record<string, NomeModulo> = {
 };
 
 export const hasModule = (modules: TenantModules, required?: NomeModulo) =>
-  !required || modules[required] !== false;
+  !required || modules[required] === true;

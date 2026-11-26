@@ -212,3 +212,16 @@ export const saasApi = {
   alternarModulo: (id: number, modulo: NomeModulo, ativo: boolean) =>
     saasClient.patch<ModuloEmpresa>(`/saas/admin/empresas/${id}/modulos`, { modulo, ativo }).then(r => r.data),
 };
+
+/** Commercial presets mirror the backend; unfinished modules cannot be sold. */
+export const PENDENTES: NomeModulo[] = ['PEDIDOS_ATACADO','TABELA_PRECO_VOLUME','ROTAS_CAMINHOES','CREDITO_B2B'];
+export const DISPONIVEIS = MODULOS.filter(m=>!PENDENTES.includes(m.key));
+export const PLANOS_PADRAO: Record<TipoPlanoSaas,NomeModulo[]> = {
+ VAREJO_BASICO:['CAIXA_PDV','FIADOS'],
+ VAREJO_PRO:DISPONIVEIS.map(m=>m.key),
+ ATACADO_FULL:DISPONIVEIS.map(m=>m.key),
+ PERSONALIZADO:[],
+};
+export function moduloLiberado(empresa:EmpresaSaas,modulo:NomeModulo):boolean {
+ return !PENDENTES.includes(modulo) && (empresa.modulosAtivos.find(m=>m.modulo===modulo)?.ativo ?? (empresa.planoId==null || Boolean(empresa.plano?.modulosPadrao?.includes(modulo))));
+}

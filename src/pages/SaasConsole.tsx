@@ -11,7 +11,7 @@ import { SaasAuditoria } from './SaasAuditoria';
 import { ProfileModal } from '../components/ProfileModal';
 import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
-import { MODULOS, saasApi } from '../services/saas';
+import { MODULOS, saasApi, PENDENTES, DISPONIVEIS, PLANOS_PADRAO, moduloLiberado } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao, SaasCobranca } from '../services/saas';
 
@@ -104,7 +104,7 @@ export function SaasConsole() {
   const [billingOpen,setBillingOpen] = useState(false);
   const [companyForm,setCompanyForm] = useState({nomeFantasia:'',razaoSocial:'',documento:'',telefone:'',nomeResponsavel:'',cpfResponsavel:'',emailResponsavel:'',senhaTemporaria:''});
   const [planData,setPlanData] = useState<PlanoEntrada>({
-    nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79, modulosPadrao:[],
+    nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79, modulosPadrao:[...PLANOS_PADRAO.VAREJO_BASICO],
   });
   const [busy,setBusy] = useState(false);
   const [loading,setLoading] = useState(true);
@@ -133,7 +133,7 @@ export function SaasConsole() {
     const q=filter.toLocaleLowerCase('pt-BR');
     return (filterStatus==='TODAS'||e.status===filterStatus) && [e.nomeFantasia,e.slug,e.subdominio||'',e.cnpj||'',String(e.id)].some(p=>p.toLocaleLowerCase('pt-BR').includes(q));
   }),[empresas,filter,filterStatus]);
-  const totalModulos=useMemo(()=>empresas.reduce((v,e)=>v+e.modulosAtivos.filter(m=>m.ativo).length,0),[empresas]);
+  const totalModulos=useMemo(()=>empresas.reduce((v,e)=>v+DISPONIVEIS.filter(m=>moduloLiberado(e,m.key)).length,0),[empresas]);
   const receitaEstimada=useMemo(()=>empresas.filter(e=>e.status==='ATIVA'||e.status==='EM_TESTE').reduce((v,e)=>v+Number(e.plano?.precoMensal||0),0),[empresas]);
 
   function openModulo(modulo:NomeModulo) {
@@ -284,8 +284,8 @@ export function SaasConsole() {
   function openPlanEditor(plano?: PlanoSaas) {
     setEditPlan(plano?.id ?? null);
     setPlanData(plano ? {
-      nome: plano.nome, tipo: plano.tipo, precoMensal: Number(plano.precoMensal), modulosPadrao:plano.modulosPadrao||[],
-    } : { nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79,modulosPadrao:[] });
+      nome: plano.nome, tipo: plano.tipo, precoMensal: Number(plano.precoMensal), modulosPadrao:(plano.modulosPadrao||[]).filter(m=>!PENDENTES.includes(m)),
+    } : { nome: '', tipo: 'VAREJO_BASICO', precoMensal: 79,modulosPadrao:[...PLANOS_PADRAO.VAREJO_BASICO] });
     setAlert('');
     setPlanModal(true);
   }
@@ -413,7 +413,7 @@ export function SaasConsole() {
             </div>
             <div className="grid gap-5 xl:grid-cols-2">
               <section className={`${card} p-6`}><h3 className="mb-1 font-extrabold">Situação da conta</h3><p className="mb-6 text-xs text-slate-500">Atualiza imediatamente o estado da distribuidora.</p><label className={label}>Status atual</label><select value={selected.status} onChange={e=>{const status=e.target.value as StatusEmpresa;if(status==='SUSPENSA'||status==='CANCELADA'){if(!window.confirm('A empresa perderá acesso ao sistema. Confirmar alteração?'))return;}void updateCompany(()=>saasApi.alterarStatus(selected.id,status),'Status atualizado com sucesso.');}} disabled={busy} className={input}>{(Object.keys(statusText) as StatusEmpresa[]).map(st=><option key={st} value={st}>{statusText[st]}</option>)}</select><p className="mt-4 text-xs text-amber-300">Suspender ou cancelar bloqueia o acesso dos usuários desta empresa.</p></section>
-              <section className={`${card} p-6`}><h3 className="mb-1 font-extrabold">Plano de assinatura</h3><p className="mb-6 text-xs text-slate-500">Vincula a empresa a um plano existente no backend.</p><label className={label}>Plano atual</label><select value={selected.planoId??''} onChange={e=>{const planoId=Number(e.target.value);if(planoId)void updateCompany(()=>saasApi.alterarPlano(selected.id,planoId),'Plano atualizado com sucesso.');}} disabled={busy||!planos.length} className={input}><option value="">Sem plano</option>{planos.map(p=><option key={p.id} value={p.id}>{p.nome} — {money(Number(p.precoMensal))}/mês</option>)}</select><p className="mt-4 text-xs text-slate-400">A cobrança financeira recorrente não é executada por esta tela.</p></section>
+              <section className={`${card} p-6`}><h3 className="mb-1 font-extrabold">Plano de assinatura</h3><p className="mb-6 text-xs text-slate-500">Vincula a empresa a um plano existente no backend.</p><label className={label}>Plano atual</label><select value={selected.planoId??''} onChange={e=>{const planoId=Number(e.target.value);if(planoId&&planoId!==selected.planoId&&window.confirm('Trocar o plano e redefinir as liberações manuais de módulos?'))void updateCompany(()=>saasApi.alterarPlano(selected.id,planoId),'Plano atualizado com sucesso.');}} disabled={busy||!planos.length} className={input}><option value="">Sem plano</option>{planos.map(p=><option key={p.id} value={p.id}>{p.nome} — {money(Number(p.precoMensal))}/mês</option>)}</select><p className="mt-4 text-xs text-slate-400">A cobrança financeira recorrente não é executada por esta tela.</p></section>
             </div>
             <section className={`${card} border border-blue-400/20 p-6`}>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -449,10 +449,10 @@ export function SaasConsole() {
                 </table>
               </div>
             </section>
-            <section className={`${card} p-6`}><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-extrabold">Módulos disponíveis</h3><p className="mt-1 text-xs text-slate-500">Ative ou desative as funcionalidades atribuídas a esta empresa.</p></div><span className="rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">{selected.modulosAtivos.filter(m=>m.ativo).length} ativados explicitamente</span></div>
+            <section className={`${card} p-6`}><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-extrabold">Módulos disponíveis</h3><p className="mt-1 text-xs text-slate-500">Ative ou desative as funcionalidades atribuídas a esta empresa.</p></div><span className="rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">{DISPONIVEIS.filter(m=>moduloLiberado(selected,m.key)).length} disponíveis</span></div>
               <div className="grid gap-3 md:grid-cols-2">{MODULOS.map(m=>{const configuracao=selected.modulosAtivos.find(x=>x.modulo===m.key);
-                const enabled=configuracao?.ativo!==false;return <div key={m.key} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-[#101829] p-4"><div className="min-w-0"><strong className="text-sm">{m.nome}</strong><p className="mt-1 text-xs text-slate-500">{m.descricao}</p>{!configuracao&&<p className="mt-1 text-[10px] text-amber-300">Padrão legado: permitido quando implementado</p>}</div><button type="button" role="switch" aria-checked={enabled} aria-label={`${enabled?'Desativar':'Ativar'} ${m.nome}`} disabled={busy} onClick={()=>void updateCompany(()=>saasApi.alternarModulo(selected.id,m.key,!enabled),`Módulo ${m.nome} atualizado.`)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${enabled?'bg-emerald-400':'bg-slate-600'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled?'left-6':'left-1'}`}/></button></div>})}</div>
-              <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-amber-200/80"><CircleAlert size={16} className="shrink-0"/> Estes controles registram as atribuições de módulos. O bloqueio efetivo de cada funcionalidade nas rotas operacionais deve ser validado no backend antes de comercializar planos por módulo.</p>
+                const enabled=moduloLiberado(selected,m.key);return <div key={m.key} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-[#101829] p-4"><div className="min-w-0"><strong className="text-sm">{m.nome}</strong><p className="mt-1 text-xs text-slate-500">{m.descricao}</p><p className="mt-1 text-[10px] text-slate-400">{PENDENTES.includes(m.key)?'Em desenvolvimento':configuracao?'Exceção manual':selected.planoId?'Conforme plano':'Empresa sem plano (legado)'}</p></div><button type="button" role="switch" aria-checked={enabled} aria-label={`${enabled?'Desativar':'Ativar'} ${m.nome}`} disabled={busy||PENDENTES.includes(m.key)} onClick={()=>void updateCompany(()=>saasApi.alternarModulo(selected.id,m.key,!enabled),`Módulo ${m.nome} atualizado.`)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${enabled?'bg-emerald-400':'bg-slate-600'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled?'left-6':'left-1'}`}/></button></div>})}</div>
+              <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-amber-200/80"><CircleAlert size={16} className="shrink-0"/> O plano define os módulos disponíveis. As exceções manuais têm prioridade e são redefinidas na troca de plano. Recursos em desenvolvimento não podem ser ativados.</p>
             </section>
           </>}
 
@@ -466,7 +466,7 @@ export function SaasConsole() {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {MODULOS.map(m=>{
                 const Icon=moduloIcon[m.key];
-                const count=empresas.filter(e=>e.modulosAtivos.some(a=>a.modulo===m.key&&a.ativo)).length;
+                const count=empresas.filter(e=>moduloLiberado(e,m.key)).length;
                 const included=planos.filter(p=>p.modulosPadrao?.includes(m.key)).map(p=>p.nome);
                 const custom=modDescriptions.find(c=>c.modulo===m.key);
                 return <button key={m.key} type="button" onClick={()=>openModulo(m.key)} className={card+' p-5 text-left transition hover:border-emerald-300/35'} aria-label={'Gerenciar módulo '+m.nome}>
@@ -520,10 +520,10 @@ export function SaasConsole() {
             {empresas.filter(e=>e.nomeFantasia.toLowerCase().includes(moduleSearch.trim().toLowerCase())).map(e=>{
               const viaPlano=Boolean(planos.find(p=>p.id===e.planoId)?.modulosPadrao?.includes(moduleEditor));
               const assigned=e.modulosAtivos.find(a=>a.modulo===moduleEditor);
-              const enabled=assigned?.ativo ?? viaPlano;
+              const enabled=moduloLiberado(e,moduleEditor);
               return <div key={e.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3">
-                <div className="min-w-0"><strong className="block truncate text-sm">{e.nomeFantasia}</strong><span className={'mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold '+(viaPlano?'bg-emerald-300/10 text-emerald-200':'bg-white/10 text-slate-300')}>{viaPlano?'Via plano':enabled?'Liberado avulso':'Não atribuído'}</span></div>
-                <button type="button" role="switch" aria-label={'Acesso ao módulo para '+e.nomeFantasia} aria-checked={enabled} disabled={busy} onClick={()=>void updateModuleCompany(e.id,moduleEditor,!enabled)} className={'relative h-7 w-12 shrink-0 rounded-full '+(enabled?'bg-emerald-400':'bg-slate-600')}><span className={'absolute top-1 h-5 w-5 rounded-full bg-white '+(enabled?'left-6':'left-1')}/></button>
+                <div className="min-w-0"><strong className="block truncate text-sm">{e.nomeFantasia}</strong><span className={'mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold '+(viaPlano?'bg-emerald-300/10 text-emerald-200':'bg-white/10 text-slate-300')}>{PENDENTES.includes(moduleEditor)?'Em desenvolvimento':assigned?(enabled?'Liberado manualmente':'Bloqueado manualmente'):viaPlano?'Via plano':enabled?'Legado':'Não atribuído'}</span></div>
+                <button type="button" role="switch" aria-label={'Acesso ao módulo para '+e.nomeFantasia} aria-checked={enabled} disabled={busy||PENDENTES.includes(moduleEditor)} onClick={()=>void updateModuleCompany(e.id,moduleEditor,!enabled)} className={'relative h-7 w-12 shrink-0 rounded-full '+(enabled?'bg-emerald-400':'bg-slate-600')}><span className={'absolute top-1 h-5 w-5 rounded-full bg-white '+(enabled?'left-6':'left-1')}/></button>
               </div>;
             })}
             {!empresas.length&&<p className="p-4 text-center text-xs text-slate-400">Nenhuma distribuidora cadastrada.</p>}
@@ -558,11 +558,11 @@ export function SaasConsole() {
       <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Planos SaaS</p><h2 className="mt-1 text-2xl font-extrabold">{editPlan?'Editar plano':'Novo plano'}</h2></div><button type="button" onClick={()=>setPlanModal(false)} aria-label="Fechar"><X size={22}/></button></div>
       {alert&&<p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">{alert}</p>}
       <div><label htmlFor="plano-nome" className={label}>Nome do plano</label><input id="plano-nome" required minLength={2} maxLength={120} className={input} value={planData.nome} onChange={e=>setPlanData(p=>({...p,nome:e.target.value}))} placeholder="Bebfy Pro"/></div>
-      <div><label htmlFor="plano-tipo" className={label}>Tipo</label><select id="plano-tipo" className={input} value={planData.tipo} onChange={e=>setPlanData(p=>({...p,tipo:e.target.value as PlanoEntrada['tipo']}))}><option value="VAREJO_BASICO">Varejo básico</option><option value="VAREJO_PRO">Varejo Pro</option><option value="ATACADO_FULL">Atacado Full</option><option value="PERSONALIZADO">Personalizado</option></select></div>
+      <div><label htmlFor="plano-tipo" className={label}>Tipo</label><select id="plano-tipo" className={input} value={planData.tipo} onChange={e=>{const tipo=e.target.value as PlanoEntrada['tipo'];setPlanData(p=>({...p,tipo,modulosPadrao:[...PLANOS_PADRAO[tipo]]}));}}><option value="VAREJO_BASICO">Basic · Distribuidora de bairro</option><option value="VAREJO_PRO">Pro</option><option value="ATACADO_FULL">Atacado · em evolução</option><option value="PERSONALIZADO">Personalizado</option></select></div>
       <div><label htmlFor="plano-preco" className={label}>Mensalidade (R$)</label><input id="plano-preco" className={input} required inputMode="numeric" value={money(planData.precoMensal)} onChange={e=>setPlanData(p=>({...p,precoMensal:Number(moneyInput(e.target.value))/100}))} aria-describedby="plano-price-hint"/><p id="plano-price-hint" className="mt-1 text-xs text-slate-400">Digite os centavos. Exemplo: 7990 corresponde a R$ 79,90.</p></div>
       <div className="space-y-3 rounded-xl border border-white/10 p-4">
-        <div><h3 className="text-sm font-extrabold">Módulos incluídos no plano</h3><p className="mt-1 text-xs text-slate-400">Ao cadastrar uma distribuidora com este plano, os módulos selecionados serão habilitados automaticamente.</p></div>
-        <div className="grid gap-2 sm:grid-cols-2">{MODULOS.map(m=><label key={m.key} className="flex cursor-pointer items-center gap-2 text-xs text-slate-200"><input type="checkbox" checked={(planData.modulosPadrao||[]).includes(m.key)} onChange={e=>setPlanData(p=>({...p,modulosPadrao:e.target.checked?[...(p.modulosPadrao||[]),m.key]:(p.modulosPadrao||[]).filter(k=>k!==m.key)}))}/>{m.nome}</label>)}</div>
+        <div><h3 className="text-sm font-extrabold">Módulos incluídos no plano</h3><p className="mt-1 text-xs text-slate-400">Os módulos selecionados são herdados pelas empresas do plano. Recursos de atacado em desenvolvimento não são comercializáveis.</p></div>
+        <div className="grid gap-2 sm:grid-cols-2">{MODULOS.map(m=><label key={m.key} className="flex cursor-pointer items-center gap-2 text-xs text-slate-200"><input type="checkbox" disabled={PENDENTES.includes(m.key)} checked={(planData.modulosPadrao||[]).includes(m.key)&&!PENDENTES.includes(m.key)} onChange={e=>setPlanData(p=>({...p,modulosPadrao:e.target.checked?[...(p.modulosPadrao||[]),m.key]:(p.modulosPadrao||[]).filter(k=>k!==m.key)}))}/>{m.nome}{PENDENTES.includes(m.key)?' · Em desenvolvimento':''}</label>)}</div>
       </div>
       <p className="text-xs leading-relaxed text-slate-400">O cadastro altera o catálogo de planos. Cobranças automáticas não são processadas neste módulo.</p>
       <div className="flex gap-3 justify-end"><button type="button" onClick={()=>setPlanModal(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold">Cancelar</button><button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Salvar plano'}</button></div>
