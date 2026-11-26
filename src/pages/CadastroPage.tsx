@@ -4,7 +4,7 @@ import { Eye, LockKeyhole, Pencil, Search, Trash2, Shield, Package, KeyRound } f
 import { api } from '../services/api';
 import { definicoes, montarDados, recursoApi, valor } from '../services/operacional';
 import type { Campo, Linha, Recurso, Valores } from '../services/operacional';
-import { btn, card, dataBR, dinheiro, Empty, input, mensagemErro, Modal, Notice, PageTitle, secondary } from '../components/ui';
+import { btn, card, dataBR, dinheiro, Empty, input, mensagemErro, Modal, Notice, PageTitle, secondary, MoneyInput, maskDocument, maskPhone } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { ProdutoFoto } from '../components/ProdutoFoto';
 
@@ -34,6 +34,8 @@ function Field({campo,value,options,onChange,disabled}:{campo:Campo;value:string
     {campo.type==='checkbox'?<label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3"><input id={id} type="checkbox" checked={Boolean(value)} onChange={e=>onChange(e.target.checked)} disabled={disabled} className="h-4 w-4 accent-teal-700"/><span className="text-sm text-slate-500">{Boolean(value)?'Sim':'Não'}</span></label>
     :campo.type==='select'?<select id={id} className={input} value={String(value??'')} required={campo.required} disabled={disabled} onChange={e=>onChange(e.target.value)}><option value="">Selecione...</option>{(options??campo.options??[]).map(o=><option key={String(o.value)} value={o.value}>{o.label}</option>)}</select>
     :campo.type==='textarea'?<textarea id={id} className={input} rows={3} value={String(value??'')} onChange={e=>onChange(e.target.value)} disabled={disabled}/>
+    :campo.type==='number'&&campo.label.includes('(R$)')?<MoneyInput id={id} className={input} value={String(value??'')} onValue={onChange} disabled={disabled} required={campo.required}/>
+    :['cpf','cnpj','cpfCnpj','telefone','cep'].includes(campo.key)?<input id={id} className={input} inputMode="numeric" value={campo.key==='telefone'?maskPhone(String(value??'')):campo.key==='cep'?String(value??'').replace(/\D/g,'').slice(0,8).replace(/^(\d{5})(\d)/,'$1-$2'):maskDocument(String(value??''),campo.key as 'cpf'|'cnpj'|'cpfCnpj')} onChange={e=>onChange(e.target.value.replace(/\D/g,'').slice(0,campo.key==='cpf'||campo.key==='telefone'?11:campo.key==='cep'?8:14))} disabled={disabled} required={campo.required}/>
     :<input id={id} type={campo.type||'text'} className={input} value={String(value??'')} required={campo.required} disabled={disabled} min={campo.type==='number'?0:undefined} step={campo.step??(campo.type==='number'?'1':undefined)} placeholder={campo.placeholder||''} onChange={e=>onChange(e.target.value)}/>
     }
   </div>;

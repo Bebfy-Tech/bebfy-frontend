@@ -28,6 +28,8 @@ export interface Cliente {
 }
 
 export interface Caixa {
+  totalVendas?:number;
+  quantidadeVendas?:number;
   id: string;
   operadorId: string;
   status: StatusCaixa;
@@ -140,7 +142,7 @@ export const bebfy = {
       obter<Caixa>(`/caixa/aberto/operador/${encodeURIComponent(id)}`),
     abrir: (dados: { operadorId: string; saldoInicial: number }) =>
       api.post<Caixa>('/caixa/abrir', dados).then(r => r.data),
-    fechar: (id: string, saldoFinalFisico: number) =>
+    fechar: (id: string, saldoFinalFisico?: number) =>
       api.patch<Caixa>(`/caixa/${encodeURIComponent(id)}/fechar`, { saldoFinalFisico }).then(r => r.data),
     extrato: (id: string) => obter<Record<string, unknown>>(`/caixa/${encodeURIComponent(id)}/extrato`),
   },

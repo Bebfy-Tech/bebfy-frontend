@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Boxes, CreditCard, Minus, Plus, Printer, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
+import { Boxes, CreditCard, Minus, Plus, Printer, CheckCircle2, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasModule } from '../services/moduleAccess';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
 import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
-import { btn, card, dinheiro, input, mensagemErro, Notice, secondary } from '../components/ui';
+import { btn, card, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInput } from '../components/ui';
 
 type ItemCarrinho={produto:Produto;quantidade:number;isFardo:boolean};
 type Pagamento={forma:FormaPagamento;valor:string};
@@ -41,6 +41,14 @@ export function PDV(){
   const fiadoAtivo=hasModule(modules,'FIADOS');
   const cascosAtivo=hasModule(modules,'VASILHAMES_RETORNAVEIS');
   const searchRef=useRef<HTMLInputElement>(null);
+  const clienteRef=useRef<HTMLSelectElement>(null);
+  const descontoRef=useRef<HTMLDivElement>(null);
+  const pagamentoRef=useRef<HTMLSelectElement>(null);
+  const submitting=useRef(false);
+  const [vendaConcluida,setVendaConcluida]=useState<{id:string;numero:string;total:number}|null>(null);
+  const [receiptError,setReceiptError]=useState('');
+  const [receiptLoading,setReceiptLoading]=useState(false);
+  const [recebimento,setRecebimento]=useState(false);
   const finalizeRef=useRef<()=>void>(()=>{});
   const [produtos,setProdutos]=useState<Produto[]>([]);
   const [clientes,setClientes]=useState<Cliente[]>([]);
@@ -125,7 +133,7 @@ export function PDV(){
     catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
   }
   async function finalizar(){
-    if(busy||!caixa||!user?.funcionarioId||carrinho.length===0)return;
+    if(submitting.current||busy||vendaConcluida||!caixa||!user?.funcionarioId||carrinho.length===0)return;
     setErro('');setSucesso('');
     if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}
     if(total<=0){setErro('Venda precisa ter valor positivo.');return;}
@@ -140,8 +148,8 @@ export function PDV(){
     if(diferenca>0.009||troco>0&&!saldoDinheiro){setErro(`Os pagamentos precisam cobrir o total de ${dinheiro(total)}. Diferença: ${dinheiro(diferenca)}.`);return;}
     if(pagamentos.some(p=>p.forma==='FIADO')&&!clienteId){setErro('Para vender fiado selecione um cliente.');return;}
     if(pagamentos.filter(p=>p.forma==='DINHEIRO').length>1&&troco>0){setErro('Use apenas um pagamento em dinheiro para calcular o troco.');return;}
-    // Non-cash payments do not confirm a processor transaction: operator must confirm externally.
-    setBusy(true);
+    // Single synchronous lock prevents rapid clicks or repeated F9 submissions.
+    submitting.current=true;setBusy(true);
     try{
       const venda=await bebfy.vendas.registrar({
         caixaId:caixa.id,funcionarioId:user.funcionarioId,
@@ -153,6 +161,7 @@ export function PDV(){
           precoUnitario:price(i),isFardo:i.isFardo})),
         pagamentos:pagamentoNet(),
       });
+      setRecebimento(false);setVendaConcluida({id:venda.id,numero:String(venda.codigoVenda),total});setReceiptError('');setReceiptLoading(true);
       // The server has committed the sale. Never repeat it if receipt retrieval fails.
       setCarrinho([]);setDesconto('0');setPagamentos([{forma:'DINHEIRO',valor:''}]);
       setClienteId('');setEntrega('RETIRADA_BALCAO');setEnderecoEntrega('');
@@ -160,24 +169,33 @@ export function PDV(){
       setSucesso(`Venda #${venda.codigoVenda} registrada com sucesso.`);
       void carregar();
       try{setComprovante(await bebfy.vendas.comprovante(venda.id));}
-      catch{setComprovante(null);setErro(`Venda #${venda.codigoVenda} concluída, mas o comprovante não carregou. Abra o histórico de vendas para imprimir. Não repita a venda.`);}
-    }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
+      catch{setComprovante(null);setReceiptError('Venda registrada. Não foi possível carregar o comprovante. Tente novamente ou consulte o histórico.');}
+      finally{setReceiptLoading(false);}
+    }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);submitting.current=false;}
   }
-  finalizeRef.current=()=>void finalizar();
+  const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');requestAnimationFrame(()=>searchRef.current?.focus());};
+  const retryReceipt=async()=>{if(!vendaConcluida||receiptLoading)return;setReceiptLoading(true);setReceiptError('');try{setComprovante(await bebfy.vendas.comprovante(vendaConcluida.id));}catch(e){setReceiptError(mensagemErro(e));}finally{setReceiptLoading(false);}};
+  const abrirRecebimento=()=>{if(!carrinho.length||total<=0||busy||vendaConcluida)return;setPagamentos(p=>p.length===1&&p[0].valor===''?[{...p[0],valor:String(total)}]:p);setRecebimento(true);};
+  finalizeRef.current=()=>{if(vendaConcluida)return;if(recebimento)void finalizar();else abrirRecebimento();};
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{
-      if(event.key==='F9') { event.preventDefault(); finalizeRef.current(); }
-      if(event.key==='F2') { event.preventDefault(); searchRef.current?.focus(); }
+      if(event.repeat||vendaConcluida)return;
+      if(event.key==='F9'){event.preventDefault();finalizeRef.current();}
+      if(recebimento)return;
+      if(event.key==='F2'){event.preventDefault();searchRef.current?.focus();}
+      if(event.key==='F4'){event.preventDefault();clienteRef.current?.focus();}
+      if(event.key==='F6'){event.preventDefault();descontoRef.current?.querySelector('input')?.focus();}
+      if(event.key==='F8'){event.preventDefault();finalizeRef.current();}
     };
-    window.addEventListener('keydown',onKey);
-    return ()=>window.removeEventListener('keydown',onKey);
-  },[]);
+    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);
+  },[vendaConcluida,recebimento]);
+  useEffect(()=>{if(recebimento)requestAnimationFrame(()=>pagamentoRef.current?.focus());},[recebimento]);
   return <div className="bf-pdv space-y-3">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-widest text-blue-400">Frente de caixa</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white">PDV Bebfy</h1><p className="mt-1 text-sm text-slate-400">{empresa?.nomeFantasia} · Operador {user?.nome} · F2 buscar · F9 finalizar</p></div>
+    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-widest text-blue-400">Frente de caixa</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white">PDV Bebfy</h1><p className="mt-1 text-sm text-slate-400">{empresa?.nomeFantasia} · Operador {user?.nome} · F2 buscar · F4 cliente · F6 desconto · F8 receber · F9 finalizar</p></div>
       <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${caixa?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>{caixa?'● Caixa aberto':'● Caixa fechado'}</span><button onClick={()=>void carregar()} disabled={loading} className={secondary}><RefreshCcw size={16}/> Atualizar</button><Link to={tenantPath("vendas")} className={secondary}>Histórico</Link></div></div>
     <Notice message={erro}/><Notice message={sucesso} success/>
     {loading&&!produtos.length?<div className={`${card} p-12 text-center text-slate-500`}>Carregando PDV...</div>:!caixa?
-      <section className={`${card} mx-auto max-w-md p-7`}><Wallet className="text-teal-700" size={35}/><h2 className="mt-4 text-xl font-extrabold">Abra o caixa para começar</h2><p className="mt-2 text-sm text-slate-500">Informe o valor inicial disponível em espécie.</p><label className="mt-6 block text-sm font-semibold">Saldo inicial (R$)<input className={`${input} mt-2`} type="number" min={0} step=".01" value={saldoInicial} onChange={e=>setSaldoInicial(e.target.value)}/></label><button disabled={busy} className={`${btn} mt-5 w-full`} onClick={()=>void abrirCaixa()}>{busy?'Abrindo...':'Abrir meu caixa'}</button></section>
+      <section className={`${card} mx-auto max-w-md p-7`}><Wallet className="text-teal-700" size={35}/><h2 className="mt-4 text-xl font-extrabold">Abra o caixa para começar</h2><p className="mt-2 text-sm text-slate-500">Informe o valor inicial disponível em espécie.</p><label className="mt-6 block text-sm font-semibold">Saldo inicial (R$)<MoneyInput className={`${input} mt-2`} value={saldoInicial} onValue={setSaldoInicial}/></label><button disabled={busy} className={`${btn} mt-5 w-full`} onClick={()=>void abrirCaixa()}>{busy?'Abrindo...':'Abrir meu caixa'}</button></section>
     :<div className="bf-pdv-grid">
       <section className={`${card} bf-pdv-catalog-panel min-w-0 p-3`}><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="font-extrabold">Catálogo de produtos</h2><span className="text-xs text-slate-500">{filtrados.length} produto(s)</span></div>
         <div className="relative mb-4"><Search className="absolute left-3 top-3.5 text-slate-400" size={18}/><input autoFocus className={`${input} pl-10`} ref={searchRef} placeholder="Buscar produto ou bipar código (F2)" value={busca} onChange={e=>setBusca(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const produto=produtos.find(p=>p.codigoBarras&&p.codigoBarras===busca.trim());if(produto){e.preventDefault();inserir(produto);setBusca('');}}}}/></div>
@@ -187,20 +205,35 @@ export function PDV(){
       <section className={`${card} bf-pdv-sale-panel min-w-0 p-3`}><h2 className="mb-4 flex items-center gap-2 font-extrabold"><ShoppingCart size={20}/> Venda atual</h2>
         <div className="bf-pdv-cart bf-table-scroll overflow-auto"><table className="w-full min-w-[330px] text-left text-sm"><thead><tr><th>Item</th><th>Qtd.</th><th>Total</th><th><span className="sr-only">Remover</span></th></tr></thead><tbody>{carrinho.map(i=><tr key={i.produto.id+(i.isFardo?'F':'U')}><td className="font-semibold">{i.produto.nome}{i.isFardo?' · Fardo':''}</td><td><div className="flex items-center gap-2"><button type="button" onClick={()=>changeQty(i.produto,i.isFardo,-1)} aria-label="Diminuir"><Minus size={16}/></button><b>{i.quantidade}</b><button type="button" onClick={()=>changeQty(i.produto,i.isFardo,1)} disabled={i.quantidade>=maxQuantity(i)} aria-label="Aumentar"><Plus size={16}/></button></div></td><td className="whitespace-nowrap font-bold">{dinheiro(price(i)*i.quantidade)}</td><td><button aria-label="Remover produto" onClick={()=>setCarrinho(a=>a.filter(x=>x!==i))}><Trash2 size={16} className="text-rose-600"/></button></td></tr>)}</tbody></table>{!carrinho.length&&<p className="bf-empty-text">Adicione produtos para montar a venda.</p>}</div>
         <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
-          <label className="block text-xs font-bold text-slate-600">Cliente (opcional; obrigatório para fiado)<select className={`${input} mt-1`} value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));}}><option value="">Venda avulsa / balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome} · Fiado {dinheiro(c.saldoDevedor)}</option>)}</select></label>
-          {escolhido&&<p className="text-[11px] text-slate-500">Limite: {dinheiro(escolhido.limiteCredito)} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
-          <div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Entrega<select className={`${input} mt-1`} value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option>{deliveryAtivo&&<option value="DELIVERY">Delivery</option>}</select></label><label className="block text-xs font-bold text-slate-600">Desconto (R$)<input className={`${input} mt-1`} type="number" min={0} step=".01" value={desconto} onChange={e=>setDesconto(e.target.value)}/></label></div>
-          {deliveryAtivo&&entrega==='DELIVERY'&&<div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Taxa de entrega<input className={`${input} mt-1`} type="number" min={0} step=".01" value={taxaEntrega} onChange={e=>setTaxaEntrega(e.target.value)}/></label><label className="block text-xs font-bold text-slate-600">Endereço<input className={`${input} mt-1`} required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
+          <label className="block text-xs font-bold text-slate-600">Cliente {fiadoAtivo?'(opcional; obrigatório para fiado)':'(opcional)'}<select ref={clienteRef} className={`${input} mt-1`} value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));}}><option value="">Venda avulsa / balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
+          {fiadoAtivo&&escolhido&&<p className="text-[11px] text-slate-500">Limite: {dinheiro(escolhido.limiteCredito)} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
+          <div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Entrega<select className={`${input} mt-1`} value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option>{deliveryAtivo&&<option value="DELIVERY">Delivery</option>}</select></label><div ref={descontoRef}><label className="block text-xs font-bold text-slate-600">Desconto (R$)<MoneyInput className={`${input} mt-1`} value={desconto} onValue={setDesconto}/></label></div></div>
+          {deliveryAtivo&&entrega==='DELIVERY'&&<div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Taxa de entrega<MoneyInput className={`${input} mt-1`} value={taxaEntrega} onValue={setTaxaEntrega}/></label><label className="block text-xs font-bold text-slate-600">Endereço<input className={`${input} mt-1`} required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
           {cascosAtivo&&clienteId&&<label className="block text-xs font-bold text-slate-600">Cascos devolvidos<input className={`${input} mt-1`} type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
           <div className="flex justify-between text-sm"><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div><div className="flex justify-between text-xl font-black"><span>Total da venda</span><span className="text-emerald-300">{dinheiro(total)}</span></div>
-          <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
-            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><input aria-label={`Valor ${i+1}`} type="number" min=".01" step=".01" className={input} value={p.valor} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:e.target.value}:x))} placeholder="Valor R$"/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
-            <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
-          </div>
-          <button className={`${btn} w-full`} onClick={()=>void finalizar()} disabled={busy||!carrinho.length||total<=0}>{busy?'Registrando venda...':'Finalizar venda · F9'}</button><p className="text-center text-[11px] leading-relaxed text-slate-500">PIX e cartão são recebimentos informados pelo operador. Não existe confirmação automática da instituição financeira. O comprovante não tem valor fiscal.</p>
+          <div className="bf-pdv-footer"><button className={`${btn} w-full`} onClick={abrirRecebimento} disabled={busy||!carrinho.length||total<=0}><CreditCard size={18}/> Receber venda · F8</button></div>
         </div>
       </section>
     </div>}
-    {comprovante&&<section className={`${card} p-4 sm:p-6`}><div className="mb-3 flex items-center justify-between gap-3"><h2 className="font-bold">Comprovante da última venda</h2><button onClick={()=>window.print()} className={btn}><Printer size={17}/> Imprimir</button></div><Comprovante dados={comprovante}/></section>}
+    {recebimento&&<Modal title="Recebimento da venda" onClose={()=>{if(!busy)setRecebimento(false);}}>
+      <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>
+      <Notice message={erro}/>
+          <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
+            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select ref={i===0?pagamentoRef:undefined} aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><MoneyInput aria-label={`Valor ${i+1}`} className={input} value={p.valor} onValue={v=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:v}:x))}/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
+            <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
+          </div>
+
+      <button className={`${btn} mt-4 w-full`} onClick={()=>void finalizar()} disabled={busy||diferenca>0.009}>{busy?'Registrando venda...':'Confirmar venda · F9'}</button>
+      <p className="mt-3 text-center text-xs text-slate-400">Pix e cartão são informados pelo operador; confirme o recebimento antes de finalizar.</p>
+    </Modal>}
+    {vendaConcluida&&<Modal title="Venda realizada" onClose={novaVenda}>
+      <div className="bf-sale-success"><CheckCircle2 size={42} color="#49cfa0"/><h3>Venda #{vendaConcluida.numero} concluída</h3><strong>{dinheiro(vendaConcluida.total)}</strong><p>Comprovante comercial sem valor fiscal.</p></div>
+      {receiptError&&<Notice message={receiptError}/>}
+      <div className="grid gap-2">
+        {comprovante?<button type="button" onClick={()=>window.print()} className={btn}><Printer size={18}/> Imprimir comprovante não fiscal</button>:<button type="button" disabled={receiptLoading} className={secondary} onClick={()=>void retryReceipt()}>{receiptLoading?'Carregando comprovante…':'Tentar carregar comprovante novamente'}</button>}
+        <button type="button" disabled={receiptLoading} className={secondary} onClick={novaVenda}>Iniciar nova venda</button>
+      </div>
+      {comprovante&&<div className="bf-receipt-print"><Comprovante dados={comprovante}/></div>}
+    </Modal>}
   </div>;
 }

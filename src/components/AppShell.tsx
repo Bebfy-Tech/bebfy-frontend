@@ -90,10 +90,7 @@ export function AppShell() {
       </div>
     </aside>
     <div className="bf-workarea">
-      <header className="bf-topbar">
-        <div className="bf-topbar-title"><button type="button" className="bf-mobile-open" onClick={()=>setOpen(true)} aria-label="Abrir navegação"><Menu size={21}/></button><span className="bf-status-dot"/><span>BEBFY <small> / </small> OPERACIONAL</span></div>
-        <div className="bf-topbar-right"><span>{empresa?.nomeFantasia}</span><button type="button" title="Meu perfil" onClick={()=>setProfileOpen(true)} aria-label="Meu perfil e configurações"><Settings size={18}/></button></div>
-      </header>
+      <button type="button" className="bf-mobile-menu-only" onClick={()=>setOpen(true)} aria-label="Abrir navegação"><Menu size={20}/></button>
       <main className="bf-content"><Outlet/></main>
     </div>
     <ProfileModal mode="tenant" open={profileOpen} onClose={()=>setProfileOpen(false)}/>
