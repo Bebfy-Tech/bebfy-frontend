@@ -1,119 +1,80 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight, BarChart3, Boxes, CreditCard, Package, ShoppingCart,
-  Users, TrendingUp, Clock3, CircleDollarSign, ShieldCheck, CheckCircle2, ArrowUpRight, FileUp,
-} from 'lucide-react';
+import { ArrowRight, BarChart3, Boxes, CircleDollarSign, CreditCard, FileUp, Package, ShoppingCart, TrendingUp, Users, Wallet } from 'lucide-react';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
+import { hasModule, routeModules } from '../services/moduleAccess';
 import type { Dashboard as DashboardData } from '../services/bebfy';
 import { card, dinheiro, mensagemErro, Notice, PageTitle } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 
+const palette = ['#51e2ad','#68baf6','#f3c369','#b69af4','#f28a9b'];
+const paymentLabels:Record<string,string>={DINHEIRO:'Dinheiro',PIX:'Pix',CARTAO_DEBITO:'Débito',CARTAO_CREDITO:'Crédito',FIADO:'Fiado'};
+const paymentColors:Record<string,string>={DINHEIRO:'#51e2ad',PIX:'#68baf6',CARTAO_DEBITO:'#b69af4',CARTAO_CREDITO:'#f3c369',FIADO:'#f28a9b'};
+const number=(v:unknown)=>Number(v)||0;
+const brlCompact=(v:number)=>new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1,style:'currency',currency:'BRL'}).format(v);
+
 export function Dashboard() {
-  const { user, empresa } = useAuth();
-  const [dados, setDados] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState('');
-  const load = useCallback(async () => {
-    setLoading(true); setErro('');
-    try { setDados(await bebfy.dashboard()); }
-    catch (e) { setErro(mensagemErro(e)); }
-    finally { setLoading(false); }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-
-  const ticket = Number(dados?.totalVendasHoje || 0) > 0
-    ? Number(dados?.faturamentoHoje || 0) / Number(dados?.totalVendasHoje)
-    : 0;
-  const cards = [
-    { nome: 'Faturamento de hoje', valor: dinheiro(dados?.faturamentoHoje), desc: 'Receita registrada no dia', Icon: CircleDollarSign, accent: 'text-emerald-300', iconBg: 'bg-emerald-500/10' },
-    { nome: 'Vendas realizadas', valor: String(dados?.totalVendasHoje ?? 0), desc: 'Vendas concluídas hoje', Icon: ShoppingCart, accent: 'text-blue-300', iconBg: 'bg-blue-500/10' },
-    { nome: 'Ticket médio', valor: dinheiro(ticket), desc: 'Valor médio por venda hoje', Icon: TrendingUp, accent: 'text-violet-300', iconBg: 'bg-violet-500/10' },
-    { nome: 'Fiado a receber', valor: dinheiro(dados?.totalFiadoAReceber), desc: `${dados?.totalClientesDevedores ?? 0} cliente(s) devedores`, Icon: CreditCard, accent: 'text-amber-300', iconBg: 'bg-amber-500/10' },
-  ];
-  const actions = [
-    { to: '/pdv', nome: 'Abrir frente de caixa', descricao: 'Começar a vender agora', Icon: ShoppingCart, color: 'bg-emerald-500 text-[#052015]' },
-    { to: '/produtos', nome: 'Gerenciar produtos', descricao: 'Cadastros, preços e lotes', Icon: Boxes, color: 'bg-blue-600 text-white' },
-    { to: '/fiados', nome: 'Receber fiado', descricao: 'Abater saldo de cliente', Icon: Users, color: 'bg-[#1a293e] text-slate-100' },
-    { to: '/estoque/importar-xml', nome: 'Importar nota XML', descricao: 'Entrada de mercadorias em minutos', Icon: FileUp, color: 'bg-[#142536] text-slate-100' },
-  ];
-
-  return <div className="space-y-6">
-    <PageTitle title="Visão geral" subtitle={`Bem-vindo, ${user?.nome || 'operador'}! Acompanhe o movimento da ${empresa?.nomeFantasia || 'sua distribuidora'}.`} onReload={() => void load()} loading={loading}/>
-    <Notice message={erro}/>
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/15 bg-emerald-500/[.05] px-5 py-3">
-      <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><ShieldCheck size={16}/> Dashboard conectado ao Bebfy</span>
-      <span className="flex items-center gap-2 text-xs text-slate-400"><Clock3 size={14}/> Atualizado ao carregar esta página</span>
+  const { user, empresa, modules, modulesStatus } = useAuth();
+  const [dados,setDados]=useState<DashboardData|null>(null);
+  const [loading,setLoading]=useState(true);
+  const [erro,setErro]=useState('');
+  const [updated,setUpdated]=useState<Date|null>(null);
+  const [metric,setMetric]=useState<'faturamento'|'quantidade'>('faturamento');
+  const load=useCallback(async()=>{setLoading(true);setErro('');try{setDados(await bebfy.dashboard());setUpdated(new Date());}catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}},[]);
+  useEffect(()=>{void load();},[load]);
+  const manager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
+  const allowed=(to:string)=>modulesStatus==='ready'&&hasModule(modules,routeModules[to]);
+  const kpis=[
+    {name:'Faturamento hoje',value:dinheiro(dados?.faturamentoHoje),detail:'Vendas concluídas',Icon:CircleDollarSign,color:palette[0]},
+    {name:'Vendas hoje',value:String(dados?.totalVendasHoje??0),detail:'Movimentos concluídos',Icon:ShoppingCart,color:palette[1]},
+    {name:'Ticket médio',value:dinheiro(number(dados?.faturamentoHoje)/Math.max(1,number(dados?.totalVendasHoje))),detail:'Por venda hoje',Icon:TrendingUp,color:palette[3]},
+    {name:'Fiado a receber',value:dinheiro(dados?.totalFiadoAReceber),detail:`${dados?.totalClientesDevedores??0} cliente(s) devedor(es)`,Icon:CreditCard,color:palette[2]},
+  ].filter(k=>k.name!=='Fiado a receber'||allowed('/fiados'));
+  const actions=[
+    {to:'/pdv',name:'Nova venda',Icon:ShoppingCart,main:true},
+    {to:'/caixas',name:'Controle de caixa',Icon:Wallet},
+    {to:'/produtos',name:'Produtos',Icon:Package},
+    {to:'/estoque',name:'Movimentar estoque',Icon:Boxes},
+    {to:'/clientes',name:'Clientes',Icon:Users},
+    {to:'/fiados',name:'Receber fiado',Icon:CreditCard},
+    {to:'/estoque/importar-xml',name:'Importar XML',Icon:FileUp,manager:true},
+    {to:'/relatorios',name:'Relatórios',Icon:BarChart3},
+  ].filter(a=>allowed(a.to)&&(!a.manager||manager));
+  const week=dados?.vendasUltimos7Dias??[];
+  const max=Math.max(1,...week.map(d=>number(d[metric])));
+  const axisMax=metric==='quantidade'?Math.max(4,Math.ceil(max/4)*4):Math.max(100,Math.ceil(max/100)*100);
+  const payments=(dados?.pagamentosMes??[]).filter(p=>p.valor>0);
+  const paymentTotal=payments.reduce((sum,p)=>sum+number(p.valor),0);
+  let offset=0;
+  const segments=payments.map(p=>{const start=offset;offset+=p.valor/paymentTotal*100;return `${paymentColors[p.formaPagamento]||'#9db9ad'} ${start}% ${offset}%`;});
+  const top=dados?.topProdutosMaisVendidos??[];
+  const topMax=Math.max(1,...top.map(p=>p.quantidadeVendida));
+  return <div className="bf-dashboard">
+    <PageTitle title="Visão geral" subtitle={`Olá, ${user?.nome||'operador'}! Acompanhe sua distribuidora em um só lugar.`} onReload={()=>void load()} loading={loading}/>
+    <Notice message={erro} onClose={()=>setErro('')}/>
+    <section className="bf-dash-quick" aria-label="Ações rápidas">
+      <div className="bf-dash-section-title"><h2>Acesso rápido</h2>{updated&&<small>Atualizado às {updated.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</small>}</div>
+      <div className="bf-dash-actions">{actions.map(({to,name,Icon,main})=><Link key={to} to={tenantPath(to)} className={`bf-dash-action ${main?'bf-dash-primary':''}`}><Icon size={18}/><span>{name}</span></Link>)}</div>
+    </section>
+    {loading&&!dados?<div className={`${card} p-8 text-center`}>Carregando indicadores…</div>:!dados?<div className={`${card} p-8 text-center`}>Não foi possível carregar os indicadores. Use Atualizar para tentar novamente.</div>:<>
+    <section className="bf-dash-kpis" aria-label="Indicadores de hoje">{kpis.map(({name,value,detail,Icon,color})=><article key={name} className="bf-dash-kpi" style={{borderTopColor:color}}><div><span>{name}</span><Icon size={20} color={color}/></div><strong>{value}</strong><small>{detail}</small></article>)}</section>
+    <div className="bf-dash-charts">
+      <section className="bf-dash-panel"><div className="bf-dash-section-title"><div><h2>Evolução das vendas</h2><small>Últimos 7 dias · vendas concluídas</small></div><div className="bf-dash-switch"><button type="button" aria-pressed={metric==='faturamento'} onClick={()=>setMetric('faturamento')}>R$</button><button type="button" aria-pressed={metric==='quantidade'} onClick={()=>setMetric('quantidade')}>Qtd.</button></div></div>
+        <div className="bf-dash-chart-total"><strong>{metric==='faturamento'?dinheiro(week.reduce((a,d)=>a+number(d.faturamento),0)):week.reduce((a,d)=>a+number(d.quantidade),0)+' vendas'}</strong><small>no período</small></div>
+        {week.length?<div className="bf-bar-chart" role="img" aria-label={week.map(d=>d.data+': '+(metric==='faturamento'?dinheiro(d.faturamento):d.quantidade+' vendas')).join('; ')}><div className="bf-chart-axis">{[1,.75,.5,.25,0].map(v=><span key={v}>{metric==='faturamento'?brlCompact(axisMax*v):Math.round(axisMax*v)}</span>)}</div><div className="bf-bar-plot">{week.map((d,i)=><div className="bf-bar-column" key={d.data}><div className="bf-bar-track"><div className="bf-bar-value" style={{height:Math.max(number(d[metric])/axisMax*100,0)+'%',background:i===week.length-1?'#51e2ad':'#68baf6'}} title={`${d.data}: ${metric==='faturamento'?dinheiro(d.faturamento):d.quantidade+' vendas'}`}/></div><span>{d.data.slice(8,10)}/{d.data.slice(5,7)}</span></div>)}</div></div>:<div className="bf-dash-empty">Histórico de vendas indisponível.</div>}
+      </section>
+      <section className="bf-dash-panel"><div className="bf-dash-section-title"><div><h2>Formas de pagamento</h2><small>Vendas concluídas neste mês · líquido de troco</small></div></div>
+        {paymentTotal>0?<div className="bf-donut-layout"><div className="bf-donut" role="img" aria-label={payments.map(p=>paymentLabels[p.formaPagamento]+': '+dinheiro(p.valor)).join('; ')} style={{background:`conic-gradient(${segments.join(',')})`}}><div><small>Total</small><strong>{brlCompact(paymentTotal)}</strong></div></div><div className="bf-donut-legend">{payments.map(p=><div key={p.formaPagamento}><i style={{background:paymentColors[p.formaPagamento]||'#9db9ad'}}/><span>{paymentLabels[p.formaPagamento]||p.formaPagamento}<small>{(p.valor/paymentTotal*100).toFixed(1).replace('.',',')}%</small></span><strong>{dinheiro(p.valor)}</strong></div>)}</div></div>:<div className="bf-dash-empty">{dados.pagamentosMes?'Nenhum pagamento registrado neste mês.':'Dados de pagamento indisponíveis.'}</div>}
+        <p className="bf-dash-note">Fiado representa venda a prazo, não dinheiro recebido.</p>
+      </section>
     </div>
-    {loading && !dados ? <div className={`${card} p-12 text-center text-sm text-slate-400`}>Carregando indicadores da distribuidora...</div> : <>
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4" aria-label="Indicadores do dia">
-        {cards.map(({ nome, valor, desc, Icon, accent, iconBg }) =>
-          <article className={`${card} p-5 sm:p-6`} key={nome}>
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <span className="text-xs font-bold text-slate-400">{nome}</span>
-              <span className={`grid h-11 w-11 place-items-center rounded-xl ${iconBg} ${accent}`}><Icon size={21}/></span>
-            </div>
-            <strong className="block text-[clamp(1.4rem,2.5vw,2rem)] font-black tracking-tight text-white">{valor}</strong>
-            <p className="mt-2 text-xs text-slate-500">{desc}</p>
-          </article>)}
+    <div className="bf-dash-bottom">
+      <section className="bf-dash-panel"><div className="bf-dash-section-title"><div><h2>Produtos mais vendidos</h2><small>Ranking histórico por quantidade registrada na venda</small></div>{allowed('/relatorios')&&<Link to={tenantPath('relatorios')} className="bf-dash-link">Relatórios <ArrowRight size={14}/></Link>}</div>
+        {top.length?<div className="bf-rank">{top.map((item,i)=><div key={item.produto?.id??i}><span className="bf-rank-index">{i+1}</span><div className="bf-rank-body"><strong>{item.produto?.nome||'Produto removido'}</strong><div className="bf-rank-track"><i style={{width:number(item.quantidadeVendida)/topMax*100+'%',background:palette[i%palette.length]}}/></div></div><div className="bf-rank-values"><strong>{item.quantidadeVendida} itens</strong><small>{dinheiro(item.totalArrecadado)}</small></div></div>)}</div>:<div className="bf-dash-empty">O ranking aparecerá após as primeiras vendas.</div>}
       </section>
-      <section className="rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-500/[.08] to-emerald-500/[.035] p-5 sm:p-7" aria-label="Guia de primeiros passos">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><p className="text-[10px] font-black uppercase tracking-[.2em] text-blue-300">COMECE POR AQUI</p><h2 className="mt-2 text-xl font-extrabold text-white">Sua operação, pronta em poucos passos</h2><p className="mt-1 text-sm text-slate-400">Se é seu primeiro acesso, siga esta sequência. Você pode voltar aqui quando quiser.</p></div>
-          <span className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300"><CheckCircle2 size={16}/> Guia rápido</span>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            {n:'01',title:'Cadastre seus produtos',description:'Itens, preços e código de barras',to:'/produtos'},
-            {n:'02',title:'Adicione mercadorias',description:'Entrada de estoque ou XML de compra',to:'/estoque'},
-            {n:'03',title:'Abra seu caixa',description:'Informe o valor inicial de troco',to:'/caixas'},
-            {n:'04',title:'Faça sua primeira venda',description:'Use o PDV com atalhos F2 e F9',to:'/pdv'},
-          ].map(step=><Link key={step.n} to={tenantPath(step.to)} className="group flex flex-col justify-between gap-3 rounded-xl border border-[#2a3b54] bg-[#0b1220]/80 p-4 transition hover:-translate-y-0.5 hover:border-blue-500/50 hover:bg-[#111d32]">
-            <div className="flex items-start justify-between"><span className="text-xs font-black text-blue-300">{step.n}</span><ArrowUpRight size={16} className="text-slate-500 group-hover:text-blue-300"/></div>
-            <div><strong className="text-sm text-slate-100">{step.title}</strong><p className="mt-1 text-xs leading-5 text-slate-400">{step.description}</p></div>
-          </Link>)}
-        </div>
-      </section>
-      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4" aria-label="Ações rápidas">
-        {actions.map(({to,nome,descricao,Icon,color})=>
-          <Link key={to} to={tenantPath(to)} className={`flex min-h-24 items-center gap-4 rounded-2xl px-5 py-5 shadow-lg transition hover:-translate-y-0.5 hover:brightness-110 ${color}`}>
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10"><Icon size={23}/></span>
-            <span className="min-w-0 flex-1"><strong className="block text-sm font-extrabold">{nome}</strong><span className="mt-1 block text-xs opacity-70">{descricao}</span></span><ArrowRight size={18}/>
-          </Link>)}
-      </section>
-      <div className="grid gap-5 xl:grid-cols-[1.55fr_1fr]">
-        <section className={`${card} p-5 sm:p-6`}>
-          <div className="flex items-center justify-between gap-3">
-            <div><h2 className="text-lg font-extrabold">Produtos mais vendidos</h2><p className="mt-1 text-xs text-slate-400">Ranking real da API do Bebfy</p></div>
-            <Link to={tenantPath('relatorios')} className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">Relatórios <ArrowRight size={15}/></Link>
-          </div>
-          <div className="mt-6 space-y-3">
-            {dados?.topProdutosMaisVendidos.map((item,index)=>
-              <div className="flex items-center gap-3 rounded-xl border border-[#253247] bg-[#101827] p-3" key={item.produto?.id ?? index}>
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-300"><Package size={20}/></span>
-                <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{item.produto?.nome || 'Produto removido'}</p><p className="text-xs text-slate-500">{item.quantidadeVendida} unidade(s)</p></div>
-                <strong className="text-sm text-emerald-300">{dinheiro(item.totalArrecadado)}</strong>
-              </div>)}
-            {!dados?.topProdutosMaisVendidos?.length && <div className="rounded-xl border border-dashed border-[#31405b] p-8 text-center"><Boxes className="mx-auto text-blue-300" size={28}/><p className="mt-3 text-sm text-slate-400">O ranking aparecerá após as primeiras vendas.</p><Link to={tenantPath('pdv')} className="mt-3 inline-flex text-sm font-bold text-emerald-300">Iniciar venda <ArrowRight size={16}/></Link></div>}
-          </div>
-        </section>
-        <section className={`${card} p-5 sm:p-6`}>
-          <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">Resumo operacional</h2><BarChart3 className="text-blue-300" size={21}/></div>
-          <div className="mt-6 space-y-4">
-            <div className="rounded-xl border border-[#263246] bg-[#101827] p-4"><p className="text-xs text-slate-400">Faturamento no mês</p><strong className="mt-2 block text-2xl font-black text-white">{dinheiro(dados?.faturamentoMes)}</strong></div>
-            <div className="rounded-xl border border-[#263246] bg-[#101827] p-4"><p className="text-xs text-slate-400">Caixas em operação</p><strong className="mt-2 block text-2xl font-black text-blue-300">{dados?.caixasAtivos?.length ?? 0}</strong></div>
-            <Link to={tenantPath('caixas')} className="flex items-center justify-between rounded-xl border border-emerald-500/20 p-4 text-sm font-bold text-emerald-300 hover:bg-emerald-500/10">Visualizar controle de caixas <ArrowRight size={17}/></Link>
-          </div>
-        </section>
-      </div>
-      <section className={`${card} p-5 sm:p-6`}>
-        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-extrabold">Turnos de caixa abertos</h2><Link className="text-xs font-bold text-emerald-300" to={tenantPath('caixas')}>Ver todos</Link></div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {dados?.caixasAtivos?.map(c=><div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[.06] p-4" key={c.id}><p className="text-sm font-bold text-emerald-300">● Caixa em operação</p><p className="mt-2 text-xs text-slate-300">Saldo inicial {dinheiro(c.saldoInicial)}</p><p className="mt-1 text-xs text-slate-500">Início: {new Date(c.abertoEm).toLocaleString('pt-BR')}</p></div>)}
-          {!dados?.caixasAtivos?.length && <div className="rounded-xl border border-dashed border-[#31405b] p-6 text-sm text-slate-400">Nenhum caixa aberto neste momento.</div>}
-        </div>
-      </section>
+      <section className="bf-dash-panel"><div className="bf-dash-section-title"><h2>Resumo do mês</h2></div><div className="bf-month-summary"><div><small>Faturamento</small><strong>{dinheiro(dados.faturamentoMes)}</strong></div><div><small>Vendas concluídas</small><strong>{dados.totalVendasMes}</strong></div>{allowed('/caixas')&&<div><small>Caixas abertos agora</small><strong className="text-emerald-300">{dados.caixasAtivos?.length??0}</strong></div>}</div>{allowed('/caixas')&&<Link className="bf-dash-link" to={tenantPath('caixas')}>Ver controle de caixas <ArrowRight size={14}/></Link>}</section>
+    </div>
     </>}
   </div>;
 }

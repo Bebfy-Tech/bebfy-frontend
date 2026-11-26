@@ -5,6 +5,7 @@ import { definicoes, montarDados, recursoApi, valor } from '../services/operacio
 import type { Campo, Linha, Recurso, Valores } from '../services/operacional';
 import { btn, card, dataBR, dinheiro, Empty, input, mensagemErro, Modal, Notice, PageTitle, secondary } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
+import { ProdutoFoto } from '../components/ProdutoFoto';
 
 const CHAVE_CATEGORIA=(r:Linha)=>String(r.nome??r.razaoSocial??r.id??'');
 const PERMISSOES=[
@@ -195,7 +196,7 @@ export function CadastroPage({resource}:{resource:Recurso}){
     </Modal>}
     {detalhe&&<Modal wide title={resource==='produtos'?'Ficha do produto':`Detalhes de ${cfg.singular}`} onClose={()=>setDetalhe(null)}>
       {resource==='produtos'?<>
-        <div className="bf-product-heading"><span className="bf-product-icon"><Package size={30}/></span><div><p className="text-xs text-slate-400">Produto #{String(detalhe.id??'—')}</p><h3 className="text-xl font-bold">{String(detalhe.nome??'Produto')}</h3><span className="text-sm text-slate-400">Código de barras: {String(detalhe.codigoBarras??'—')}</span></div>{canEdit&&<button className={btn} onClick={()=>{const item=detalhe;setDetalhe(null);openEdit(item);}}><Pencil size={16}/> Editar ficha</button>}</div>
+        <div className="bf-product-heading"><ProdutoFoto key={String(detalhe.id)} produtoId={String(detalhe.id)} editable={canEdit}/><div><p className="text-xs text-slate-400">Produto #{String(detalhe.id??'—')}</p><h3 className="text-xl font-bold">{String(detalhe.nome??'Produto')}</h3><span className="text-sm text-slate-400">Código de barras: {String(detalhe.codigoBarras??'—')}</span></div>{canEdit&&<button className={btn} onClick={()=>{const item=detalhe;setDetalhe(null);openEdit(item);}}><Pencil size={16}/> Editar ficha</button>}</div>
         <div className="bf-product-summary">{[['Estoque atual',String(detalhe.estoqueAtual??0)],['Estoque mínimo',String(detalhe.estoqueMinimo??0)],['Custo',dinheiro(detalhe.precoCusto)],['Varejo',dinheiro(detalhe.precoVendaVarejo)],['Atacado',detalhe.precoVendaAtacado==null?'—':dinheiro(detalhe.precoVendaAtacado)]].map(([label,value])=><div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>
         <section className="bf-record-section"><h3 className="bf-section-caption">Informações gerais</h3><div className="bf-field-grid">
           {cfg.fields.filter(c=>!['nome','codigoBarras','estoqueAtual','estoqueMinimo','precoCusto','precoVendaVarejo','precoVendaAtacado'].includes(c.key)).map(c=><div key={c.key} className="bf-read-field"><small>{c.label}</small><strong>{c.key==='categoriaId'?String(valor(detalhe,'categoria.nome')??'—'):c.type==='checkbox'?(detalhe[c.key]?'Sim':'Não'):String(detalhe[c.key]??'—')}</strong></div>)}

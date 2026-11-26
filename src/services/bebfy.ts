@@ -103,6 +103,8 @@ export interface ComprovanteNaoFiscal {
 }
 
 export interface Dashboard {
+  vendasUltimos7Dias?: Array<{ data: string; faturamento: number; quantidade: number }>;
+  pagamentosMes?: Array<{ formaPagamento: FormaPagamento; valor: number }>;
   faturamentoHoje: number;
   totalVendasHoje: number;
   faturamentoMes: number;
