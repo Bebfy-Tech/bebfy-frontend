@@ -25,7 +25,7 @@ export function AjudaPage(){
   const [query,setQuery]=useState('');
   const matches=useMemo(()=>help.filter(h=>[h.q,h.a].join(' ').toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))),[query]);
   return <main className="space-y-6">
-    <header className="rounded-3xl border border-blue-500/20 bg-linear-to-r from-[#101b30] to-[#0b1d1d] p-6 sm:p-9">
+    <header className="rounded-3xl border border-blue-500/20 bg-linear-to-r from-[#1e2026] to-[#17191e] p-6 sm:p-9">
       <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-emerald-300"><BookOpen size={17}/> Central de ajuda Bebfy</p>
       <h1 className="mt-3 text-3xl font-black text-white sm:text-4xl">Aprenda o básico em minutos.</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">Sem termos complicados. Siga os passos abaixo ou pesquise sua dúvida. Se você não encontrar uma opção, talvez seu perfil não tenha permissão para utilizá-la.</p>
@@ -34,7 +34,7 @@ export function AjudaPage(){
     <section aria-label="Primeiros passos">
       <h2 className="mb-4 text-xl font-extrabold text-white">Comece por aqui</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        {steps.map(({n,title,desc,to,icon:Icon})=><Link to={tenantPath(to)} key={n} className={`${card} group flex items-start gap-4 p-5 transition hover:border-blue-500/40 hover:bg-[#10192a]`}>
+        {steps.map(({n,title,desc,to,icon:Icon})=><Link to={tenantPath(to)} key={n} className={`${card} group flex items-start gap-4 p-5 transition hover:border-blue-500/40 hover:bg-[#1c1e24]`}>
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-300"><Icon size={23}/></div>
           <div className="min-w-0 flex-1"><span className="text-xs font-black tracking-widest text-emerald-300">PASSO {n}</span><h3 className="mt-1 text-base font-extrabold text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p><span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-300">Abrir tela <ArrowRight size={15}/></span></div>
         </Link>)}
@@ -43,17 +43,17 @@ export function AjudaPage(){
     <section className="grid gap-5 lg:grid-cols-[1fr_260px]">
       <div className={`${card} p-5 sm:p-7`}>
         <h2 className="flex items-center gap-2 text-xl font-extrabold text-white"><CircleHelp size={22} className="text-emerald-300"/> Dúvidas comuns</h2>
-        <div className="mt-5 space-y-3">{matches.map(h=><details key={h.q} className="group rounded-xl border border-[#253247] bg-[#11192a] p-4"><summary className="cursor-pointer list-none pr-4 text-sm font-bold text-slate-100">{h.q}</summary><p className="mt-3 border-t border-[#253247] pt-3 text-sm leading-7 text-slate-400">{h.a}</p></details>)}
-          {!matches.length&&<p className="rounded-xl border border-dashed border-[#30405b] p-5 text-sm text-slate-400">Nenhuma resposta encontrada. Tente uma palavra diferente, como "caixa" ou "estoque".</p>}
+        <div className="mt-5 space-y-3">{matches.map(h=><details key={h.q} className="group rounded-xl border border-[#30333b] bg-[#1c1e24] p-4"><summary className="cursor-pointer list-none pr-4 text-sm font-bold text-slate-100">{h.q}</summary><p className="mt-3 border-t border-[#30333b] pt-3 text-sm leading-7 text-slate-400">{h.a}</p></details>)}
+          {!matches.length&&<p className="rounded-xl border border-dashed border-[#30333b] p-5 text-sm text-slate-400">Nenhuma resposta encontrada. Tente uma palavra diferente, como "caixa" ou "estoque".</p>}
         </div>
       </div>
       <div className="space-y-4">
         <aside className={`${card} p-5`}>
           <h2 className="flex items-center gap-2 text-sm font-extrabold"><Keyboard size={19} className="text-blue-300"/> Atalhos do PDV</h2>
           <div className="mt-4 space-y-3 text-sm">
-            <div className="flex items-center justify-between"><span className="text-slate-400">Buscar produto</span><kbd className="rounded-md border border-[#32415a] bg-[#151f30] px-2 py-1 text-white">F2</kbd></div>
-            <div className="flex items-center justify-between"><span className="text-slate-400">Finalizar venda</span><kbd className="rounded-md border border-[#32415a] bg-[#151f30] px-2 py-1 text-white">F9</kbd></div>
-            <div className="flex items-center justify-between"><span className="text-slate-400">Leitor de código</span><kbd className="rounded-md border border-[#32415a] bg-[#151f30] px-2 py-1 text-white">Enter</kbd></div>
+            <div className="flex items-center justify-between"><span className="text-slate-400">Buscar produto</span><kbd className="rounded-md border border-[#30333b] bg-[#24272e] px-2 py-1 text-white">F2</kbd></div>
+            <div className="flex items-center justify-between"><span className="text-slate-400">Finalizar venda</span><kbd className="rounded-md border border-[#30333b] bg-[#24272e] px-2 py-1 text-white">F9</kbd></div>
+            <div className="flex items-center justify-between"><span className="text-slate-400">Leitor de código</span><kbd className="rounded-md border border-[#30333b] bg-[#24272e] px-2 py-1 text-white">Enter</kbd></div>
           </div>
         </aside>
         <aside className={`${card} p-5`}>

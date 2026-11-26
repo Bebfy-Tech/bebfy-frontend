@@ -8,14 +8,14 @@ import type { Dashboard as DashboardData } from '../services/bebfy';
 import { card, dinheiro, mensagemErro, Notice, PageTitle } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 
-const palette = ['#51e2ad','#68baf6','#f3c369','#b69af4','#f28a9b'];
+const palette = ['#49cfa0','#639ef5','#f0b65d','#ad91ed','#e9829a'];
 const paymentLabels:Record<string,string>={DINHEIRO:'Dinheiro',PIX:'Pix',CARTAO_DEBITO:'Débito',CARTAO_CREDITO:'Crédito',FIADO:'Fiado'};
-const paymentColors:Record<string,string>={DINHEIRO:'#51e2ad',PIX:'#68baf6',CARTAO_DEBITO:'#b69af4',CARTAO_CREDITO:'#f3c369',FIADO:'#f28a9b'};
+const paymentColors:Record<string,string>={DINHEIRO:'#49cfa0',PIX:'#639ef5',CARTAO_DEBITO:'#b69af4',CARTAO_CREDITO:'#f3c369',FIADO:'#f28a9b'};
 const number=(v:unknown)=>Number(v)||0;
 const brlCompact=(v:number)=>new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1,style:'currency',currency:'BRL'}).format(v);
 
 export function Dashboard() {
-  const { user, empresa, modules, modulesStatus } = useAuth();
+  const { user, modules, modulesStatus } = useAuth();
   const [dados,setDados]=useState<DashboardData|null>(null);
   const [loading,setLoading]=useState(true);
   const [erro,setErro]=useState('');
@@ -47,7 +47,7 @@ export function Dashboard() {
   const payments=(dados?.pagamentosMes??[]).filter(p=>p.valor>0);
   const paymentTotal=payments.reduce((sum,p)=>sum+number(p.valor),0);
   let offset=0;
-  const segments=payments.map(p=>{const start=offset;offset+=p.valor/paymentTotal*100;return `${paymentColors[p.formaPagamento]||'#9db9ad'} ${start}% ${offset}%`;});
+  const segments=payments.map(p=>{const start=offset;offset+=p.valor/paymentTotal*100;return `${paymentColors[p.formaPagamento]||'#a1a1aa'} ${start}% ${offset}%`;});
   const top=dados?.topProdutosMaisVendidos??[];
   const topMax=Math.max(1,...top.map(p=>p.quantidadeVendida));
   return <div className="bf-dashboard">
@@ -62,10 +62,10 @@ export function Dashboard() {
     <div className="bf-dash-charts">
       <section className="bf-dash-panel"><div className="bf-dash-section-title"><div><h2>Evolução das vendas</h2><small>Últimos 7 dias · vendas concluídas</small></div><div className="bf-dash-switch"><button type="button" aria-pressed={metric==='faturamento'} onClick={()=>setMetric('faturamento')}>R$</button><button type="button" aria-pressed={metric==='quantidade'} onClick={()=>setMetric('quantidade')}>Qtd.</button></div></div>
         <div className="bf-dash-chart-total"><strong>{metric==='faturamento'?dinheiro(week.reduce((a,d)=>a+number(d.faturamento),0)):week.reduce((a,d)=>a+number(d.quantidade),0)+' vendas'}</strong><small>no período</small></div>
-        {week.length?<div className="bf-bar-chart" role="img" aria-label={week.map(d=>d.data+': '+(metric==='faturamento'?dinheiro(d.faturamento):d.quantidade+' vendas')).join('; ')}><div className="bf-chart-axis">{[1,.75,.5,.25,0].map(v=><span key={v}>{metric==='faturamento'?brlCompact(axisMax*v):Math.round(axisMax*v)}</span>)}</div><div className="bf-bar-plot">{week.map((d,i)=><div className="bf-bar-column" key={d.data}><div className="bf-bar-track"><div className="bf-bar-value" style={{height:Math.max(number(d[metric])/axisMax*100,0)+'%',background:i===week.length-1?'#51e2ad':'#68baf6'}} title={`${d.data}: ${metric==='faturamento'?dinheiro(d.faturamento):d.quantidade+' vendas'}`}/></div><span>{d.data.slice(8,10)}/{d.data.slice(5,7)}</span></div>)}</div></div>:<div className="bf-dash-empty">Histórico de vendas indisponível.</div>}
+        {week.length?<div className="bf-bar-chart" role="img" aria-label={week.map(d=>d.data+': '+(metric==='faturamento'?dinheiro(d.faturamento):d.quantidade+' vendas')).join('; ')}><div className="bf-chart-axis">{[1,.75,.5,.25,0].map(v=><span key={v}>{metric==='faturamento'?brlCompact(axisMax*v):Math.round(axisMax*v)}</span>)}</div><div className="bf-bar-plot">{week.map((d,i)=><div className="bf-bar-column" key={d.data}><div className="bf-bar-track"><div className="bf-bar-value" style={{height:Math.max(number(d[metric])/axisMax*100,0)+'%',background:i===week.length-1?'#49cfa0':'#639ef5'}} title={`${d.data}: ${metric==='faturamento'?dinheiro(d.faturamento):d.quantidade+' vendas'}`}/></div><span>{d.data.slice(8,10)}/{d.data.slice(5,7)}</span></div>)}</div></div>:<div className="bf-dash-empty">Histórico de vendas indisponível.</div>}
       </section>
       <section className="bf-dash-panel"><div className="bf-dash-section-title"><div><h2>Formas de pagamento</h2><small>Vendas concluídas neste mês · líquido de troco</small></div></div>
-        {paymentTotal>0?<div className="bf-donut-layout"><div className="bf-donut" role="img" aria-label={payments.map(p=>paymentLabels[p.formaPagamento]+': '+dinheiro(p.valor)).join('; ')} style={{background:`conic-gradient(${segments.join(',')})`}}><div><small>Total</small><strong>{brlCompact(paymentTotal)}</strong></div></div><div className="bf-donut-legend">{payments.map(p=><div key={p.formaPagamento}><i style={{background:paymentColors[p.formaPagamento]||'#9db9ad'}}/><span>{paymentLabels[p.formaPagamento]||p.formaPagamento}<small>{(p.valor/paymentTotal*100).toFixed(1).replace('.',',')}%</small></span><strong>{dinheiro(p.valor)}</strong></div>)}</div></div>:<div className="bf-dash-empty">{dados.pagamentosMes?'Nenhum pagamento registrado neste mês.':'Dados de pagamento indisponíveis.'}</div>}
+        {paymentTotal>0?<div className="bf-donut-layout"><div className="bf-donut" role="img" aria-label={payments.map(p=>paymentLabels[p.formaPagamento]+': '+dinheiro(p.valor)).join('; ')} style={{background:`conic-gradient(${segments.join(',')})`}}><div><small>Total</small><strong>{brlCompact(paymentTotal)}</strong></div></div><div className="bf-donut-legend">{payments.map(p=><div key={p.formaPagamento}><i style={{background:paymentColors[p.formaPagamento]||'#a1a1aa'}}/><span>{paymentLabels[p.formaPagamento]||p.formaPagamento}<small>{(p.valor/paymentTotal*100).toFixed(1).replace('.',',')}%</small></span><strong>{dinheiro(p.valor)}</strong></div>)}</div></div>:<div className="bf-dash-empty">{dados.pagamentosMes?'Nenhum pagamento registrado neste mês.':'Dados de pagamento indisponíveis.'}</div>}
         <p className="bf-dash-note">Fiado representa venda a prazo, não dinheiro recebido.</p>
       </section>
     </div>
