@@ -1,86 +1,61 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarClock, ChartNoAxesCombined, CircleCheckBig, Headset, ShieldAlert, Wallet } from 'lucide-react';
-import { saasApi } from '../services/saas';
-import type { SaasChamado, SaasFinanceiroResumo } from '../services/saas';
-
-const money=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
-const card='rounded-2xl border border-white/10 bg-[#162b2d] p-5';
-
-export function SaasExecutiveOverview({
-  canFinance,canSupport,onFinance,onSupport,
-}:{
-  canFinance:boolean;canSupport:boolean;onFinance:()=>void;onSupport:()=>void;
-}){
-  const [finance,setFinance]=useState<SaasFinanceiroResumo|null>(null);
-  const [tickets,setTickets]=useState<SaasChamado[]|null>(null);
-  const [financeError,setFinanceError]=useState(false);
-  const [supportError,setSupportError]=useState(false);
-  useEffect(()=>{
-    let alive=true;
-    if(canFinance)void saasApi.financeiro().then(v=>{if(alive)setFinance(v);}).catch(()=>{if(alive)setFinanceError(true);});
-    if(canSupport)void saasApi.chamadosSuporte().then(v=>{if(alive)setTickets(v);}).catch(()=>{if(alive)setSupportError(true);});
-    return ()=>{alive=false;};
-  },[canFinance,canSupport]);
-  const received=finance?.cobrancas.reduce((sum,c)=>sum+c.recebido,0)??0;
-  const overdue=finance?.cobrancas.filter(c=>c.status==='VENCIDO').reduce((sum,c)=>sum+c.saldo,0)??0;
-  const open=tickets?.filter(t=>t.status!=='RESOLVIDO'&&t.status!=='CANCELADO')??[];
-  const dev=open.filter(t=>t.comDev);
-  const alerts=useMemo(()=>{
-    const now=new Date(),next=new Date(now.getTime()+7*86400000);
-    const results:{title:string;detail:string;target:'finance'|'support';urgent:boolean}[]=[];
-    if(finance){
-      const overdueBills=finance.cobrancas.filter(c=>c.status==='VENCIDO');
-      if(overdueBills.length)results.push({title:overdueBills.length+' cobrança(s) vencida(s)',detail:'Conferir registros e negociação',target:'finance',urgent:true});
-      const soon=finance.cobrancas.filter(c=>c.saldo>0&&new Date(c.vencimento)>now&&new Date(c.vencimento)<=next);
-      if(soon.length)results.push({title:soon.length+' cobrança(s) vencendo em 7 dias',detail:'Preparar contato com clientes',target:'finance',urgent:false});
-      const grace=finance.empresas.filter(c=>c.inadimplente&&c.liberacaoFinanceiraAte&&new Date(c.liberacaoFinanceiraAte)>now&&new Date(c.liberacaoFinanceiraAte)<=next);
-      if(grace.length)results.push({title:grace.length+' liberação(ões) financeira(s) próximas do fim',detail:'Revisar acordos temporários',target:'finance',urgent:true});
-    }
-    if(tickets){
-      const critical=open.filter(t=>['URGENTE','ALTA'].includes(t.prioridade));
-      if(critical.length)results.push({title:critical.length+' chamado(s) de alta prioridade',detail:'Revisar ordens ainda abertas',target:'support',urgent:true});
-      if(dev.length)results.push({title:dev.length+' chamado(s) encaminhado(s) ao Dev',detail:'Acompanhar respostas do desenvolvimento',target:'support',urgent:false});
-    }
-    return results;
-  },[finance,tickets,open.length,dev.length]);
-  const sixMonths=useMemo(()=>{
-    const now=new Date();
-    return Array.from({length:6},(_,i)=>{
-      const date=new Date(now.getFullYear(),now.getMonth()-5+i,1);
-      const year=date.getFullYear(),month=date.getMonth();
-      const sum=finance?.cobrancas.reduce((total,c)=>{
-        // Detailed payment records override the legacy paid-in-full marker.
-        const payments=c.pagamentos.length?c.pagamentos.map(p=>({date:p.pagoEm,value:Number(p.valor)}))
-          :c.pagoEm?[{date:c.pagoEm,value:Number(c.valor)}]:[];
-        return total+payments.filter(p=>{const d=new Date(p.date);return d.getFullYear()===year&&d.getMonth()===month;}).reduce((a,p)=>a+p.value,0);
-      },0)??0;
-      return {key:year+'-'+month,label:date.toLocaleDateString('pt-BR',{month:'short'}),value:sum};
-    });
-  },[finance]);
-  const peak=Math.max(1,...sixMonths.map(m=>m.value));
-  if(!canFinance&&!canSupport)return null;
-  return <div className="space-y-4">
-    <div className="flex items-center justify-between gap-3">
-      <div><h3 className="text-lg font-extrabold">Central de operações</h3><p className="mt-1 text-xs text-slate-400">Indicadores e alertas calculados a partir dos registros do SaaS.</p></div>
-    </div>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {canFinance&&<><div className={card}><Wallet className="text-emerald-300" size={19}/><p className="mt-3 text-xs text-slate-400">Recebimentos registrados</p><strong className="mt-1 block text-xl">{finance?money(received):'—'}</strong></div>
-        <div className={card}><ShieldAlert className="text-amber-300" size={19}/><p className="mt-3 text-xs text-slate-400">Saldo vencido</p><strong className="mt-1 block text-xl">{finance?money(overdue):'—'}</strong></div></>}
-      {canSupport&&<><div className={card}><Headset className="text-emerald-300" size={19}/><p className="mt-3 text-xs text-slate-400">OS em andamento</p><strong className="mt-1 block text-xl">{tickets?open.length:'—'}</strong></div>
-        <div className={card}><CalendarClock className="text-purple-300" size={19}/><p className="mt-3 text-xs text-slate-400">OS com o Dev</p><strong className="mt-1 block text-xl">{tickets?dev.length:'—'}</strong></div></>}
-    </div>
-    {(financeError||supportError)&&<p className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">Alguns indicadores não puderam ser consultados. Confira as permissões e a comunicação com o backend.</p>}
-    <div className="grid gap-4 xl:grid-cols-2">
-      {canFinance&&<section className={card}><div className="flex items-center justify-between gap-3"><div><h4 className="font-bold">Evolução dos recebimentos</h4><p className="mt-1 text-xs text-slate-400">Últimos seis meses · valores efetivamente registrados</p></div><ChartNoAxesCombined className="text-emerald-300" size={19}/></div>
-        <div className="mt-6 flex h-40 items-end gap-3 border-b border-white/10 pb-2">{sixMonths.map(m=><div key={m.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2"><span className="text-[10px] text-slate-300" title={money(m.value)}>{m.value?money(m.value).replace('R$ ','').replace('R$ ',''):''}</span><div className="w-full max-w-16 rounded-t-lg bg-[#57d9ab]" style={{height:Math.max(3,Math.round(m.value/peak*90))+'px'}}/><span className="text-xs capitalize text-slate-400">{m.label}</span></div>)}</div>
-        <button type="button" onClick={onFinance} className="mt-4 text-xs font-bold text-emerald-300">Abrir financeiro</button>
-      </section>}
-      <section className={card}><div className="flex items-center justify-between gap-3"><h4 className="font-bold">Precisa da sua atenção</h4><AlertTriangle size={19} className="text-amber-300"/></div>
-        <div className="mt-4 space-y-2">{alerts.map((a,i)=><button key={i} onClick={a.target==='finance'?onFinance:onSupport} className="flex w-full items-center gap-3 rounded-xl border border-white/10 p-3 text-left hover:bg-white/5"><span className={'h-2 w-2 rounded-full '+(a.urgent?'bg-amber-400':'bg-emerald-400')}/><span className="flex-1"><strong className="block text-sm">{a.title}</strong><small className="mt-1 block text-slate-400">{a.detail}</small></span></button>)}
-          {!alerts.length&&<p className="flex items-center gap-2 py-5 text-sm text-slate-400"><CircleCheckBig size={18} className="text-emerald-300"/> Nenhum alerta identificado nos registros consultados.</p>}
-        </div>
-        {canSupport&&<button type="button" onClick={onSupport} className="mt-4 text-xs font-bold text-emerald-300">Abrir central de suporte</button>}
-      </section>
-    </div>
-  </div>;
+import {useEffect,useMemo,useState} from 'react';
+import {Activity,AlertTriangle,ArrowRight,BarChart3,Building2,CalendarClock,CheckCircle2,Clock3,Code2,Download,Headset,Plus,Search,ShieldAlert,Wallet} from 'lucide-react';
+import {saasApi} from '../services/saas';
+import type {EmpresaSaas,SaasChamado,SaasFinanceiroResumo,SaasTenantMonitor} from '../services/saas';
+const money=(v:number)=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const fmt=(n:number|null)=>n===null?'—':n.toLocaleString('pt-BR');
+const monthKey=(d:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).format(d);
+const normalize=(v:string)=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const statuses={ATIVA:'Ativa',EM_TESTE:'Em teste',SUSPENSA:'Suspensa',CANCELADA:'Cancelada'};
+type Props={empresas:EmpresaSaas[]|null;canCompanies:boolean;canFinance:boolean;canSupport:boolean;onFinance:()=>void;onSupport:()=>void;onMonitor:()=>void;onCompanies:()=>void;onOpenCompany:(id:number)=>void;onCreate:()=>void;onExport:()=>void};
+export function SaasExecutiveOverview(p:Props){
+ const [finance,setFinance]=useState<SaasFinanceiroResumo|null>(null),[tickets,setTickets]=useState<SaasChamado[]|null>(null),[monitor,setMonitor]=useState<SaasTenantMonitor[]|null>(null);
+ const [errors,setErrors]=useState<string[]>([]),[loading,setLoading]=useState(true),[months,setMonths]=useState(6),[query,setQuery]=useState('');
+ useEffect(()=>{
+  let active=true;setLoading(true);setErrors([]);setFinance(null);setTickets(null);setMonitor(null);
+  const tasks:Promise<unknown>[]=[];
+  if(p.canFinance)tasks.push(saasApi.financeiro().then(v=>{if(active)setFinance(v);}).catch(()=>{if(active)setErrors(e=>[...e,'Financeiro']);}));
+  if(p.canSupport)tasks.push(saasApi.chamadosSuporte().then(v=>{if(active)setTickets(v);}).catch(()=>{if(active)setErrors(e=>[...e,'Suporte']);}));
+  if(p.canCompanies)tasks.push(saasApi.monitoramento().then(v=>{if(active)setMonitor(v);}).catch(()=>{if(active)setErrors(e=>[...e,'Monitoramento']);}));
+  void Promise.all(tasks).finally(()=>{if(active)setLoading(false);});
+  return()=>{active=false;};
+ },[p.canCompanies,p.canFinance,p.canSupport]);
+ const companies=p.canCompanies?p.empresas:null;
+ const now=new Date(),current=monthKey(now),in7=new Date(now.getTime()+7*86400000),in3=new Date(now.getTime()+3*86400000);
+ const active=companies?.filter(e=>e.status==='ATIVA')??[];
+ const mrr=companies?active.reduce((s,e)=>s+Number(e.plano?.precoMensal??0),0):null;
+ const overdue=finance?.cobrancas.filter(c=>c.status==='VENCIDO')??[];
+ const soon=finance?.cobrancas.filter(c=>c.saldo>0&&new Date(c.vencimento)>now&&new Date(c.vencimento)<=in7)??[];
+ const grace=finance?.empresas.filter(e=>e.inadimplente&&e.liberacaoFinanceiraAte&&new Date(e.liberacaoFinanceiraAte)>now&&new Date(e.liberacaoFinanceiraAte)<=in3)??[];
+ const open=tickets?.filter(t=>!['RESOLVIDO','CANCELADO'].includes(t.status))??[],dev=open.filter(t=>t.comDev||t.status==='COM_DEV');
+ const inactive=monitor?.filter(e=>!e.ultimoAcesso||new Date(e.ultimoAcesso).getTime()<now.getTime()-30*86400000)??[];
+ const payments=useMemo(()=>finance?.cobrancas.flatMap(c=>c.pagamentos.length?c.pagamentos.map(x=>({date:x.pagoEm,value:Number(x.valor)})):c.pagoEm?[{date:c.pagoEm,value:Number(c.valor)}]:[])??[],[finance]);
+ const received=payments.filter(x=>monthKey(new Date(x.date))===current).reduce((s,x)=>s+x.value,0);
+ const chart=useMemo(()=>{
+  const d=new Date();const year=Number(new Intl.DateTimeFormat('en',{timeZone:'America/Sao_Paulo',year:'numeric'}).format(d));const month=Number(new Intl.DateTimeFormat('en',{timeZone:'America/Sao_Paulo',month:'numeric'}).format(d));
+  return Array.from({length:months},(_,i)=>{const date=new Date(Date.UTC(year,month-1-months+1+i,15));const key=monthKey(date);return {key,label:date.toLocaleDateString('pt-BR',{month:'short',year:'2-digit',timeZone:'America/Sao_Paulo'}),value:payments.filter(x=>monthKey(new Date(x.date))===key).reduce((s,x)=>s+x.value,0)};});
+ },[months,payments]);
+ const peak=Math.max(1,...chart.map(x=>x.value));
+ const recent=(companies??[]).filter(e=>normalize([e.nomeFantasia,e.slug,e.subdominio??'',e.cnpj??'',String(e.id)].join(' ')).includes(normalize(query.trim()))).sort((a,b)=>new Date(b.criadoEm).getTime()-new Date(a.criadoEm).getTime()).slice(0,6);
+ const kpis=[...(p.canCompanies?[{label:'Distribuidoras ativas',value:companies?fmt(active.length):'—',sub:companies?fmt(companies.length)+' cadastradas':'Cadastro indisponível',Icon:Building2,tone:'green',action:p.onCompanies},{label:'Receita mensal potencial',value:mrr===null?'—':money(mrr),sub:'Planos das empresas ativas',Icon:Wallet,tone:'green',action:p.onFinance}]:[]),...(p.canFinance?[{label:'Cobranças vencidas',value:finance?fmt(overdue.length):'—',sub:finance?money(overdue.reduce((a,c)=>a+c.saldo,0))+' em atraso':'Dados indisponíveis',Icon:AlertTriangle,tone:'red',action:p.onFinance}]:[]),...(p.canSupport?[{label:'Chamados abertos',value:tickets?fmt(open.length):'—',sub:'Ordens não encerradas',Icon:Headset,tone:'green',action:p.onSupport}]:[])];
+ const alerts=[...(p.canFinance?[{title:'Mensalidades vencendo',value:finance?fmt(soon.length):'—',sub:'Próximos 7 dias',Icon:CalendarClock,tone:'amber',action:p.onFinance},{title:'Liberações expirando',value:finance?fmt(grace.length):'—',sub:'Próximos 3 dias',Icon:Clock3,tone:'amber',action:p.onFinance}]:[]),...(p.canSupport?[{title:'Chamados com Dev',value:tickets?fmt(dev.length):'—',sub:'Ordens abertas com desenvolvimento',Icon:Code2,tone:'green',action:p.onSupport}]:[]),...(p.canCompanies?[{title:'Sem atividade recente',value:monitor?fmt(inactive.length):'—',sub:'30 dias ou sem registro',Icon:Activity,tone:'neutral',action:p.onMonitor}]:[])];
+ const states=companies?Object.entries(statuses).map(([key,label])=>({key,label,value:companies.filter(e=>e.status===key).length})):[];
+ return <div className="sd-page">
+ <div className="sd-heading"><div><h2>Visão geral da plataforma</h2><p>Distribuidoras, financeiro, suporte e operação em um só lugar.</p></div>{p.canCompanies&&<div className="sd-actions"><button className="sd-secondary" disabled={!companies} onClick={p.onExport}><Download size={16}/> Exportar CSV</button><button className="sd-primary" onClick={p.onCreate}><Plus size={17}/> Nova distribuidora</button></div>}</div>
+ {(errors.length>0||p.canCompanies&&!companies)&&<p className="sd-warning" role="alert"><AlertTriangle size={16}/> Dados indisponíveis: {[...errors,...(p.canCompanies&&!companies?['Distribuidoras']:[])].join(', ')}. Indicadores sem dados são exibidos como —.</p>}
+ {loading&&<p className="sd-muted" role="status">Atualizando indicadores…</p>}
+ <div className="sd-kpis">{kpis.map(k=><button key={k.label} className="sd-panel sd-kpi" onClick={k.action}><span className={'sd-icon '+k.tone}><k.Icon size={23}/></span><div><small>{k.label}</small><strong>{k.value}</strong><span>{k.sub}</span></div></button>)}</div>
+ {alerts.length>0&&<section className="sd-panel sd-attention"><h3><ShieldAlert size={18}/> Alertas e atenção</h3><div className="sd-kpis">{alerts.map(a=><button key={a.title} className="sd-alert" onClick={a.action}><span className={'sd-icon '+a.tone}><a.Icon size={20}/></span><div><small>{a.title}</small><strong>{a.value}</strong><span>{a.sub}</span></div><ArrowRight size={15}/></button>)}</div></section>}
+ <div className="sd-main-grid">
+ {p.canFinance&&<section className="sd-panel sd-chart"><div className="sd-panel-head"><h3><BarChart3 size={19}/> Recebimentos mensais</h3><select aria-label="Período do gráfico" value={months} onChange={e=>setMonths(Number(e.target.value))}><option value={6}>Últimos 6 meses</option><option value={12}>Últimos 12 meses</option></select></div><div className="sd-chart-summary"><span>Recebido neste mês</span><strong>{finance?money(received):'—'}</strong></div>{finance?<div className="sd-bars" aria-label="Gráfico de recebimentos mensais">{chart.map(x=><div key={x.key} className="sd-bar-col" title={x.label+' · '+money(x.value)}><span className="sd-bar-value">{x.value?money(x.value):'R$ 0'}</span><div className="sd-bar-track"><div className="sd-bar" style={{height:(x.value/peak*100)+'%'}}/></div><small>{x.label}</small></div>)}</div>:<p className="sd-empty">Recebimentos indisponíveis.</p>}<div className="sd-foot"><span>Pagamentos registrados manualmente · sem integração bancária</span><button onClick={p.onFinance}>Abrir financeiro <ArrowRight size={14}/></button></div></section>}
+ {p.canCompanies&&<section className="sd-panel"><div className="sd-panel-head"><h3><Building2 size={19}/> Últimas distribuidoras</h3><button onClick={p.onCompanies}>Ver todas <ArrowRight size={14}/></button></div><label className="sd-search"><Search size={16}/><input aria-label="Pesquisar distribuidora" placeholder="Nome, código, documento ou domínio" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="sd-table-wrap"><table className="sd-table"><thead><tr><th>Distribuidora</th><th>Plano</th><th>Status</th></tr></thead><tbody>{recent.map(e=><tr key={e.id}><td><button className="sd-company" onClick={()=>p.onOpenCompany(e.id)}><strong>{e.nomeFantasia}</strong><small>#{e.id} · {e.subdominio||e.slug}</small></button></td><td>{e.plano?.nome??'Sem plano'}</td><td><span className={'sd-status '+e.status.toLowerCase()}>{statuses[e.status]}</span></td></tr>)}</tbody></table>{!recent.length&&<p className="sd-empty">{companies?'Nenhuma distribuidora encontrada.':'Dados indisponíveis.'}</p>}</div></section>}
+ </div>
+ <div className="sd-bottom-grid">
+ {p.canCompanies&&<section className="sd-panel"><h3><Activity size={18}/> Panorama operacional</h3>{states.map(s=><div className="sd-meter" key={s.key}><div><span>{s.label}</span><b>{s.value}</b></div><div className="sd-meter-track"><span className={s.key.toLowerCase()} style={{width:(companies?.length?s.value/companies.length*100:0)+'%'}}/></div></div>)}{!companies&&<p className="sd-empty">Dados indisponíveis.</p>}</section>}
+ {p.canFinance&&<section className="sd-panel"><h3><Wallet size={18}/> Resumo financeiro</h3><dl className="sd-summary"><dt>Recebido no mês</dt><dd>{finance?money(received):'—'}</dd><dt>Saldo vencido</dt><dd>{finance?money(overdue.reduce((s,c)=>s+c.saldo,0)):'—'}</dd><dt>Saldo em aberto total</dt><dd>{finance?money(finance.cobrancas.reduce((s,c)=>s+Math.max(0,c.saldo),0)):'—'}</dd><dt>Empresas inadimplentes</dt><dd>{finance?fmt(finance.empresas.filter(e=>e.inadimplente).length):'—'}</dd></dl><button className="sd-link" onClick={p.onFinance}>Consultar cobranças <ArrowRight size={14}/></button></section>}
+ {p.canSupport&&<section className="sd-panel"><h3><Headset size={18}/> Suporte e acompanhamento</h3><dl className="sd-summary"><dt>Ordens em aberto</dt><dd>{tickets?fmt(open.length):'—'}</dd><dt>Alta prioridade / urgente</dt><dd>{tickets?fmt(open.filter(t=>['ALTA','URGENTE'].includes(t.prioridade)).length):'—'}</dd><dt>Com desenvolvimento</dt><dd>{tickets?fmt(dev.length):'—'}</dd><dt>Resolvidas no mês</dt><dd>{tickets?fmt(tickets.filter(t=>t.status==='RESOLVIDO'&&t.resolvidoEm&&monthKey(new Date(t.resolvidoEm))===current).length):'—'}</dd></dl><button className="sd-link" onClick={p.onSupport}>Abrir central de suporte <ArrowRight size={14}/></button></section>}
+ </div>
+ {!kpis.length&&<section className="sd-panel"><h3><CheckCircle2 size={18}/> Bem-vindo ao Bebfy</h3><p className="sd-muted">Utilize os módulos autorizados no menu lateral.</p></section>}
+ <p className="sd-muted">Receita potencial não equivale a pagamento recebido. Indicadores de uso baseiam-se na atividade autenticada registrada, não em disponibilidade da infraestrutura.</p>
+ </div>;
 }

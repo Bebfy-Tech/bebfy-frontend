@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Download, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import { SaasFinanceiro } from './SaasFinanceiro';
@@ -55,15 +55,12 @@ const blank = (): CriarEmpresaSaas => ({nome:'',documento:'',subdominio:'',email
 
 function StatusBadge({value}:{value:StatusEmpresa}) { return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyle[value]}`}><span className="h-1.5 w-1.5 rounded-full bg-current"/>{statusText[value]}</span>; }
 
-function StatCard({icon:Icon,label,value,subtitle}:{icon:typeof Activity;label:string;value:string;subtitle:string}) {
-  return <div className={`${card} p-5`}><div className="mb-5 flex items-center justify-between"><span className="text-sm font-medium text-slate-400">{label}</span><span className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><Icon size={19}/></span></div><strong className="text-3xl font-extrabold tracking-tight">{value}</strong><p className="mt-2 text-xs text-slate-500">{subtitle}</p></div>;
-}
-
 export function SaasConsole() {
   const { user, logout } = useSaasAuth();
   const navigate = useNavigate();
   const [section,setSection] = useState<Section>('visao');
   const [empresas,setEmpresas] = useState<EmpresaSaas[]>([]);
+  const [empresasDisponiveis,setEmpresasDisponiveis]=useState(false);
   const [planos,setPlanos] = useState<PlanoSaas[]>([]);
   const [selected,setSelected] = useState<EmpresaSaas|null>(null);
   const [filter,setFilter] = useState('');
@@ -116,10 +113,11 @@ export function SaasConsole() {
     setLoading(true);setAlert('');
     try {
       const [companies,allPlans]=await Promise.allSettled([saasApi.empresas(),saasApi.planos()]);
-      if(companies.status==='fulfilled')setEmpresas(companies.value);
+      setEmpresasDisponiveis(companies.status==='fulfilled');
+      if(companies.status==='fulfilled')setEmpresas(companies.value);else setEmpresas([]);
       if(allPlans.status==='fulfilled')setPlanos(allPlans.value);
       try {setModDescriptions(await saasApi.descricoesModulos());} catch { /* A role may have no MODULOS permission. */ }
-      setForbidden(companies.status==='rejected' && allPlans.status==='rejected' && !(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('FUNCIONARIOS')||user?.permissoes.includes('MODULOS')||user?.permissoes.includes('SUPORTE')));
+      setForbidden(false); // Individual API permissions govern each section; a failed request is not proof of an invalid session.
     } catch (e) {
       const status=(e as {response?:{status?:number}}).response?.status;
       if(status===401||status===403) setForbidden(true);
@@ -133,8 +131,6 @@ export function SaasConsole() {
     const q=filter.toLocaleLowerCase('pt-BR');
     return (filterStatus==='TODAS'||e.status===filterStatus) && [e.nomeFantasia,e.slug,e.subdominio||'',e.cnpj||'',String(e.id)].some(p=>p.toLocaleLowerCase('pt-BR').includes(q));
   }),[empresas,filter,filterStatus]);
-  const totalModulos=useMemo(()=>empresas.reduce((v,e)=>v+DISPONIVEIS.filter(m=>moduloLiberado(e,m.key)).length,0),[empresas]);
-  const receitaEstimada=useMemo(()=>empresas.filter(e=>e.status==='ATIVA'||e.status==='EM_TESTE').reduce((v,e)=>v+Number(e.plano?.precoMensal||0),0),[empresas]);
 
   function openModulo(modulo:NomeModulo) {
     const item=MODULOS.find(m=>m.key===modulo);
@@ -163,19 +159,6 @@ export function SaasConsole() {
       setOk('Dados comerciais do módulo salvos.');
     }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
   }
-
-  const mesesCadastro=useMemo(()=>{
-    const now=new Date();
-    return Array.from({length:6},(_,i)=>{
-      const date=new Date(now.getFullYear(),now.getMonth()-5+i,1);
-      const key=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0');
-      return {label:date.toLocaleString('pt-BR',{month:'short'}).replace('.',''),key,
-        value:empresas.filter(e=>{
-          const created=new Date(e.criadoEm);
-          return created.getFullYear()===date.getFullYear() && created.getMonth()===date.getMonth();
-        }).length};
-    });
-  },[empresas]);
 
   function exportarResumo() {
     // Neutralize formula injection when viewed in Excel and preserve UTF-8 accents.
@@ -325,17 +308,17 @@ export function SaasConsole() {
 
   if(forbidden) return <main className="grid min-h-screen place-items-center bg-[#052b27] px-5 text-center text-white"><div className="max-w-md"><LockKeyhole size={45} className="mx-auto text-rose-300"/><h1 className="mt-5 text-3xl font-extrabold">Acesso restrito</h1><p className="mt-4 leading-relaxed text-slate-400">Esta conta não está autorizada a administrar o SaaS. A autorização é concedida somente pelo servidor.</p><button onClick={()=>{logout();navigate(saasLoginPath,{replace:true});}} className="mt-6 rounded-xl bg-emerald-300 px-6 py-3 font-bold text-[#092d2d]">Voltar ao acesso</button></div></main>;
 
-  return <main className="saas-premium min-h-screen bg-[#061e1e] font-sans text-[#effff9]">
+  return <main className="saas-premium saas-v21 min-h-screen font-sans">
     <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between border-b border-white/10 bg-[#0a0f1d] px-5 py-4">
       <Link to="/" aria-label="Bebfy - início" className="inline-flex items-center"><BebfyBrand light compact /></Link>
       <button type="button" aria-label={mobileMenu ? "Fechar menu" : "Abrir menu"} aria-expanded={mobileMenu} aria-controls="saas-main-navigation" onClick={()=>setMobileMenu(!mobileMenu)}>{mobileMenu?<X/>:<Menu/>}</button>
     </div>
-    <aside className={`fixed inset-y-0 left-0 z-40 flex w-[270px] flex-col overflow-y-auto border-r border-white/[.08] bg-[#0a0f1d] p-5 transition-transform lg:translate-x-0 ${mobileMenu?'translate-x-0':'-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col overflow-y-auto border-r border-white/[.08] bg-[#0a0f1d] p-3 transition-transform lg:translate-x-0 ${mobileMenu?'translate-x-0':'-translate-x-full'}`}>
       <Link to="/" aria-label="Bebfy - início" className="mb-1 inline-flex items-center px-2"><BebfyBrand light compact /></Link>
-      <div className="mb-10 ml-[57px] text-[10px] font-black tracking-[.19em] text-emerald-400">CENTRAL DA PLATAFORMA</div>
+      <div className="mb-5 ml-[45px] text-[10px] font-black tracking-[.19em] text-emerald-400">CENTRAL DA PLATAFORMA</div>
       <p className="px-3 text-[10px] font-black tracking-[.2em] text-slate-500">PLATAFORMA</p>
-      <nav id="saas-main-navigation" aria-label="Navegação administrativa" className="mt-3 space-y-1.5">
-        {tabs.map(t=><button key={t.key} onClick={()=>nav(t.key)} className={`w-full rounded-xl px-3.5 py-3.5 text-left transition ${section===t.key?'bg-emerald-400/15 text-emerald-300':'text-slate-400 hover:bg-white/5 hover:text-white'}`}><span className="flex items-center gap-3 text-sm font-bold"><t.icon size={19}/>{t.title}</span></button>)}
+      <nav id="saas-main-navigation" aria-label="Navegação administrativa" className="mt-2 space-y-1">
+        {tabs.map(t=><button key={t.key} onClick={()=>nav(t.key)} className={`w-full rounded-md px-3 py-2.5 text-left transition ${section===t.key?'bg-emerald-400/15 text-emerald-300':'text-slate-400 hover:bg-white/5 hover:text-white'}`}><span className="flex items-center gap-3 text-sm font-bold"><t.icon size={19}/>{t.title}</span></button>)}
       </nav>
       <div className="mt-auto space-y-4 pt-8">
         <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[.07] p-4"><ShieldCheck size={19} className="text-emerald-300"/><p className="mt-2 text-xs font-bold">Acesso administrativo</p><p className="mt-1 text-xs text-slate-500">Protegido pelo backend.</p></div>
@@ -343,13 +326,13 @@ export function SaasConsole() {
       </div>
     </aside>
 
-    <div className="lg:ml-[270px]">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[.07] bg-[#0a0f1d] px-5 py-5 sm:px-9">
+    <div className="lg:ml-[232px]">
+      <header className="saas-topbar flex flex-wrap items-center justify-between gap-3 border-b border-white/[.07] bg-[#0a0f1d] px-4 py-2">
         <div><p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">Bebfy / Administração da plataforma</p><h1 className="mt-1 text-xl font-extrabold sm:text-2xl">{selected?selected.nomeFantasia:tabs.find(t=>t.key===section)?.title}</h1></div>
         <div className="flex items-center gap-3"><button aria-label="Atualizar dados" onClick={()=>void refresh()} disabled={loading} className="rounded-xl border border-white/10 p-2.5 text-slate-300 hover:bg-white/5 disabled:opacity-40"><RefreshCcw size={18} className={loading?'animate-spin':''}/></button><span className="hidden text-xs font-semibold text-slate-400 sm:block">{user?.nome||'Administrador'}</span><span className="grid h-10 w-10 place-items-center rounded-full border border-emerald-300/20 bg-emerald-300/10 text-sm font-bold text-emerald-300">{(user?.nome||'A').slice(0,1).toUpperCase()}</span><button type="button" onClick={()=>setProfileOpen(true)} title="Meu perfil e configurações" aria-label="Meu perfil e configurações" className="rounded-xl border border-white/15 p-2.5 text-emerald-100 hover:bg-white/10"><Settings2 size={19}/></button></div>
       </header>
 
-      <div className="mx-auto max-w-[1500px] space-y-6 px-5 py-7 sm:px-9">
+      <div className="saas-content mx-auto w-full space-y-3 px-3 py-3 sm:px-4">
         {alert&&<p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">{alert}</p>}
         {ok&&<div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200"><Check size={17}/>{ok}<button className="ml-auto" onClick={()=>setOk('')} aria-label="Fechar aviso"><X size={17}/></button></div>}
         {loading?<div className={`${card} p-12 text-center text-slate-400`}>Carregando dados da plataforma…</div>:<>
@@ -359,40 +342,16 @@ export function SaasConsole() {
           {section==='suporte'&&<SaasSuporte empresas={empresas} initialCompanyId={supportCompanyId} onOpenCompany={id=>void openCompany(id)}/>}
           {section==='monitoramento'&&<SaasMonitoramento onOpenCompany={id=>void openCompany(id)}/>}
           {section==='auditoria'&&<SaasAuditoria/>}
-          {section==='visao'&&<>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-extrabold tracking-tight">Visão geral da <span className="text-emerald-300">plataforma.</span></h2><p className="mt-1 text-sm text-slate-400">Visão consolidada das distribuidoras cadastradas no Bebfy.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={exportarResumo} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-white/5"><Download size={17}/> Exportar relatório CSV</button><button onClick={()=>{setSection('empresas');setCreating(true);}} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Nova distribuidora</button></div></div>
-            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-              <StatCard icon={Building2} label="Distribuidoras" value={String(empresas.length)} subtitle="Total cadastradas no SaaS"/>
-              <StatCard icon={Activity} label="Ativas" value={String(empresas.filter(e=>e.status==='ATIVA').length)} subtitle="Empresas com status ativo"/>
-              <StatCard icon={Users} label="Em teste" value={String(empresas.filter(e=>e.status==='EM_TESTE').length)} subtitle="Contas no período experimental"/>
-              <StatCard icon={Wallet} label="Receita potencial / mês" value={money(receitaEstimada)} subtitle="Soma dos preços dos planos, não recebimentos reais"/>
-            </div>
-            <SaasExecutiveOverview
+          {section==='visao'&&<SaasExecutiveOverview
+              empresas={empresasDisponiveis?empresas:null}
+              canCompanies={user?.cargo==='SUPER_ADMIN'||!!user?.permissoes.includes('EMPRESAS')}
               canFinance={user?.cargo==='SUPER_ADMIN'||!!user?.permissoes.includes('EMPRESAS')}
               canSupport={user?.cargo==='SUPER_ADMIN'||!!user?.permissoes.includes('SUPORTE')}
-              onFinance={()=>nav('financeiro')}
-              onSupport={()=>nav('suporte')}
-            />
-            <section className={card+' p-6'} aria-label="Gráfico de distribuidoras cadastradas nos últimos seis meses">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-base font-extrabold">Novas distribuidoras</h3><p className="mt-1 text-xs text-slate-400">Cadastros nos últimos seis meses</p></div><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">Dados de cadastro</span></div>
-              <div className="flex h-40 items-end justify-between gap-2 border-b border-white/10 pb-2">
-                {mesesCadastro.map(m=><div key={m.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                  <strong className="text-[11px] text-slate-200">{m.value}</strong>
-                  <div className="w-full max-w-[72px] rounded-t-lg bg-[#5addad]" style={{height:Math.max(5,Math.round(m.value/Math.max(1,...mesesCadastro.map(x=>x.value))*104))+'px'}} title={m.value+' novas distribuidoras em '+m.label}/>
-                  <span className="text-[11px] font-semibold text-slate-400">{m.label}</span>
-                </div>)}
-              </div>
-            </section>
-            <div className="grid gap-5 xl:grid-cols-[1.65fr_1fr]">
-              <section className={`${card} overflow-hidden`}><div className="flex items-center justify-between border-b border-white/[.07] px-6 py-5"><div><h3 className="font-extrabold">Últimas distribuidoras</h3><p className="mt-1 text-xs text-slate-500">Cadastros recentes da plataforma</p></div><button onClick={()=>nav('empresas')} className="flex items-center gap-1 text-xs font-bold text-emerald-300">Ver todas <ArrowRight size={16}/></button></div>
-                <div className="divide-y divide-white/[.06]">{empresas.slice(0,6).map(e=><button key={e.id} onClick={()=>void openCompany(e.id)} className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left hover:bg-white/[.03]"><div className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-white/[.07] text-emerald-300"><Building2 size={18}/></span><div className="min-w-0"><strong className="block truncate text-sm">{e.nomeFantasia}</strong><span className="text-xs text-slate-500">{e.slug}</span></div></div><StatusBadge value={e.status}/></button>)}{!empresas.length&&<p className="px-6 py-12 text-center text-sm text-slate-500">Nenhuma distribuidora cadastrada.</p>}</div>
-              </section>
-              <section className={`${card} p-6`}><div className="mb-6 flex items-center justify-between"><h3 className="font-extrabold">Panorama operacional</h3><BarChart3 size={20} className="text-emerald-300"/></div>
-                {[['Ativas',empresas.filter(e=>e.status==='ATIVA').length,'#34d399'],['Em teste',empresas.filter(e=>e.status==='EM_TESTE').length,'#fbbf24'],['Suspensas',empresas.filter(e=>e.status==='SUSPENSA').length,'#fb7185'],['Canceladas',empresas.filter(e=>e.status==='CANCELADA').length,'#64748b']].map(([title,count,color])=><div className="mb-5" key={String(title)}><div className="mb-2 flex justify-between text-xs"><span className="text-slate-400">{title}</span><b>{count}</b></div><div className="h-2 overflow-hidden rounded-full bg-[#07090d]"><div className="h-full rounded-full" style={{width:`${empresas.length?Number(count)/empresas.length*100:0}%`,background:String(color)}}/></div></div>)}
-                <div className="mt-7 rounded-xl bg-emerald-400/[.07] p-4"><p className="text-xs font-bold text-emerald-300">{totalModulos} módulos habilitados</p><p className="mt-2 text-xs text-slate-400">Soma das ativações configuradas em todas as empresas.</p></div>
-              </section>
-            </div>
-          </>}
+              onFinance={()=>nav('financeiro')} onSupport={()=>nav('suporte')}
+              onMonitor={()=>nav('monitoramento')} onCompanies={()=>nav('empresas')}
+              onOpenCompany={id=>void openCompany(id)}
+              onCreate={()=>{nav('empresas');setCreating(true);}} onExport={exportarResumo}
+            />}
 
           {section==='empresas'&&!selected&&<>
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Gerenciar distribuidoras</h2><p className="mt-1 text-sm text-slate-400">Cadastre lojas, altere planos e configure recursos individuais.</p></div><button onClick={()=>setCreating(true)} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Adicionar empresa</button></div>
