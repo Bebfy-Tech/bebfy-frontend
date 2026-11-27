@@ -41,29 +41,64 @@ function Pagination({total,page,size,onChange}:{total:number;page:number;size:nu
  const pages=Math.max(1,Math.ceil(total/size)),current=Math.min(page,pages);
  return <footer className="es-pages"><span>Exibindo {total?(current-1)*size+1:0} a {Math.min(current*size,total)} de {total} registros</span><div><button type="button" className="es-secondary" disabled={current<=1} onClick={()=>onChange(current-1)} aria-label="Página anterior"><ChevronLeft size={16}/></button>{Array.from({length:Math.min(5,pages)},(_,i)=>Math.max(1,Math.min(current-2,pages-4))+i).map(p=><button type="button" className="es-secondary" aria-current={p===current?'page':undefined} key={p} onClick={()=>onChange(p)}>{p}</button>)}<button type="button" className="es-secondary" disabled={current>=pages} onClick={()=>onChange(current+1)} aria-label="Próxima página"><ChevronRight size={16}/></button></div></footer>;
 }
-// Conferência temporária, sem persistência ou alteração de estoque.
-function InventarioPreliminar({produtos,podeAjustar,loading}:{produtos:Produto[];podeAjustar:boolean;loading:boolean}){
- const [snapshot,setSnapshot]=useState<Produto[]|null>(null);
- const [contagens,setContagens]=useState<Record<number,string>>({});
- const [busca,setBusca]=useState('');
- const [somenteDivergencias,setSomenteDivergencias]=useState(false);
- const [pagina,setPagina]=useState(1);
- const valida=(v:string|undefined)=>v!==undefined&&/^\d+$/.test(v)&&Number.isSafeInteger(Number(v));
- const contados=snapshot?.filter(p=>valida(contagens[p.id]))??[];
- const divergentes=contados.filter(p=>Number(contagens[p.id])!==p.estoqueAtual);
- const rows=(snapshot??[]).filter(p=>[p.nome,p.codigoBarras,p.id].some(v=>normalize(v).includes(normalize(busca.trim())))&&(!somenteDivergencias||(valida(contagens[p.id])&&Number(contagens[p.id])!==p.estoqueAtual)));
+type InvStatus='ABERTO'|'FECHADO'|'CANCELADO';
+type InvResumo={id:string;status:InvStatus;revisao:number;criadoEm:string;encerradoEm?:string|null;_count:{itens:number}};
+type InvItem={produtoId:number;nome:string;codigoBarras:string|null;saldoInicial:number;contagem:number|null};
+type InvFicha=Omit<InvResumo,'_count'>&{itens:InvItem[];motivoEncerramento?:string|null};
+const invStatus:Record<InvStatus,string>={ABERTO:'Em andamento',FECHADO:'Fechado',CANCELADO:'Cancelado'};
+function InventarioPersistente({podeAjustar,gestor,onAtualizar}:{podeAjustar:boolean;gestor:boolean;onAtualizar:()=>void}){
+ const [lista,setLista]=useState<InvResumo[]>([]);
+ const [ficha,setFicha]=useState<InvFicha|null>(null);
+ const [edicoes,setEdicoes]=useState<Record<number,string>>({});
+ const [busca,setBusca]=useState(''),[filtro,setFiltro]=useState('todos'),[pagina,setPagina]=useState(1);
+ const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[erro,setErro]=useState(''),[sucesso,setSucesso]=useState('');
+ const [acao,setAcao]=useState<'fechar'|'cancelar'|null>(null),[motivo,setMotivo]=useState('');
+ const lock=useRef(false);
+ const loadLista=useCallback(async()=>{
+  setLoading(true);setErro('');
+  try{const r=await api.get<InvResumo[]>('/inventarios-estoque');setLista(r.data);}
+  catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}
+ },[]);
+ useEffect(()=>{if(podeAjustar)void loadLista();else setLoading(false);},[podeAjustar,loadLista]);
+ const valido=(s:string)=>/^\d+$/.test(s)&&Number(s)<=2147483647;
+ const pendentes=Object.entries(edicoes);
+ const validoEdicoes=pendentes.every(([,v])=>valido(v));
+ const contados=ficha?.itens.filter(i=>i.contagem!==null)??[];
+ const divergentes=contados.filter(i=>i.contagem!==i.saldoInicial);
+ const rows=(ficha?.itens??[]).filter(i=>[i.nome,i.codigoBarras,i.produtoId].some(v=>normalize(v).includes(normalize(busca.trim())))&&(filtro==='todos'||(filtro==='pendentes'?i.contagem===null:i.contagem!==null&&i.contagem!==i.saldoInicial)));
  const current=Math.min(pagina,Math.max(1,Math.ceil(rows.length/8)));
- function iniciar(){setSnapshot(produtos.map(p=>({...p})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')));setContagens({});setBusca('');setPagina(1);setSomenteDivergencias(false);}
+ const aberto=ficha?.status==='ABERTO';
+ function confirmarSaida(){return !pendentes.length||window.confirm('Descartar alterações ainda não salvas?');}
+ function mostrar(nova:InvFicha){setFicha(nova);setEdicoes({});setBusca('');setFiltro('todos');setPagina(1);}
+ async function operar(fn:()=>Promise<void>){
+  if(lock.current)return;lock.current=true;setBusy(true);setErro('');setSucesso('');
+  try{await fn();}catch(e){setErro(mensagemErro(e));}finally{lock.current=false;setBusy(false);}
+ }
+ async function abrir(id:string){if(!confirmarSaida())return;await operar(async()=>{mostrar((await api.get<InvFicha>('/inventarios-estoque/'+id)).data);});}
+ async function criar(){await operar(async()=>{mostrar((await api.post<InvFicha>('/inventarios-estoque',{})).data);setSucesso('Inventário aberto. Salve as contagens durante a conferência.');});}
+ async function salvar(){
+  if(!ficha||!aberto||!pendentes.length||!validoEdicoes)return;
+  if(pendentes.length>200){setErro('Salve até 200 contagens por vez.');return;}
+  await operar(async()=>{const r=await api.post<InvFicha>('/inventarios-estoque/'+ficha.id+'/contagens',{revisao:ficha.revisao,itens:pendentes.map(([id,v])=>({produtoId:Number(id),contagem:Number(v)}))});setFicha(r.data);setEdicoes({});setSucesso('Contagens salvas no banco.');});
+ }
+ async function encerrar(){
+  if(!ficha||!acao||!gestor||!aberto||pendentes.length||motivo.trim().length<3)return;
+  await operar(async()=>{const r=await api.post<InvFicha>('/inventarios-estoque/'+ficha.id+'/'+acao,{revisao:ficha.revisao,motivo:motivo.trim()});setFicha(r.data);setAcao(null);setMotivo('');setSucesso(r.data.status==='FECHADO'?'Inventário fechado e ajustes registrados.':'Inventário cancelado sem ajuste de estoque.');onAtualizar();});
+ }
+ if(!podeAjustar)return <section className="es-panel es-empty"><ClipboardList size={30}/>Você não possui permissão de inventário.</section>;
  return <section className="es-panel es-inventory">
-  <div className="es-list-title"><div><h2>Conferência física de estoque</h2><small>Prévia local • sem alteração do saldo</small></div>{podeAjustar&&!snapshot&&<button type="button" className="es-primary" disabled={loading||!produtos.length} onClick={iniciar}><Plus size={16}/> Iniciar contagem</button>}</div>
-  <div className="es-inventory-note"><AlertTriangle size={18}/><span>Inventários persistentes e aprovação dependem de integração com o backend. Esta contagem temporária será descartada ao sair da aba. Nenhuma baixa ou ajuste será aplicado.</span></div>
-  {!podeAjustar?<div className="es-empty">Você não possui permissão para iniciar a conferência.</div>:!snapshot?<div className="es-empty"><ClipboardList size={34}/><strong>Prepare a contagem física</strong><span>Compare as quantidades físicas com o saldo dos produtos ativos.</span></div>:<>
-   <div className="es-inventory-summary">{[['Produtos',snapshot.length],['Contados',contados.length],['Pendentes',snapshot.length-contados.length],['Divergências',divergentes.length]].map(([n,v])=><div key={n}><small>{n}</small><strong>{v}</strong></div>)}</div>
-   <div className="es-inventory-progress"><progress value={contados.length} max={Math.max(1,snapshot.length)}/><span>{Math.round(contados.length/Math.max(1,snapshot.length)*100)}% conferido</span></div>
-   <div className="es-inventory-filters"><label className="es-search"><Search size={18}/><input aria-label="Buscar produto na contagem" placeholder="Nome ou código de barras" value={busca} onChange={e=>{setBusca(e.target.value);setPagina(1);}}/></label><button type="button" className="es-secondary" aria-pressed={somenteDivergencias} onClick={()=>{setSomenteDivergencias(v=>!v);setPagina(1);}}>Somente divergências</button><button type="button" className="es-secondary" onClick={()=>{if(window.confirm('Descartar esta contagem temporária?')){setSnapshot(null);setContagens({});}}}>Descartar contagem</button></div>
-   <div className="es-table-scroll"><table className="es-table"><thead><tr>{['Produto','Saldo inicial','Contagem física (un.)','Diferença','Situação'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.slice((current-1)*8,current*8).map(p=>{const v=contagens[p.id];const ok=valida(v);const dif=ok?Number(v)-p.estoqueAtual:0;return <tr key={p.id}><td><ProductLabel produto={p} foto={false}/></td><td>{fmt(p.estoqueAtual)} un.</td><td><input className="es-count-input" type="number" min={0} step={1} value={v??''} aria-label={'Contagem de '+p.nome} aria-invalid={v!==undefined&&v!==''&&!ok} onChange={e=>setContagens(old=>({...old,[p.id]:e.target.value}))}/></td><td className={ok?(dif<0?'es-red':dif>0?'es-amber':'es-green'):''}>{ok?(dif>0?'+':'')+fmt(dif):'—'}</td><td><span className={'es-pill '+(!ok?'neutral':dif?'baixo':'normal')}>{!ok?'Pendente':dif?'Divergente':'Conferido'}</span></td></tr>;})}</tbody></table>{!rows.length&&<div className="es-empty">Nenhum produto encontrado.</div>}</div>
+  <div className="es-list-title"><div><h2>{ficha?'Conferência física de estoque':'Inventários de estoque'}</h2><small>{ficha?invStatus[ficha.status]+' · '+dateTime(ficha.criadoEm):'Histórico e contagens armazenadas por empresa'}</small></div><div className="es-inventory-actions">{ficha?<><button type="button" className="es-secondary" disabled={busy} onClick={()=>{if(confirmarSaida()){setFicha(null);setEdicoes({});void loadLista();}}}>Voltar</button><button type="button" className="es-secondary" disabled={busy} onClick={()=>void abrir(ficha.id)}><RefreshCcw size={16}/> Atualizar</button></>:<><button type="button" className="es-secondary" disabled={loading||busy} onClick={()=>void loadLista()}><RefreshCcw size={16}/></button><button type="button" className="es-primary" disabled={loading||busy||lista.some(i=>i.status==='ABERTO')} onClick={()=>void criar()}><Plus size={16}/> Novo inventário</button></>}</div></div>
+  <Notice message={erro} onClose={()=>setErro('')}/><Notice message={sucesso} success onClose={()=>setSucesso('')}/>
+  {!ficha?<><div className="es-inventory-note"><ClipboardList size={18}/><span>Abra um inventário, salve a contagem por etapas e solicite o fechamento ao gestor. Realize a conferência em período sem movimentações.</span></div><div className="es-table-scroll">{loading?<div className="es-empty">Carregando inventários...</div>:<><table className="es-table"><thead><tr>{['Abertura','Produtos','Situação','Encerramento','Ação'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{lista.map(i=><tr key={i.id}><td>{dateTime(i.criadoEm)}</td><td>{fmt(i._count.itens)}</td><td><span className={'es-pill '+(i.status==='ABERTO'?'baixo':i.status==='FECHADO'?'normal':'neutral')}>{invStatus[i.status]}</span></td><td>{dateTime(i.encerradoEm)}</td><td><button type="button" className="es-secondary" disabled={busy} onClick={()=>void abrir(i.id)}>{i.status==='ABERTO'?'Continuar':'Consultar'}</button></td></tr>)}</tbody></table>{!lista.length&&!erro&&<div className="es-empty"><ClipboardList size={30}/>Nenhum inventário registrado.</div>}</>}</div></>:<>
+   <div className="es-inventory-summary">{[['Produtos',ficha.itens.length],['Contados (salvos)',contados.length],['Pendentes',ficha.itens.length-contados.length],['Divergências',divergentes.length]].map(([n,v])=><div key={n}><small>{n}</small><strong>{v}</strong></div>)}</div>
+   <div className="es-inventory-progress"><progress value={contados.length} max={Math.max(1,ficha.itens.length)}/><span>{Math.round(contados.length/Math.max(1,ficha.itens.length)*100)}% salvo</span></div>
+   <div className="es-inventory-filters"><label className="es-search"><Search size={18}/><input aria-label="Buscar produto na contagem" placeholder="Nome ou código de barras" value={busca} onChange={e=>{setBusca(e.target.value);setPagina(1);}}/></label>{[['todos','Todos'],['pendentes','Pendentes'],['divergencias','Divergências']].map(([v,n])=><button type="button" key={v} className="es-secondary" aria-pressed={filtro===v} onClick={()=>{setFiltro(v);setPagina(1);}}>{n}</button>)}</div>
+   <div className="es-table-scroll"><table className="es-table"><thead><tr>{['Produto','Saldo inicial','Contagem física (un.)','Diferença','Situação'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.slice((current-1)*8,current*8).map(i=>{const edit=edicoes[i.produtoId];const v=edit??(i.contagem===null?'':String(i.contagem));const ok=valido(v);const dif=ok?Number(v)-i.saldoInicial:0;return <tr key={i.produtoId}><td><ProductLabel nome={i.nome} codigo={i.codigoBarras??undefined} foto={false}/></td><td>{fmt(i.saldoInicial)} un.</td><td>{aberto?<input className="es-count-input" type="number" min={0} max={2147483647} step={1} value={v} disabled={busy} aria-label={'Contagem de '+i.nome} aria-invalid={edit!==undefined&&!ok} onChange={e=>{const value=e.target.value;setEdicoes(old=>{const next={...old};if(value===(i.contagem===null?'':String(i.contagem)))delete next[i.produtoId];else next[i.produtoId]=value;return next;});}}/>:i.contagem===null?'—':fmt(i.contagem)}</td><td className={ok?(dif<0?'es-red':dif>0?'es-amber':'es-green'):''}>{ok?(dif>0?'+':'')+fmt(dif):'—'}</td><td><span className={'es-pill '+(edit!==undefined?'baixo':!ok?'neutral':dif?'baixo':'normal')}>{edit!==undefined?'Não salvo':!ok?'Pendente':dif?'Divergente':'Conferido'}</span></td></tr>;})}</tbody></table>{!rows.length&&<div className="es-empty">Nenhum produto encontrado.</div>}</div>
    <div className="es-list-footer"><Pagination total={rows.length} page={current} size={8} onChange={setPagina}/></div>
+   {aberto&&<div className="es-inventory-footer"><small>{pendentes.length} alteração(ões) não salva(s). Salve antes de sair.</small><div className="es-inventory-actions"><button type="button" className="es-primary" disabled={busy||!pendentes.length||!validoEdicoes||pendentes.length>200} onClick={()=>void salvar()}>Salvar contagens</button>{gestor&&<><button type="button" className="es-secondary" disabled={busy||Boolean(pendentes.length)} onClick={()=>{setMotivo('');setAcao('cancelar');}}>Cancelar inventário</button><button type="button" className="es-primary" disabled={busy||Boolean(pendentes.length)||contados.length!==ficha.itens.length} onClick={()=>{setMotivo('');setAcao('fechar');}}>Aprovar e fechar</button></>}</div></div>}
+   {ficha.motivoEncerramento&&<p className="es-inventory-note">Motivo do encerramento: {ficha.motivoEncerramento}</p>}
   </>}
+  {acao&&<Modal title={acao==='fechar'?'Aprovar e fechar inventário':'Cancelar inventário'} onClose={()=>{if(!busy)setAcao(null);}}><form className="es-form" onSubmit={e=>{e.preventDefault();void encerrar();}}><p>{acao==='fechar'?'O sistema verificará os saldos e registrará os ajustes em uma única transação. Divergências em produtos com lotes serão bloqueadas.':'O histórico será preservado e nenhum saldo será alterado.'}</p><Notice message={erro} onClose={()=>setErro('')}/><label>Justificativa<textarea required minLength={3} maxLength={500} value={motivo} disabled={busy} onChange={e=>setMotivo(e.target.value)}/></label><div className="es-form-footer"><button type="button" className="es-secondary" disabled={busy} onClick={()=>setAcao(null)}>Voltar</button><button type="submit" className="es-primary" disabled={busy||motivo.trim().length<3}>{busy?'Processando...':'Confirmar'}</button></div></form></Modal>}
  </section>;
 }
 export function EstoquePage(){
@@ -129,7 +164,7 @@ export function EstoquePage(){
   <Notice message={erro} onClose={()=>setErro('')}/><Notice message={sucesso} success onClose={()=>setSucesso('')}/>
   <section className="es-kpis">{kpis.map(k=><article className="es-panel es-kpi" key={k.n}><span className={'es-kpi-icon '+k.c}><k.Icon size={25}/></span><div><small>{k.n}</small><strong className={'es-'+k.c}>{loading||erro?'—':k.v}</strong></div></article>)}</section>
   <nav className="es-tabs" aria-label="Seções do estoque">{([{id:'posicao',n:'Estoque',Icon:Warehouse},{id:'inventarios',n:'Inventários',Icon:ClipboardList},{id:'movimentacoes',n:'Movimentações',Icon:History},{id:'perdas',n:'Perdas e avarias',Icon:Trash2},...(lotesAtivos?[{id:'lotes',n:'Lotes e validade',Icon:CalendarClock} as const]:[])] as const).map(t=><button type="button" key={t.id} aria-pressed={aba===t.id} onClick={()=>trocarAba(t.id)}><t.Icon size={19}/>{t.n}</button>)}</nav>
-  {aba==='inventarios'?<InventarioPreliminar produtos={erro?[]:produtos} podeAjustar={podeAjustar} loading={loading}/>:<>
+  {aba==='inventarios'?<InventarioPersistente podeAjustar={podeAjustar} gestor={['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo??'')} onAtualizar={()=>void load()}/>:<>
   <label className="es-search"><Search size={19}/><input aria-label="Pesquisar estoque" placeholder={aba==='lotes'?'Buscar produto, lote ou código...':'Buscar produto, código ou código de barras...'} value={busca} onChange={e=>setBusca(e.target.value)}/></label>
   {aba==='posicao'&&<div className="es-filters"><div className="es-filter-buttons">{[['todos','Todos'],['normal','Normal'],['baixo','Estoque baixo / zerado'],['zero','Sem estoque']].map(([v,n])=><button type="button" className="es-secondary" key={v} aria-pressed={filtro===v} onClick={()=>setFiltro(v)}>{n}</button>)}</div><select aria-label="Categoria" value={categoria} onChange={e=>setCategoria(e.target.value)}><option value="">Todas as categorias</option>{categorias.map(c=><option key={c}>{c}</option>)}</select></div>}
   {(aba==='movimentacoes'||aba==='perdas')&&<div className="es-filters"><label>Tipo<select value={tipoFiltro} onChange={e=>setTipoFiltro(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(labels).filter(([v])=>aba!=='perdas'||ehPerda(v)).map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label><label>De<input type="date" value={inicio} onChange={e=>setInicio(e.target.value)}/></label><label>Até<input type="date" value={fim} onChange={e=>setFim(e.target.value)}/></label><button type="button" className="es-secondary" onClick={()=>{setTipoFiltro('');setInicio('');setFim('');setBusca('');}}>Limpar filtros</button></div>}

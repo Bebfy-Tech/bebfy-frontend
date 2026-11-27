@@ -55,3 +55,9 @@
 @media(min-width:1350px){.es-workspace-position{grid-template-columns:minmax(0,1fr) 255px}}
 @media(max-width:1349px){.es-aside{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
 @media(max-width:620px){.es-inventory-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.es-tabs button{flex:1 1 90px}.es-inventory-note{margin:0 9px}.es-inventory-filters{padding:0 9px}}
+
+.es-inventory-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.es-inventory-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 14px;border-top:1px solid var(--es-line)}
+.es-inventory-footer small{color:var(--es-muted)}
+.es-inventory>.es-table-scroll{max-height:calc(100dvh - 420px);min-height:140px}
+@media(max-width:700px){.es-inventory>.es-table-scroll{max-height:none}.es-inventory-actions{justify-content:flex-start}}
