@@ -6,7 +6,7 @@ import { hasModule } from '../services/moduleAccess';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
 import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
-import { btn, card, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInput } from '../components/ui';
+import { btn, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInput } from '../components/ui';
 
 import { ProdutoFoto } from '../components/ProdutoFoto';
 import './pdv-premium.css';
