@@ -6,6 +6,8 @@ export type StatusCaixa = 'ABERTO' | 'FECHADO';
 export type TipoEntrega = 'RETIRADA_BALCAO' | 'DELIVERY';
 
 export interface Produto {
+  retornavel?: boolean;
+  tipoVasilhameId?: number | null;
   id: number;
   nome: string;
   codigoBarras: string | null;
@@ -70,6 +72,7 @@ export interface NovaVenda {
   tipoEntrega?: TipoEntrega;
   enderecoEntrega?: string;
   cascosDevolvidos?: number;
+  devolucoesCascos?: {tipoVasilhameId:number|null;quantidade:number}[];
   itens: ItemVendaEntrada[];
   pagamentos: PagamentoVendaEntrada[];
 }

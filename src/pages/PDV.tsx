@@ -10,6 +10,8 @@ import { btn, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInpu
 
 import { ProdutoFoto } from '../components/ProdutoFoto';
 import { creditoDisponivel, erroCredito, rotuloCredito, modalidade } from '../services/credito';
+import { vasilhamesApi } from '../services/vasilhames';
+import type { ExtratoCasco } from '../services/vasilhames';
 import './pdv-premium.css';
 
 type ItemCarrinho={produto:Produto;quantidade:number;isFardo:boolean};
@@ -66,7 +68,10 @@ export function PDV(){
   const [taxaEntrega,setTaxaEntrega]=useState('0');
   const [desconto,setDesconto]=useState('0');
   const [pagamentos,setPagamentos]=useState<Pagamento[]>([{forma:'DINHEIRO',valor:''}]);
-  const [cascosDevolvidos,setCascosDevolvidos]=useState('0');
+  const [devolucoes,setDevolucoes]=useState<Record<string,string>>({});
+  const [extratoCascos,setExtratoCascos]=useState<ExtratoCasco|null>(null);
+  const [cascosErro,setCascosErro]=useState('');
+  const [cascosLoading,setCascosLoading]=useState(false);
   const [comprovante,setComprovante]=useState<ComprovanteNaoFiscal|null>(null);
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
@@ -89,6 +94,10 @@ export function PDV(){
   },[user?.funcionarioId]);
   useEffect(()=>{void carregar();},[carregar]);
 
+  useEffect(()=>{let active=true;setExtratoCascos(null);setDevolucoes({});setCascosErro('');setCascosLoading(false);
+    if(cascosAtivo&&clienteId){setCascosLoading(true);void vasilhamesApi.extrato(clienteId).then(r=>{if(active)setExtratoCascos(r);}).catch(e=>{if(active)setCascosErro(mensagemErro(e));}).finally(()=>{if(active)setCascosLoading(false);});}
+    return()=>{active=false;};
+  },[cascosAtivo,clienteId]);
   const subtotal=useMemo(()=>carrinho.reduce((s,i)=>s+price(i)*i.quantidade,0),[carrinho]);
   const descontoVal=Math.max(0,Number(desconto)||0);
   const entregaVal=deliveryAtivo&&entrega==='DELIVERY'?Math.max(0,Number(taxaEntrega)||0):0;
@@ -97,6 +106,9 @@ export function PDV(){
   const diferenca=Math.round((total-pago)*100)/100;
   const troco=Math.max(0,-diferenca);
   const escolhido=clientes.find(c=>c.id===clienteId);
+  const novosCascos=useMemo(()=>{const m=new Map<number,number>();for(const i of carrinho){if(i.produto.retornavel&&i.produto.tipoVasilhameId!=null)m.set(i.produto.tipoVasilhameId,(m.get(i.produto.tipoVasilhameId)??0)+i.quantidade*(i.isFardo?Math.max(1,Number(i.produto.fardoQuantidade)||1):1));}return m;},[carrinho]);
+  const saldoCasco=(key:string)=>key==='legado'?(extratoCascos?.legado??0):((extratoCascos?.saldos.find(t=>String(t.id)===key)?.quantidade??0)+(novosCascos.get(Number(key))??0));
+  const retornoValido=Object.entries(devolucoes).every(([k,v])=>Number.isInteger(Number(v))&&Number(v)>=0&&Number(v)<=saldoCasco(k));
   const podeFiado=fiadoAtivo&&creditoDisponivel(escolhido)>0;
   const valorFiado=pagamentos.filter(p=>p.forma==='FIADO').reduce((s,p)=>s+Number(p.valor||0),0);
   const categorias=useMemo(()=>Array.from(new Set(produtos.map(p=>p.categoria?.nome).filter((v):v is string=>Boolean(v)))).sort((a,b)=>a.localeCompare(b,'pt-BR')),[produtos]);
@@ -158,7 +170,8 @@ export function PDV(){
     if(!deliveryAtivo&&entrega==='DELIVERY'){setErro('Delivery foi desativado. Selecione retirada no balcão.');setEntrega('RETIRADA_BALCAO');return;}
     if(!fiadoAtivo&&pagamentos.some(p=>p.forma==='FIADO')){setErro('Fiado foi desativado. Escolha outra forma de pagamento.');return;}
     if(entrega==='DELIVERY'&&!enderecoEntrega.trim()){setErro('Informe o endereço da entrega.');return;}
-    if(cascosAtivo&&Number(cascosDevolvidos)>0&&!clienteId){setErro('Selecione o cliente para devolução de cascos.');return;}
+    if(cascosAtivo&&clienteId&&carrinho.some(i=>i.produto.retornavel&&!i.produto.tipoVasilhameId)){setErro('Associe os produtos retornáveis a seus tipos de vasilhame antes da venda.');return;}
+    if(cascosAtivo&&Object.values(devolucoes).some(v=>Number(v)>0)&&(!clienteId||extratoCascos?.cliente.id!==clienteId||!retornoValido)){setErro('Confira os saldos e quantidades de devolução por tipo.');return;}
     if(pagamentos.some(p=>!Number.isFinite(Number(p.valor))||Number(p.valor)<=0)){
       setErro('Informe um valor positivo em todos os pagamentos.');return;
     }
@@ -174,7 +187,7 @@ export function PDV(){
         ...(clienteId?{clienteId}:{}),desconto:descontoVal,
         tipoEntrega:entrega,taxaEntrega:entregaVal,
         ...(entrega==='DELIVERY'?{enderecoEntrega}:{}),
-        ...(cascosAtivo&&Number(cascosDevolvidos)>0?{cascosDevolvidos:Number(cascosDevolvidos)}:{}),
+        ...(cascosAtivo&&clienteId?{devolucoesCascos:Object.entries(devolucoes).filter(([,v])=>Number(v)>0).map(([k,v])=>({tipoVasilhameId:k==='legado'?null:Number(k),quantidade:Number(v)}))}:{}),
         itens:carrinho.map(i=>({produtoId:i.produto.id,quantidade:i.quantidade,
           precoUnitario:price(i),isFardo:i.isFardo})),
         pagamentos:pagamentoNet(),
@@ -183,7 +196,7 @@ export function PDV(){
       // The server has committed the sale. Never repeat it if receipt retrieval fails.
       setCarrinho([]);setDesconto('0');setPagamentos([{forma:'DINHEIRO',valor:''}]);
       setClienteId('');setEntrega('RETIRADA_BALCAO');setEnderecoEntrega('');
-      setTaxaEntrega('0');setCascosDevolvidos('0');
+      setTaxaEntrega('0');setDevolucoes({});
       setSucesso(`Venda #${venda.codigoVenda} registrada com sucesso.`);
       void carregar();
       try{setComprovante(await bebfy.vendas.comprovante(venda.id));}
@@ -221,11 +234,11 @@ export function PDV(){
        <div className="pdv3-panel-title"><h2><ShoppingCart size={19}/> Venda atual</h2><small>{carrinho.length} produto(s)</small></div>
        <div className="pdv3-cart-scroll"><table className="pdv3-table pdv3-cart-table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Total</th><th aria-label="Remover"/></tr></thead><tbody>{carrinho.map(i=><tr key={i.produto.id+(i.isFardo?'F':'U')}><td><strong>{i.produto.nome}</strong><small>{i.isFardo?'Fardo':'Unidade'} · {dinheiro(price(i))}</small></td><td><div className="pdv3-qty"><button type="button" disabled={busy} onClick={()=>changeQty(i.produto,i.isFardo,-1)} aria-label="Diminuir quantidade"><Minus size={14}/></button><b>{i.quantidade}</b><button type="button" disabled={busy||restante(i.produto)<(i.isFardo?Math.max(1,Number(i.produto.fardoQuantidade)||1):1)} onClick={()=>changeQty(i.produto,i.isFardo,1)} aria-label="Aumentar quantidade"><Plus size={14}/></button></div></td><td className="pdv3-line-total">{dinheiro(price(i)*i.quantidade)}</td><td><button type="button" className="pdv3-remove" disabled={busy} aria-label={'Remover '+i.produto.nome} onClick={()=>setCarrinho(a=>a.filter(x=>x!==i))}><Trash2 size={16}/></button></td></tr>)}</tbody></table>{!carrinho.length&&<div className="pdv3-empty"><ShoppingCart size={30}/><p>Adicione produtos para iniciar a venda.</p></div>}</div>
        <div className="pdv3-sale-bottom">
-        <label className="pdv3-field">Cliente {fiadoAtivo?'(obrigatório para fiado)':'(opcional)'}<select value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));if(!e.target.value)setCascosDevolvidos('0');}}><option value="">Consumidor / venda balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
+        <label className="pdv3-field">Cliente {fiadoAtivo?'(obrigatório para fiado)':'(opcional)'}<select value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));setDevolucoes({});setExtratoCascos(null);}}><option value="">Consumidor / venda balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.codigoCliente!=null?'#'+c.codigoCliente+' · ':''}{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
         {fiadoAtivo&&escolhido&&<p className="pdv3-note">{rotuloCredito(escolhido)} · Disponível: {modalidade(escolhido)==='ILIMITADO'?'Ilimitado':dinheiro(creditoDisponivel(escolhido))} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
         <div className="pdv3-fields">{deliveryAtivo&&<label className="pdv3-field">Tipo de entrega<select value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option><option value="DELIVERY">Delivery</option></select></label>}<label className="pdv3-field">Desconto (R$)<MoneyInput value={desconto} onValue={setDesconto}/></label></div>
         {deliveryAtivo&&entrega==='DELIVERY'&&<div className="pdv3-fields"><label className="pdv3-field">Taxa de entrega<MoneyInput value={taxaEntrega} onValue={setTaxaEntrega}/></label><label className="pdv3-field">Endereço<input required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
-        {cascosAtivo&&clienteId&&<label className="pdv3-field">Cascos devolvidos<input type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
+        {cascosAtivo&&clienteId&&<details className="pdv3-field"><summary>Devolução de vasilhames por tipo</summary>{cascosLoading?<p>Consultando saldo...</p>:cascosErro?<p className="pdv3-note">{cascosErro}</p>:extratoCascos&&<>{[...extratoCascos.saldos.map(t=>({key:String(t.id),nome:t.nome})),...Array.from(novosCascos.keys()).filter(id=>!extratoCascos.saldos.some(t=>t.id===id)).map(id=>({key:String(id),nome:'Tipo #'+id+' (nesta venda)'})),...(extratoCascos.legado>0?[{key:'legado',nome:'Saldo antigo não classificado'}]:[])].map(t=><label className="pdv3-field" key={t.key}>{t.nome} · até {saldoCasco(t.key)} un.<input type="number" min={0} step={1} max={saldoCasco(t.key)} value={devolucoes[t.key]??'0'} onChange={e=>setDevolucoes(d=>({...d,[t.key]:e.target.value}))}/></label>)}<p className="pdv3-note">O saldo inclui os cascos desta venda. Confira o tipo efetivamente recebido.</p></>}</details>}
         <div className="pdv3-totals"><div><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div>{descontoVal>0&&<div><span>Desconto</span><strong>− {dinheiro(descontoVal)}</strong></div>}{entregaVal>0&&<div><span>Entrega</span><strong>{dinheiro(entregaVal)}</strong></div>}</div>
        </div>
        <footer className="pdv3-sale-footer"><div className="pdv3-total"><span>TOTAL A RECEBER</span><strong>{dinheiro(total)}</strong></div><button type="button" className="pdv3-primary pdv3-receive" onClick={abrirRecebimento} disabled={busy||!carrinho.length||total<=0}><CreditCard size={20}/> Receber venda</button></footer>
