@@ -38,6 +38,7 @@ function Receipt({dados}:{dados:ComprovanteNaoFiscal}){
   {dados.itens.map((i,k)=><div className="vs-receipt-line" key={k}><span>{i.quantidade}× {i.descricao}</span><span>{dinheiro(i.total)}</span></div>)}
   <div className="vs-receipt-meta"><div className="vs-receipt-line"><span>Subtotal</span><span>{dinheiro(dados.valores.subtotal)}</span></div><div className="vs-receipt-line"><span>Desconto</span><span>{dinheiro(dados.valores.desconto)}</span></div>{dados.valores.taxaEntrega>0&&<div className="vs-receipt-line"><span>Entrega</span><span>{dinheiro(dados.valores.taxaEntrega)}</span></div>}<div className="vs-receipt-line"><strong>Total</strong><strong>{dinheiro(dados.valores.total)}</strong></div></div>
   {dados.pagamentos.map((p,i)=><p key={i}>{labelPagamento(p.forma)}: {dinheiro(p.valor)}{Number(p.troco)>0?' · Troco: '+dinheiro(p.troco):''}</p>)}
+  {dados.loja.mensagem&&<p style={{whiteSpace:"pre-wrap",textAlign:"center"}}>{dados.loja.mensagem}</p>}
   <p className="vs-receipt-warning">{dados.aviso}</p>
  </article>;
 }

@@ -3,6 +3,7 @@ import type { FormaOperacional } from '../services/pagamentosOperacionais';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Boxes, CreditCard, Minus, Plus, Printer, CheckCircle2, RefreshCcw, Search, ShoppingCart, Trash2, Wallet, Grid2X2, List, Package, ChevronLeft, ChevronRight, Banknote, QrCode, HandCoins } from 'lucide-react';
+import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { hasModule } from '../services/moduleAccess';
 import { bebfy } from '../services/bebfy';
@@ -34,6 +35,7 @@ function Comprovante({dados}:{dados:ComprovanteNaoFiscal}){
     {dados.itens.map((i,k)=><div key={k} className="flex justify-between gap-2"><span>{i.quantidade}× {i.descricao}</span><span>{dinheiro(i.total)}</span></div>)}
     <div className="space-y-1 border-t border-dashed border-black pt-2"><div className="flex justify-between"><span>Subtotal</span><span>{dinheiro(dados.valores.subtotal)}</span></div><div className="flex justify-between"><span>Desconto</span><span>{dinheiro(dados.valores.desconto)}</span></div>{dados.valores.taxaEntrega>0&&<div className="flex justify-between"><span>Entrega</span><span>{dinheiro(dados.valores.taxaEntrega)}</span></div>}<div className="flex justify-between text-sm font-extrabold"><span>Total</span><span>{dinheiro(dados.valores.total)}</span></div></div>
     {dados.pagamentos.map((p,i)=><p key={i}>{p.forma}: {dinheiro(p.valor)}{p.troco>0?` · Troco: ${dinheiro(p.troco)}`:''}</p>)}
+    {dados.loja.mensagem&&<p className="text-center whitespace-pre-wrap">{dados.loja.mensagem}</p>}
     <p className="border-t border-dashed border-black pt-3 text-center font-black uppercase">{dados.aviso}</p>
   </article>;
 }
@@ -60,6 +62,7 @@ export function PDV(){
   const [pagina,setPagina]=useState(1);
   const [saldoInicial,setSaldoInicial]=useState('0');
   const [clienteId,setClienteId]=useState('');
+  const [exigirDocumento,setExigirDocumento]=useState(false);
   const [entrega,setEntrega]=useState<TipoEntrega>('RETIRADA_BALCAO');
   const [enderecoEntrega,setEnderecoEntrega]=useState('');
   const [taxaEntrega,setTaxaEntrega]=useState('0');
@@ -81,14 +84,14 @@ export function PDV(){
     if(!user?.funcionarioId)return;
     setLoading(true);setErro('');
     try{
-      const [catalogo,cli,aberto,opcoes]=await Promise.all([
+      const [catalogo,cli,aberto,opcoes,config]=await Promise.all([
         bebfy.produtos.listar(),bebfy.clientes.listar(),
         bebfy.caixa.abertoPorOperador(user.funcionarioId).catch((e:unknown)=>{
           if((e as {response?:{status?:number}})?.response?.status===404)return null;
           throw e;
-        }),pagamentosOperacionais.pdv(),
+        }),pagamentosOperacionais.pdv(),api.get<{obrigarCpfClienteVenda:boolean}>('/configuracoes/operacao'),
       ]);
-      setProdutos(catalogo.filter(p=>p.ativo));setClientes(cli.filter(c=>c.ativo));setCaixa(aberto);setFormas(opcoes);
+      setProdutos(catalogo.filter(p=>p.ativo));setClientes(cli.filter(c=>c.ativo));setCaixa(aberto);setFormas(opcoes);setExigirDocumento(config.data.obrigarCpfClienteVenda);
     }catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}
   },[user?.funcionarioId]);
   useEffect(()=>{void carregar();},[carregar]);
@@ -167,6 +170,7 @@ export function PDV(){
   async function finalizar(){
     if(submitting.current||busy||vendaConcluida||!caixa||!user?.funcionarioId||carrinho.length===0)return;
     setErro('');setSucesso('');
+    if(exigirDocumento&&!escolhido?.cpfCnpj){setErro('Selecione um cliente cadastrado com CPF ou CNPJ.');return;}
     if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}
     if(total<=0){setErro('Venda precisa ter valor positivo.');return;}
     if(!deliveryAtivo&&entrega==='DELIVERY'){setErro('Delivery foi desativado. Selecione retirada no balcão.');setEntrega('RETIRADA_BALCAO');return;}
@@ -209,7 +213,7 @@ export function PDV(){
   }
   const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');setCategoria('');setPagina(1);requestAnimationFrame(()=>searchRef.current?.focus());};
   const retryReceipt=async()=>{if(!vendaConcluida||receiptLoading)return;setReceiptLoading(true);setReceiptError('');try{setComprovante(await bebfy.vendas.comprovante(vendaConcluida.id));}catch(e){setReceiptError(mensagemErro(e));}finally{setReceiptLoading(false);}};
-  const abrirRecebimento=async()=>{if(!carrinho.length||total<=0||busy||vendaConcluida||formasLoading)return;if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setFormasLoading(true);try{const opcoes=await pagamentosOperacionais.pdv();setFormas(opcoes);const inicial=formaInicial(opcoes.filter(f=>podeFiado||f.formaPagamento!=='FIADO'));if(!inicial){setErro('Nenhuma forma de pagamento disponível. Solicite a configuração ao gestor.');return;}setPagamentos([novoPagamento(inicial,String(total))]);setRecebimento(true);}catch(e){setErro(mensagemErro(e));}finally{setFormasLoading(false);}};
+  const abrirRecebimento=async()=>{if(!carrinho.length||total<=0||busy||vendaConcluida||formasLoading)return;if(exigirDocumento&&!escolhido?.cpfCnpj){setErro('Selecione um cliente cadastrado com CPF ou CNPJ.');return;}if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setFormasLoading(true);try{const opcoes=await pagamentosOperacionais.pdv();setFormas(opcoes);const inicial=formaInicial(opcoes.filter(f=>podeFiado||f.formaPagamento!=='FIADO'));if(!inicial){setErro('Nenhuma forma de pagamento disponível. Solicite a configuração ao gestor.');return;}setPagamentos([novoPagamento(inicial,String(total))]);setRecebimento(true);}catch(e){setErro(mensagemErro(e));}finally{setFormasLoading(false);}};
   useEffect(()=>{if(recebimento)requestAnimationFrame(()=>pagamentoRef.current?.focus());},[recebimento]);
   const botoesProduto=(p:Produto)=><div className="pdv3-add"><button type="button" aria-label={'Adicionar unidade de '+p.nome} onClick={()=>inserir(p)} disabled={busy||restante(p)<1} className="pdv3-primary"><Plus size={15}/> {p.unidadeMedida||'UN'}</button>{Number(p.fardoQuantidade)>1&&<button type="button" aria-label={'Adicionar fardo de '+p.nome} onClick={()=>fardo(p)} disabled={busy||restante(p)<Number(p.fardoQuantidade)} className="pdv3-secondary"><Boxes size={15}/> {p.unidadeEmbalagemSigla||'FD'}</button>}</div>;
   const foto=(p:Produto)=><div className="pdv3-photo"><ProdutoFoto produtoId={String(p.id)} editable={false}/></div>;
@@ -237,7 +241,7 @@ export function PDV(){
        <div className="pdv3-panel-title"><h2><ShoppingCart size={19}/> Venda atual</h2><small>{carrinho.length} produto(s)</small></div>
        <div className="pdv3-cart-scroll"><table className="pdv3-table pdv3-cart-table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Total</th><th aria-label="Remover"/></tr></thead><tbody>{carrinho.map(i=><tr key={i.produto.id+(i.isFardo?'F':'U')}><td><strong>{i.produto.nome}</strong><small>{i.isFardo?i.produto.unidadeEmbalagemSigla||'FD':i.produto.unidadeMedida||'UN'} · {dinheiro(price(i))}</small></td><td><div className="pdv3-qty"><button type="button" disabled={busy} onClick={()=>changeQty(i.produto,i.isFardo,-1)} aria-label="Diminuir quantidade"><Minus size={14}/></button><b>{i.quantidade}</b><button type="button" disabled={busy||restante(i.produto)<(i.isFardo?Math.max(1,Number(i.produto.fardoQuantidade)||1):1)} onClick={()=>changeQty(i.produto,i.isFardo,1)} aria-label="Aumentar quantidade"><Plus size={14}/></button></div></td><td className="pdv3-line-total">{dinheiro(price(i)*i.quantidade)}</td><td><button type="button" className="pdv3-remove" disabled={busy} aria-label={'Remover '+i.produto.nome} onClick={()=>setCarrinho(a=>a.filter(x=>x!==i))}><Trash2 size={16}/></button></td></tr>)}</tbody></table>{!carrinho.length&&<div className="pdv3-empty"><ShoppingCart size={30}/><p>Adicione produtos para iniciar a venda.</p></div>}</div>
        <div className="pdv3-sale-bottom">
-        <label className="pdv3-field">Cliente {fiadoAtivo?'(obrigatório para fiado)':'(opcional)'}<select value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));setDevolucoes({});setExtratoCascos(null);}}><option value="">Consumidor / venda balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.codigoCliente!=null?'#'+c.codigoCliente+' · ':''}{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
+        <label className="pdv3-field">Cliente {exigirDocumento?'(CPF/CNPJ obrigatório)':fiadoAtivo?'(obrigatório para fiado)':'(opcional)'}<select value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));setDevolucoes({});setExtratoCascos(null);}}><option value="">Consumidor / venda balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.codigoCliente!=null?'#'+c.codigoCliente+' · ':''}{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
         {fiadoAtivo&&escolhido&&<p className="pdv3-note">{rotuloCredito(escolhido)} · Disponível: {modalidade(escolhido)==='ILIMITADO'?'Ilimitado':dinheiro(creditoDisponivel(escolhido))} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
         <div className="pdv3-fields">{deliveryAtivo&&<label className="pdv3-field">Tipo de entrega<select value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option><option value="DELIVERY">Delivery</option></select></label>}<label className="pdv3-field">Desconto (R$)<MoneyInput value={desconto} onValue={setDesconto}/></label></div>
         {deliveryAtivo&&entrega==='DELIVERY'&&<div className="pdv3-fields"><label className="pdv3-field">Taxa de entrega<MoneyInput value={taxaEntrega} onValue={setTaxaEntrega}/></label><label className="pdv3-field">Endereço<input required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
