@@ -72,6 +72,14 @@ export interface NovaVenda {
 
 export interface Venda {
   tipoEntrega?:TipoEntrega;
+  funcionarioId?:string;
+  funcionario?:{id:string;nome:string}|null;
+  cliente?:{id:string;nome:string}|null;
+  caixa?:{id:string;status:StatusCaixa}|null;
+  subtotal?:string|number;
+  desconto?:string|number;
+  taxaEntrega?:string|number;
+  enderecoEntrega?:string|null;
   id: string;
   codigoVenda: number;
   valorTotal: string | number;
