@@ -9,6 +9,7 @@ import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, Tip
 import { btn, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInput } from '../components/ui';
 
 import { ProdutoFoto } from '../components/ProdutoFoto';
+import { creditoDisponivel, erroCredito, rotuloCredito, modalidade } from '../services/credito';
 import './pdv-premium.css';
 
 type ItemCarrinho={produto:Produto;quantidade:number;isFardo:boolean};
@@ -96,6 +97,8 @@ export function PDV(){
   const diferenca=Math.round((total-pago)*100)/100;
   const troco=Math.max(0,-diferenca);
   const escolhido=clientes.find(c=>c.id===clienteId);
+  const podeFiado=fiadoAtivo&&creditoDisponivel(escolhido)>0;
+  const valorFiado=pagamentos.filter(p=>p.forma==='FIADO').reduce((s,p)=>s+Number(p.valor||0),0);
   const categorias=useMemo(()=>Array.from(new Set(produtos.map(p=>p.categoria?.nome).filter((v):v is string=>Boolean(v)))).sort((a,b)=>a.localeCompare(b,'pt-BR')),[produtos]);
   const filtrados=useMemo(()=>{
     const q=busca.trim().toLocaleLowerCase('pt-BR');
@@ -161,7 +164,7 @@ export function PDV(){
     }
     const saldoDinheiro=pagamentos.some(p=>p.forma==='DINHEIRO');
     if(diferenca>0.009||troco>0&&!saldoDinheiro){setErro(`Os pagamentos precisam cobrir o total de ${dinheiro(total)}. Diferença: ${dinheiro(diferenca)}.`);return;}
-    if(pagamentos.some(p=>p.forma==='FIADO')&&!clienteId){setErro('Para vender fiado selecione um cliente.');return;}
+    if(pagamentos.some(p=>p.forma==='FIADO')){const msg=erroCredito(escolhido,valorFiado);if(msg){setErro(msg);return;}}
     if(pagamentos.filter(p=>p.forma==='DINHEIRO').length>1&&troco>0){setErro('Use apenas um pagamento em dinheiro para calcular o troco.');return;}
     // Single synchronous lock prevents rapid clicks or repeated submissions.
     submitting.current=true;setBusy(true);
@@ -190,7 +193,7 @@ export function PDV(){
   }
   const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');setCategoria('');setPagina(1);requestAnimationFrame(()=>searchRef.current?.focus());};
   const retryReceipt=async()=>{if(!vendaConcluida||receiptLoading)return;setReceiptLoading(true);setReceiptError('');try{setComprovante(await bebfy.vendas.comprovante(vendaConcluida.id));}catch(e){setReceiptError(mensagemErro(e));}finally{setReceiptLoading(false);}};
-  const abrirRecebimento=()=>{if(!carrinho.length||total<=0||busy||vendaConcluida)return;if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setPagamentos(p=>p.length===1?[{...p[0],forma:!fiadoAtivo&&p[0].forma==='FIADO'?'DINHEIRO':p[0].forma,valor:String(total)}]:p);setRecebimento(true);};
+  const abrirRecebimento=()=>{if(!carrinho.length||total<=0||busy||vendaConcluida)return;if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setPagamentos(p=>p.length===1?[{...p[0],forma:!podeFiado&&p[0].forma==='FIADO'?'DINHEIRO':p[0].forma,valor:String(total)}]:p);setRecebimento(true);};
   useEffect(()=>{if(recebimento)requestAnimationFrame(()=>pagamentoRef.current?.focus());},[recebimento]);
   const botoesProduto=(p:Produto)=><div className="pdv3-add"><button type="button" aria-label={'Adicionar unidade de '+p.nome} onClick={()=>inserir(p)} disabled={busy||restante(p)<1} className="pdv3-primary"><Plus size={15}/> Un.</button>{Number(p.fardoQuantidade)>1&&<button type="button" aria-label={'Adicionar fardo de '+p.nome} onClick={()=>fardo(p)} disabled={busy||restante(p)<Number(p.fardoQuantidade)} className="pdv3-secondary"><Boxes size={15}/> Fardo</button>}</div>;
   const foto=(p:Produto)=><div className="pdv3-photo"><ProdutoFoto produtoId={String(p.id)} editable={false}/></div>;
@@ -219,7 +222,7 @@ export function PDV(){
        <div className="pdv3-cart-scroll"><table className="pdv3-table pdv3-cart-table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Total</th><th aria-label="Remover"/></tr></thead><tbody>{carrinho.map(i=><tr key={i.produto.id+(i.isFardo?'F':'U')}><td><strong>{i.produto.nome}</strong><small>{i.isFardo?'Fardo':'Unidade'} · {dinheiro(price(i))}</small></td><td><div className="pdv3-qty"><button type="button" disabled={busy} onClick={()=>changeQty(i.produto,i.isFardo,-1)} aria-label="Diminuir quantidade"><Minus size={14}/></button><b>{i.quantidade}</b><button type="button" disabled={busy||restante(i.produto)<(i.isFardo?Math.max(1,Number(i.produto.fardoQuantidade)||1):1)} onClick={()=>changeQty(i.produto,i.isFardo,1)} aria-label="Aumentar quantidade"><Plus size={14}/></button></div></td><td className="pdv3-line-total">{dinheiro(price(i)*i.quantidade)}</td><td><button type="button" className="pdv3-remove" disabled={busy} aria-label={'Remover '+i.produto.nome} onClick={()=>setCarrinho(a=>a.filter(x=>x!==i))}><Trash2 size={16}/></button></td></tr>)}</tbody></table>{!carrinho.length&&<div className="pdv3-empty"><ShoppingCart size={30}/><p>Adicione produtos para iniciar a venda.</p></div>}</div>
        <div className="pdv3-sale-bottom">
         <label className="pdv3-field">Cliente {fiadoAtivo?'(obrigatório para fiado)':'(opcional)'}<select value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));if(!e.target.value)setCascosDevolvidos('0');}}><option value="">Consumidor / venda balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
-        {fiadoAtivo&&escolhido&&<p className="pdv3-note">Limite: {dinheiro(escolhido.limiteCredito)} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
+        {fiadoAtivo&&escolhido&&<p className="pdv3-note">{rotuloCredito(escolhido)} · Disponível: {modalidade(escolhido)==='ILIMITADO'?'Ilimitado':dinheiro(creditoDisponivel(escolhido))} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
         <div className="pdv3-fields">{deliveryAtivo&&<label className="pdv3-field">Tipo de entrega<select value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option><option value="DELIVERY">Delivery</option></select></label>}<label className="pdv3-field">Desconto (R$)<MoneyInput value={desconto} onValue={setDesconto}/></label></div>
         {deliveryAtivo&&entrega==='DELIVERY'&&<div className="pdv3-fields"><label className="pdv3-field">Taxa de entrega<MoneyInput value={taxaEntrega} onValue={setTaxaEntrega}/></label><label className="pdv3-field">Endereço<input required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
         {cascosAtivo&&clienteId&&<label className="pdv3-field">Cascos devolvidos<input type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
@@ -229,11 +232,11 @@ export function PDV(){
       </section>
     </div>}
     {recebimento&&<Modal title="Recebimento da venda" onClose={()=>{if(!busy)setRecebimento(false);}}>
-      <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>
-      {pagamentos.length===1&&<div className="pdv3-payment-options">{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=>{const Icon=f.key==='DINHEIRO'?Banknote:f.key==='PIX'?QrCode:f.key==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.key} aria-pressed={pagamentos[0].forma===f.key} disabled={busy} onClick={()=>setPagamentos([{forma:f.key,valor:String(total)}])}><Icon size={22}/>{f.label}</button>;})}</div>}
+      <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>{fiadoAtivo&&<p className="pdv3-note">{escolhido?rotuloCredito(escolhido)+(modalidade(escolhido)==='LIMITADO'?' · Disponível: '+dinheiro(creditoDisponivel(escolhido)):''):'Selecione um cliente para utilizar fiado.'}</p>}{valorFiado>0&&erroCredito(escolhido,valorFiado)&&<Notice message={erroCredito(escolhido,valorFiado)!}/>}
+      {pagamentos.length===1&&<div className="pdv3-payment-options">{FORMAS.filter(f=>podeFiado||f.key!=='FIADO').map(f=>{const Icon=f.key==='DINHEIRO'?Banknote:f.key==='PIX'?QrCode:f.key==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.key} aria-pressed={pagamentos[0].forma===f.key} disabled={busy} onClick={()=>setPagamentos([{forma:f.key,valor:String(total)}])}><Icon size={22}/>{f.label}</button>;})}</div>}
       <Notice message={erro}/>
           <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
-            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select ref={i===0?pagamentoRef:undefined} aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><MoneyInput aria-label={`Valor ${i+1}`} className={input} value={p.valor} onValue={v=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:v}:x))}/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
+            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select ref={i===0?pagamentoRef:undefined} aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>podeFiado||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><MoneyInput aria-label={`Valor ${i+1}`} className={input} value={p.valor} onValue={v=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:v}:x))}/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
             <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
           </div>
 

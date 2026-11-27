@@ -21,7 +21,9 @@ export interface Produto {
   lotes?: Array<{ id: number; numeroLote?: string | null; quantidade: number; dataVencimento?: string | null }>;
 }
 
+export type ModalidadeCredito = 'BLOQUEADO' | 'LIMITADO' | 'ILIMITADO';
 export interface Cliente {
+  modalidadeCredito?: ModalidadeCredito;
   criadoEm?:string;
   id: string;
   nome: string;

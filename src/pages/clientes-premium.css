@@ -21,3 +21,5 @@
 @media(max-width:780px){.cl-data-grid{grid-template-columns:1fr;}}
 @media(max-width:620px){.cl-page{gap:9px;}.cl-kpi{padding:8px;gap:6px;min-height:63px;}.cl-kpi-icon{width:32px;height:32px;}.cl-kpi-icon svg{width:19px;}.cl-form-grid{grid-template-columns:1fr;}.cl-profile .cl-heading{min-width:100px;}.cl-pagination{flex-basis:100%;}}
 @media print{body:has(.cl-receipt) .cl-receipt{position:absolute!important;top:0!important;left:0!important;max-width:none!important;width:100%!important;background:#fff!important;color:#000!important;}}
+
+.cl-credit-modes{display:grid;gap:7px;}.cl-credit-mode{display:grid;gap:4px;text-align:left;padding:10px 12px;border:1px solid #414b55;background:#20262d;border-radius:7px;color:#dce5eb;}.cl-credit-mode[aria-pressed=true]{border-color:#32dca0;background:#17382c;color:#72e5b3;}.cl-credit-mode b{font-size:12px;}.cl-credit-mode small{font-size:11px;color:#b9c4cf;}
