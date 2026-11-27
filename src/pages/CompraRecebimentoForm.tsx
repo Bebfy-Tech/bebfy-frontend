@@ -1,0 +1,26 @@
+import { useRef,useState } from 'react';
+import { Modal,Notice,dinheiro,mensagemErro } from '../components/ui';
+import { comprasApi,saldoItem,valorParcial } from '../services/compras';
+import type { Compra,NovoRecebimento } from '../services/compras';
+type Linha={itemCompraId:string;unidades:number;numeroLote:string;validade:string};
+export function CompraRecebimentoForm({compra,lotes,onClose,onSaved}:{compra:Compra;lotes:boolean;onClose:()=>void;onSaved:(c:Compra)=>void}){
+ const pendentes=compra.itens.filter(i=>saldoItem(i)>0);
+ const [rows,setRows]=useState<Linha[]>(()=>pendentes.map(i=>({itemCompraId:i.id,unidades:saldoItem(i),numeroLote:'',validade:''})));
+ const [chave,setChave]=useState(''),[obs,setObs]=useState(''),[gerar,setGerar]=useState(true),[venc,setVenc]=useState(''),[parcelas,setParcelas]=useState(1),[erro,setErro]=useState(''),[busy,setBusy]=useState(false);
+ const lock=useRef(false),operation=useRef<{json:string;key:string}|null>(null);
+ const alterar=(id:string,d:Partial<Linha>)=>setRows(xs=>xs.map(x=>x.itemCompraId===id?{...x,...d}:x));
+ const total=rows.reduce((a,r)=>{const i=pendentes.find(x=>x.id===r.itemCompraId);return a+(i?Math.round(valorParcial(i,r.unidades)*100):0);},0)/100;
+ async function submit(e:React.FormEvent){
+  e.preventDefault();if(lock.current)return;
+  if(!obs.trim()||rows.every(r=>!r.unidades)||rows.some(r=>!Number.isInteger(r.unidades)||r.unidades<0||r.unidades>saldoItem(pendentes.find(i=>i.id===r.itemCompraId)!))||chave&&!/^\d{44}$/.test(chave)||gerar&&total>0&&(!venc||!Number.isInteger(parcelas)||parcelas<1||parcelas>60||Math.round(total*100)<parcelas)){setErro('Confira quantidades, conferência, chave da NF-e e condições de pagamento.');return;}
+  const body:Omit<NovoRecebimento,'chaveOperacao'>={itens:rows.filter(r=>r.unidades>0).map(r=>({itemCompraId:r.itemCompraId,unidades:r.unidades,numeroLote:lotes?r.numeroLote.trim()||undefined:undefined,validade:lotes?r.validade||undefined:undefined})),chaveNfe:chave||undefined,observacao:obs.trim(),gerarContaPagar:gerar,vencimento:gerar&&total>0?venc:undefined,parcelas:gerar&&total>0?parcelas:undefined};
+  const json=JSON.stringify(body);if(operation.current?.json!==json)operation.current={json,key:crypto.randomUUID()};
+  lock.current=true;setBusy(true);setErro('');try{onSaved(await comprasApi.receber(compra.id,{...body,chaveOperacao:operation.current.key}));}catch(e){setErro(mensagemErro(e));}finally{lock.current=false;setBusy(false);}
+ }
+ return <Modal wide title={'Receber pedido #'+compra.codigoCompra} onClose={()=>!lock.current&&onClose()}><form className="fd-form cp-form" onSubmit={e=>void submit(e)}><Notice message={erro}/><p>Informe a quantidade física na unidade de estoque. Use zero para itens não entregues.</p>
+ <div className="cp-items">{rows.map(r=>{const i=pendentes.find(x=>x.id===r.itemCompraId)!;return <div className="fd-panel cp-item" key={r.itemCompraId}><b>{i.produtoNome}</b><small>Saldo: {saldoItem(i)} {i.unidadeBase} · embalagem original: {i.fator} {i.unidadeBase}</small><div className="cp-grid"><label>Quantidade recebida ({i.unidadeBase})<input type="number" step={1} min={0} max={saldoItem(i)} value={r.unidades} disabled={busy} onChange={e=>alterar(i.id,{unidades:Number(e.target.value)})}/></label><div className="cp-preview"><small>Valor estimado</small><b>{dinheiro(valorParcial(i,r.unidades))}</b></div>{lotes&&<><label>Lote<input maxLength={100} disabled={busy||!r.unidades} value={r.numeroLote} onChange={e=>alterar(i.id,{numeroLote:e.target.value})}/></label><label>Validade<input type="date" disabled={busy||!r.unidades} value={r.validade} onChange={e=>alterar(i.id,{validade:e.target.value})}/></label></>}</div></div>;})}</div>
+ <label>Chave da NF-e (quando houver)<input inputMode="numeric" value={chave} disabled={busy} maxLength={44} onChange={e=>setChave(e.target.value.replace(/\D/g,''))}/></label><small>Não importe novamente o XML de uma nota já recebida manualmente. Informe a chave para bloquear duplicidades.</small>
+ <label>Conferência / observações obrigatórias<textarea required maxLength={1000} rows={2} value={obs} disabled={busy} onChange={e=>setObs(e.target.value)} placeholder="Mercadoria conferida, divergências ou motivo para não gerar conta a pagar"/></label>
+ <label className="cp-check"><input type="checkbox" checked={gerar} disabled={busy} onChange={e=>setGerar(e.target.checked)}/> Gerar contas a pagar deste recebimento</label>{gerar&&total>0&&<div className="cp-grid"><label>Primeiro vencimento<input type="date" required value={venc} disabled={busy} onChange={e=>setVenc(e.target.value)}/></label><label>Parcelas mensais<input type="number" min={1} max={60} step={1} required value={parcelas||''} disabled={busy} onChange={e=>setParcelas(Number(e.target.value))}/></label></div>}
+ <div className="fd-preview"><span>Valor estimado do recebimento</span><strong>{dinheiro(total)}</strong></div><small>Confirmar movimenta estoque e custo médio. O servidor recalcula os valores e valida o saldo do pedido.</small><div className="fd-footer"><button type="button" className="fd-secondary" disabled={busy} onClick={onClose}>Voltar</button><button className="fd-primary" disabled={busy}>{busy?'Registrando...':'Confirmar recebimento'}</button></div></form></Modal>;
+}
