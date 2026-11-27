@@ -9,6 +9,8 @@ export interface Produto {
   id: number;
   nome: string;
   codigoBarras: string | null;
+  categoria?: { id: string; nome: string } | null;
+  marca?: string | null;
   estoqueAtual: number;
   estoqueMinimo?: number;
   unidadeMedida: string;

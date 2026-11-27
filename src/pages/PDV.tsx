@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Boxes, CreditCard, Minus, Plus, Printer, CheckCircle2, RefreshCcw, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react';
+import { Boxes, CreditCard, Minus, Plus, Printer, CheckCircle2, RefreshCcw, Search, ShoppingCart, Trash2, Wallet, Grid2X2, List, Package, ChevronLeft, ChevronRight, Banknote, QrCode, HandCoins } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasModule } from '../services/moduleAccess';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
 import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
 import { btn, card, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInput } from '../components/ui';
+
+import { ProdutoFoto } from '../components/ProdutoFoto';
+import './pdv-premium.css';
 
 type ItemCarrinho={produto:Produto;quantidade:number;isFardo:boolean};
 type Pagamento={forma:FormaPagamento;valor:string};
@@ -41,20 +44,20 @@ export function PDV(){
   const fiadoAtivo=hasModule(modules,'FIADOS');
   const cascosAtivo=hasModule(modules,'VASILHAMES_RETORNAVEIS');
   const searchRef=useRef<HTMLInputElement>(null);
-  const clienteRef=useRef<HTMLSelectElement>(null);
-  const descontoRef=useRef<HTMLDivElement>(null);
   const pagamentoRef=useRef<HTMLSelectElement>(null);
   const submitting=useRef(false);
   const [vendaConcluida,setVendaConcluida]=useState<{id:string;numero:string;total:number}|null>(null);
   const [receiptError,setReceiptError]=useState('');
   const [receiptLoading,setReceiptLoading]=useState(false);
   const [recebimento,setRecebimento]=useState(false);
-  const finalizeRef=useRef<()=>void>(()=>{});
   const [produtos,setProdutos]=useState<Produto[]>([]);
   const [clientes,setClientes]=useState<Cliente[]>([]);
   const [carrinho,setCarrinho]=useState<ItemCarrinho[]>([]);
   const [caixa,setCaixa]=useState<Caixa|null>(null);
   const [busca,setBusca]=useState('');
+  const [categoria,setCategoria]=useState('');
+  const [modo,setModo]=useState<'lista'|'grade'>('lista');
+  const [pagina,setPagina]=useState(1);
   const [saldoInicial,setSaldoInicial]=useState('0');
   const [clienteId,setClienteId]=useState('');
   const [entrega,setEntrega]=useState<TipoEntrega>('RETIRADA_BALCAO');
@@ -93,25 +96,37 @@ export function PDV(){
   const diferenca=Math.round((total-pago)*100)/100;
   const troco=Math.max(0,-diferenca);
   const escolhido=clientes.find(c=>c.id===clienteId);
+  const categorias=useMemo(()=>Array.from(new Set(produtos.map(p=>p.categoria?.nome).filter((v):v is string=>Boolean(v)))).sort((a,b)=>a.localeCompare(b,'pt-BR')),[produtos]);
   const filtrados=useMemo(()=>{
-    const q=busca.trim().toLowerCase();
-    return produtos.filter(p=>!q||p.nome.toLowerCase().includes(q)||(p.codigoBarras||'').includes(q));
-  },[produtos,busca]);
+    const q=busca.trim().toLocaleLowerCase('pt-BR');
+    return produtos.filter(p=>(!categoria||p.categoria?.nome===categoria)&&(!q||[p.nome,p.codigoBarras,p.id,p.marca].some(v=>String(v??'').toLocaleLowerCase('pt-BR').includes(q))));
+  },[produtos,busca,categoria]);
+  useEffect(()=>{setPagina(1);},[busca,categoria,modo]);
+  const porPagina=modo==='grade'?12:10;
+  const paginas=Math.max(1,Math.ceil(filtrados.length/porPagina));
+  const atual=Math.min(pagina,paginas);
+  const visiveis=filtrados.slice((atual-1)*porPagina,atual*porPagina);
+  // Units and packs share the same physical stock.
+  const restante=(p:Produto,items:ItemCarrinho[]=carrinho)=>Math.max(0,p.estoqueAtual-items.filter(i=>i.produto.id===p.id).reduce((sum,i)=>sum+i.quantidade*(i.isFardo?Math.max(1,Number(i.produto.fardoQuantidade)||1):1),0));
   const inserir=(p:Produto)=>{
     if(p.estoqueAtual<1)return;
     setCarrinho(curr=>{
+      if(restante(p,curr)<1)return curr;
       const found=curr.find(i=>i.produto.id===p.id&&!i.isFardo);
       if(found)return curr.map(i=>i===found?{...i,quantidade:Math.min(maxQuantity(i),i.quantidade+1)}:i);
       return [...curr,{produto:p,quantidade:1,isFardo:false}];
     });
     setComprovante(null);setSucesso('');
   };
-  const changeQty=(p:Produto,isFardo:boolean,diff:number)=>setCarrinho(curr=>curr.map(i=>i.produto.id===p.id&&i.isFardo===isFardo?
-    {...i,quantidade:Math.max(0,Math.min(maxQuantity(i),i.quantidade+diff))}:i).filter(i=>i.quantidade>0));
+  const changeQty=(p:Produto,isFardo:boolean,diff:number)=>setCarrinho(curr=>{
+    if(diff>0&&restante(p,curr)<(isFardo?Math.max(1,Number(p.fardoQuantidade)||1):1))return curr;
+    return curr.map(i=>i.produto.id===p.id&&i.isFardo===isFardo?{...i,quantidade:Math.max(0,Math.min(maxQuantity(i),i.quantidade+diff))}:i).filter(i=>i.quantidade>0);
+  });
   const fardo=(p:Produto)=>{
     const quant=Math.max(1,Number(p.fardoQuantidade)||1);
     if(quant<2||p.estoqueAtual<quant)return;
     setCarrinho(curr=>{
+      if(restante(p,curr)<quant)return curr;
       const found=curr.find(i=>i.produto.id===p.id&&i.isFardo);
       if(found)return curr.map(i=>i===found?{...i,quantidade:Math.min(maxQuantity(i),i.quantidade+1)}:i);
       return [...curr,{produto:p,isFardo:true,quantidade:1}];
@@ -148,7 +163,7 @@ export function PDV(){
     if(diferenca>0.009||troco>0&&!saldoDinheiro){setErro(`Os pagamentos precisam cobrir o total de ${dinheiro(total)}. Diferença: ${dinheiro(diferenca)}.`);return;}
     if(pagamentos.some(p=>p.forma==='FIADO')&&!clienteId){setErro('Para vender fiado selecione um cliente.');return;}
     if(pagamentos.filter(p=>p.forma==='DINHEIRO').length>1&&troco>0){setErro('Use apenas um pagamento em dinheiro para calcular o troco.');return;}
-    // Single synchronous lock prevents rapid clicks or repeated F9 submissions.
+    // Single synchronous lock prevents rapid clicks or repeated submissions.
     submitting.current=true;setBusy(true);
     try{
       const venda=await bebfy.vendas.registrar({
@@ -173,57 +188,56 @@ export function PDV(){
       finally{setReceiptLoading(false);}
     }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);submitting.current=false;}
   }
-  const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');requestAnimationFrame(()=>searchRef.current?.focus());};
+  const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');setCategoria('');setPagina(1);requestAnimationFrame(()=>searchRef.current?.focus());};
   const retryReceipt=async()=>{if(!vendaConcluida||receiptLoading)return;setReceiptLoading(true);setReceiptError('');try{setComprovante(await bebfy.vendas.comprovante(vendaConcluida.id));}catch(e){setReceiptError(mensagemErro(e));}finally{setReceiptLoading(false);}};
-  const abrirRecebimento=()=>{if(!carrinho.length||total<=0||busy||vendaConcluida)return;setPagamentos(p=>p.length===1&&p[0].valor===''?[{...p[0],valor:String(total)}]:p);setRecebimento(true);};
-  finalizeRef.current=()=>{if(vendaConcluida)return;if(recebimento)void finalizar();else abrirRecebimento();};
-  useEffect(()=>{
-    const onKey=(event:KeyboardEvent)=>{
-      if(event.repeat||vendaConcluida)return;
-      if(event.key==='F9'){event.preventDefault();finalizeRef.current();}
-      if(recebimento)return;
-      if(event.key==='F2'){event.preventDefault();searchRef.current?.focus();}
-      if(event.key==='F4'){event.preventDefault();clienteRef.current?.focus();}
-      if(event.key==='F6'){event.preventDefault();descontoRef.current?.querySelector('input')?.focus();}
-      if(event.key==='F8'){event.preventDefault();finalizeRef.current();}
-    };
-    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);
-  },[vendaConcluida,recebimento]);
+  const abrirRecebimento=()=>{if(!carrinho.length||total<=0||busy||vendaConcluida)return;if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setPagamentos(p=>p.length===1?[{...p[0],forma:!fiadoAtivo&&p[0].forma==='FIADO'?'DINHEIRO':p[0].forma,valor:String(total)}]:p);setRecebimento(true);};
   useEffect(()=>{if(recebimento)requestAnimationFrame(()=>pagamentoRef.current?.focus());},[recebimento]);
-  return <div className="bf-pdv space-y-3">
-    <div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-widest text-blue-400">Frente de caixa</p><h1 className="mt-1 text-2xl font-black tracking-tight text-white">PDV Bebfy</h1><p className="mt-1 text-sm text-slate-400">{empresa?.nomeFantasia} · Operador {user?.nome} · F2 buscar · F4 cliente · F6 desconto · F8 receber · F9 finalizar</p></div>
-      <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-3 py-2 text-xs font-bold ${caixa?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}`}>{caixa?'● Caixa aberto':'● Caixa fechado'}</span><button onClick={()=>void carregar()} disabled={loading} className={secondary}><RefreshCcw size={16}/> Atualizar</button><Link to={tenantPath("vendas")} className={secondary}>Histórico</Link></div></div>
+  const botoesProduto=(p:Produto)=><div className="pdv3-add"><button type="button" aria-label={'Adicionar unidade de '+p.nome} onClick={()=>inserir(p)} disabled={busy||restante(p)<1} className="pdv3-primary"><Plus size={15}/> Un.</button>{Number(p.fardoQuantidade)>1&&<button type="button" aria-label={'Adicionar fardo de '+p.nome} onClick={()=>fardo(p)} disabled={busy||restante(p)<Number(p.fardoQuantidade)} className="pdv3-secondary"><Boxes size={15}/> Fardo</button>}</div>;
+  const foto=(p:Produto)=><div className="pdv3-photo"><ProdutoFoto produtoId={String(p.id)} editable={false}/></div>;
+  return <div className="bf-pdv pdv3">
+    <header className="pdv3-header"><span className="pdv3-title-icon"><ShoppingCart size={24}/></span><div className="pdv3-heading"><h1>Frente de Caixa</h1><p>Venda rápida e atendimento ao cliente · {user?.nome} · {empresa?.nomeFantasia}</p></div>
+      <span className={'pdv3-status '+(caixa?'open':'closed')}>● {caixa?'Caixa aberto':'Caixa fechado'}</span><button type="button" onClick={()=>void carregar()} disabled={loading||busy} className="pdv3-secondary" aria-label="Atualizar catálogo" title="Atualizar catálogo"><RefreshCcw size={16} className={loading?'animate-spin':''}/></button><Link to={tenantPath('vendas')} className="pdv3-secondary">Histórico de vendas</Link>
+    </header>
     <Notice message={erro}/><Notice message={sucesso} success/>
-    {loading&&!produtos.length?<div className={`${card} p-12 text-center text-slate-500`}>Carregando PDV...</div>:!caixa?
-      <section className={`${card} mx-auto max-w-md p-7`}><Wallet className="text-teal-700" size={35}/><h2 className="mt-4 text-xl font-extrabold">Abra o caixa para começar</h2><p className="mt-2 text-sm text-slate-500">Informe o valor inicial disponível em espécie.</p><label className="mt-6 block text-sm font-semibold">Saldo inicial (R$)<MoneyInput className={`${input} mt-2`} value={saldoInicial} onValue={setSaldoInicial}/></label><button disabled={busy} className={`${btn} mt-5 w-full`} onClick={()=>void abrirCaixa()}>{busy?'Abrindo...':'Abrir meu caixa'}</button></section>
-    :<div className="bf-pdv-grid">
-      <section className={`${card} bf-pdv-catalog-panel min-w-0 p-3`}><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="font-extrabold">Catálogo de produtos</h2><span className="text-xs text-slate-500">{filtrados.length} produto(s)</span></div>
-        <div className="relative mb-4"><Search className="absolute left-3 top-3.5 text-slate-400" size={18}/><input autoFocus className={`${input} pl-10`} ref={searchRef} placeholder="Buscar produto ou bipar código (F2)" value={busca} onChange={e=>setBusca(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){const produto=produtos.find(p=>p.codigoBarras&&p.codigoBarras===busca.trim());if(produto){e.preventDefault();inserir(produto);setBusca('');}}}}/></div>
-        <p className="mb-3 text-xs text-slate-400">Bipe o código de barras e pressione Enter para adicionar o item automaticamente. F2 volta para a busca.</p>
-        <div className="bf-pdv-catalog bf-table-scroll overflow-auto"><table className="w-full min-w-[420px] text-left text-sm"><thead><tr><th>Produto / EAN</th><th>Estoque</th><th>Varejo</th><th className="text-right">Adicionar</th></tr></thead><tbody>{filtrados.map(p=><tr key={p.id}><td><strong className="block">{p.nome}</strong><small className="text-slate-400">{p.codigoBarras||'—'}</small></td><td className="tabular-nums">{p.estoqueAtual}</td><td className="font-bold tabular-nums text-emerald-300">{dinheiro(p.precoVendaVarejo)}</td><td><div className="flex justify-end gap-1"><button aria-label={`Adicionar unidade de ${p.nome}`} onClick={()=>inserir(p)} disabled={p.estoqueAtual<1} className={btn}><Plus size={15}/> Un.</button>{Number(p.fardoQuantidade)>1&&<button aria-label={`Adicionar fardo de ${p.nome}`} onClick={()=>fardo(p)} disabled={p.estoqueAtual<Number(p.fardoQuantidade)} className={secondary}><Boxes size={15}/> Fardo</button>}</div></td></tr>)}</tbody></table>{!filtrados.length&&<p className="bf-empty-text">Nenhum produto encontrado.</p>}</div>
-      </section>
-      <section className={`${card} bf-pdv-sale-panel min-w-0 p-3`}><h2 className="mb-4 flex items-center gap-2 font-extrabold"><ShoppingCart size={20}/> Venda atual</h2>
-        <div className="bf-pdv-cart bf-table-scroll overflow-auto"><table className="w-full min-w-[330px] text-left text-sm"><thead><tr><th>Item</th><th>Qtd.</th><th>Total</th><th><span className="sr-only">Remover</span></th></tr></thead><tbody>{carrinho.map(i=><tr key={i.produto.id+(i.isFardo?'F':'U')}><td className="font-semibold">{i.produto.nome}{i.isFardo?' · Fardo':''}</td><td><div className="flex items-center gap-2"><button type="button" onClick={()=>changeQty(i.produto,i.isFardo,-1)} aria-label="Diminuir"><Minus size={16}/></button><b>{i.quantidade}</b><button type="button" onClick={()=>changeQty(i.produto,i.isFardo,1)} disabled={i.quantidade>=maxQuantity(i)} aria-label="Aumentar"><Plus size={16}/></button></div></td><td className="whitespace-nowrap font-bold">{dinheiro(price(i)*i.quantidade)}</td><td><button aria-label="Remover produto" onClick={()=>setCarrinho(a=>a.filter(x=>x!==i))}><Trash2 size={16} className="text-rose-600"/></button></td></tr>)}</tbody></table>{!carrinho.length&&<p className="bf-empty-text">Adicione produtos para montar a venda.</p>}</div>
-        <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
-          <label className="block text-xs font-bold text-slate-600">Cliente {fiadoAtivo?'(opcional; obrigatório para fiado)':'(opcional)'}<select ref={clienteRef} className={`${input} mt-1`} value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));}}><option value="">Venda avulsa / balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
-          {fiadoAtivo&&escolhido&&<p className="text-[11px] text-slate-500">Limite: {dinheiro(escolhido.limiteCredito)} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
-          <div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Entrega<select className={`${input} mt-1`} value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option>{deliveryAtivo&&<option value="DELIVERY">Delivery</option>}</select></label><div ref={descontoRef}><label className="block text-xs font-bold text-slate-600">Desconto (R$)<MoneyInput className={`${input} mt-1`} value={desconto} onValue={setDesconto}/></label></div></div>
-          {deliveryAtivo&&entrega==='DELIVERY'&&<div className="grid gap-3 sm:grid-cols-2"><label className="block text-xs font-bold text-slate-600">Taxa de entrega<MoneyInput className={`${input} mt-1`} value={taxaEntrega} onValue={setTaxaEntrega}/></label><label className="block text-xs font-bold text-slate-600">Endereço<input className={`${input} mt-1`} required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
-          {cascosAtivo&&clienteId&&<label className="block text-xs font-bold text-slate-600">Cascos devolvidos<input className={`${input} mt-1`} type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
-          <div className="flex justify-between text-sm"><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div><div className="flex justify-between text-xl font-black"><span>Total da venda</span><span className="text-emerald-300">{dinheiro(total)}</span></div>
-          <div className="bf-pdv-footer"><button className={`${btn} w-full`} onClick={abrirRecebimento} disabled={busy||!carrinho.length||total<=0}><CreditCard size={18}/> Receber venda · F8</button></div>
+    {loading&&!produtos.length?<div className="pdv3-panel pdv3-empty">Carregando PDV...</div>:!caixa?
+      <section className="pdv3-panel pdv3-open"><Wallet size={34}/><h2>Abra o caixa para começar</h2><p>Informe o valor inicial disponível em espécie.</p><label className="pdv3-field">Saldo inicial (R$)<MoneyInput value={saldoInicial} onValue={setSaldoInicial}/></label><button type="button" disabled={busy} className="pdv3-primary" onClick={()=>void abrirCaixa()}>{busy?'Abrindo...':'Abrir meu caixa'}</button></section>
+    :<div className="pdv3-grid">
+      <div className="pdv3-left">
+       <label className="pdv3-search"><Search size={20}/><input autoFocus ref={searchRef} aria-label="Buscar produto ou código de barras" placeholder="Buscar produto ou bipar código de barras" value={busca} onChange={e=>setBusca(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();const q=busca.trim();const produto=produtos.find(p=>p.codigoBarras&&p.codigoBarras===q);if(produto){if(restante(produto)<1){setErro('Estoque insuficiente para '+produto.nome+'.');return;}inserir(produto);setBusca('');setCategoria('');setErro('');}else if(q)setErro('Código de barras não encontrado.');}}}/></label>
+       <nav className="pdv3-categories" aria-label="Categorias do catálogo"><button type="button" aria-pressed={!categoria} onClick={()=>setCategoria('')}>Todos</button>{categorias.map(c=><button type="button" key={c} aria-pressed={categoria===c} onClick={()=>setCategoria(c)}>{c}</button>)}</nav>
+       <section className="pdv3-panel pdv3-catalog">
+        <div className="pdv3-panel-title"><h2>Catálogo de produtos <small>{filtrados.length} produto(s)</small></h2><div className="pdv3-view"><button type="button" aria-pressed={modo==='lista'} onClick={()=>setModo('lista')} title="Lista"><List size={16}/> Lista</button><button type="button" aria-pressed={modo==='grade'} onClick={()=>setModo('grade')} title="Grade"><Grid2X2 size={16}/> Grade</button></div></div>
+        <div className="pdv3-catalog-scroll">
+         {modo==='lista'?<table className="pdv3-table"><thead><tr><th>Produto</th><th>Estoque</th><th>Preço</th><th>Adicionar</th></tr></thead><tbody>{visiveis.map(p=><tr key={p.id}><td><div className="pdv3-product">{foto(p)}<span><strong>{p.nome}</strong><small>{p.codigoBarras||'Cód. '+p.id} · {p.unidadeMedida}</small></span></div></td><td><span className={restante(p)<1?'pdv3-stock-zero':''}>{restante(p)}</span></td><td className="pdv3-price">{dinheiro(p.precoVendaVarejo)}</td><td>{botoesProduto(p)}</td></tr>)}</tbody></table>:<div className="pdv3-product-grid">{visiveis.map(p=><article key={p.id}>{foto(p)}<strong>{p.nome}</strong><small>Disponível: {restante(p)} un.</small><b className="pdv3-price">{dinheiro(p.precoVendaVarejo)}</b>{botoesProduto(p)}</article>)}</div>}
+         {!filtrados.length&&<div className="pdv3-empty"><Package size={30}/><p>Nenhum produto encontrado.</p></div>}
         </div>
+        <footer className="pdv3-pages"><small>{filtrados.length?(atual-1)*porPagina+1:0}–{Math.min(atual*porPagina,filtrados.length)} de {filtrados.length}</small><div><button type="button" className="pdv3-secondary" aria-label="Página anterior" disabled={atual<=1} onClick={()=>setPagina(atual-1)}><ChevronLeft size={16}/></button><span>{atual} / {paginas}</span><button type="button" className="pdv3-secondary" aria-label="Próxima página" disabled={atual>=paginas} onClick={()=>setPagina(atual+1)}><ChevronRight size={16}/></button></div></footer>
+       </section>
+      </div>
+      <section className="pdv3-panel pdv3-sale">
+       <div className="pdv3-panel-title"><h2><ShoppingCart size={19}/> Venda atual</h2><small>{carrinho.length} produto(s)</small></div>
+       <div className="pdv3-cart-scroll"><table className="pdv3-table pdv3-cart-table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Total</th><th aria-label="Remover"/></tr></thead><tbody>{carrinho.map(i=><tr key={i.produto.id+(i.isFardo?'F':'U')}><td><strong>{i.produto.nome}</strong><small>{i.isFardo?'Fardo':'Unidade'} · {dinheiro(price(i))}</small></td><td><div className="pdv3-qty"><button type="button" disabled={busy} onClick={()=>changeQty(i.produto,i.isFardo,-1)} aria-label="Diminuir quantidade"><Minus size={14}/></button><b>{i.quantidade}</b><button type="button" disabled={busy||restante(i.produto)<(i.isFardo?Math.max(1,Number(i.produto.fardoQuantidade)||1):1)} onClick={()=>changeQty(i.produto,i.isFardo,1)} aria-label="Aumentar quantidade"><Plus size={14}/></button></div></td><td className="pdv3-line-total">{dinheiro(price(i)*i.quantidade)}</td><td><button type="button" className="pdv3-remove" disabled={busy} aria-label={'Remover '+i.produto.nome} onClick={()=>setCarrinho(a=>a.filter(x=>x!==i))}><Trash2 size={16}/></button></td></tr>)}</tbody></table>{!carrinho.length&&<div className="pdv3-empty"><ShoppingCart size={30}/><p>Adicione produtos para iniciar a venda.</p></div>}</div>
+       <div className="pdv3-sale-bottom">
+        <label className="pdv3-field">Cliente {fiadoAtivo?'(obrigatório para fiado)':'(opcional)'}<select value={clienteId} onChange={e=>{setClienteId(e.target.value);const c=clientes.find(x=>x.id===e.target.value);setEnderecoEntrega(String((c as Cliente&{endereco?:string}|undefined)?.endereco||''));if(!e.target.value)setCascosDevolvidos('0');}}><option value="">Consumidor / venda balcão</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.nome}{fiadoAtivo?' · Fiado '+dinheiro(c.saldoDevedor):''}</option>)}</select></label>
+        {fiadoAtivo&&escolhido&&<p className="pdv3-note">Limite: {dinheiro(escolhido.limiteCredito)} · Saldo atual: {dinheiro(escolhido.saldoDevedor)}</p>}
+        <div className="pdv3-fields">{deliveryAtivo&&<label className="pdv3-field">Tipo de entrega<select value={entrega} onChange={e=>setEntrega(e.target.value as TipoEntrega)}><option value="RETIRADA_BALCAO">Retirada no balcão</option><option value="DELIVERY">Delivery</option></select></label>}<label className="pdv3-field">Desconto (R$)<MoneyInput value={desconto} onValue={setDesconto}/></label></div>
+        {deliveryAtivo&&entrega==='DELIVERY'&&<div className="pdv3-fields"><label className="pdv3-field">Taxa de entrega<MoneyInput value={taxaEntrega} onValue={setTaxaEntrega}/></label><label className="pdv3-field">Endereço<input required value={enderecoEntrega} onChange={e=>setEnderecoEntrega(e.target.value)}/></label></div>}
+        {cascosAtivo&&clienteId&&<label className="pdv3-field">Cascos devolvidos<input type="number" min={0} value={cascosDevolvidos} onChange={e=>setCascosDevolvidos(e.target.value)}/></label>}
+        <div className="pdv3-totals"><div><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div>{descontoVal>0&&<div><span>Desconto</span><strong>− {dinheiro(descontoVal)}</strong></div>}{entregaVal>0&&<div><span>Entrega</span><strong>{dinheiro(entregaVal)}</strong></div>}</div>
+       </div>
+       <footer className="pdv3-sale-footer"><div className="pdv3-total"><span>TOTAL A RECEBER</span><strong>{dinheiro(total)}</strong></div><button type="button" className="pdv3-primary pdv3-receive" onClick={abrirRecebimento} disabled={busy||!carrinho.length||total<=0}><CreditCard size={20}/> Receber venda</button></footer>
       </section>
     </div>}
     {recebimento&&<Modal title="Recebimento da venda" onClose={()=>{if(!busy)setRecebimento(false);}}>
       <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>
+      {pagamentos.length===1&&<div className="pdv3-payment-options">{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=>{const Icon=f.key==='DINHEIRO'?Banknote:f.key==='PIX'?QrCode:f.key==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.key} aria-pressed={pagamentos[0].forma===f.key} disabled={busy} onClick={()=>setPagamentos([{forma:f.key,valor:String(total)}])}><Icon size={22}/>{f.label}</button>;})}</div>}
       <Notice message={erro}/>
           <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
             <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select ref={i===0?pagamentoRef:undefined} aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>fiadoAtivo||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><MoneyInput aria-label={`Valor ${i+1}`} className={input} value={p.valor} onValue={v=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:v}:x))}/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
             <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
           </div>
 
-      <button className={`${btn} mt-4 w-full`} onClick={()=>void finalizar()} disabled={busy||diferenca>0.009}>{busy?'Registrando venda...':'Confirmar venda · F9'}</button>
+      <button className={`${btn} mt-4 w-full`} onClick={()=>void finalizar()} disabled={busy||diferenca>0.009}>{busy?'Registrando venda...':'Confirmar venda'}</button>
       <p className="mt-3 text-center text-xs text-slate-400">Pix e cartão são informados pelo operador; confirme o recebimento antes de finalizar.</p>
     </Modal>}
     {vendaConcluida&&<Modal title="Venda realizada" onClose={novaVenda}>
