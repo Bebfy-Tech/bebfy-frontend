@@ -22,7 +22,7 @@ const primary:Item[]=[
  {to:'/fiados',label:'Fiados',icon:HandCoins},
  {to:'/vasilhames',label:'Vasilhames',icon:ClipboardList},
  {to:'/financeiro',label:'Financeiro',icon:CreditCard,manager:true},
- {to:'/relatorios',label:'Relatórios',icon:FileBarChart,manager:true},
+ {to:'/relatorios',label:'Relatórios',icon:FileBarChart},
 ];
 const additional:Item[]=[
  {to:'/unidades-medida',label:'Unidades de medida',icon:Ruler,permissao:'PRODUTOS_GERENCIAR'},
@@ -40,7 +40,7 @@ export function AppShell(){
  const [open,setOpen]=useState(false);const [profileOpen,setProfileOpen]=useState(false);const [accountOpen,setAccountOpen]=useState(false);
  const manager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
  const isPdv=location.pathname.endsWith('/pdv');
- const allowed=(i:Item)=>modulesStatus==='ready'&&(!i.manager||manager)&&(!i.permissao||manager||Boolean(user?.permissoes?.includes(i.permissao)))&&hasModule(modules,routeModules[i.to])&&(i.to!='/delivery'||hasModule(modules,'CAIXA_PDV'));
+ const allowed=(i:Item)=>modulesStatus==='ready'&&(i.to!=='/relatorios'||manager||Boolean(user?.permissoes?.some(p=>/^RELATORIO_00[1-9]$|^RELATORIO_01[0-3]$/.test(p))))&&(!i.manager||manager)&&(!i.permissao||manager||Boolean(user?.permissoes?.includes(i.permissao)))&&hasModule(modules,routeModules[i.to])&&(i.to!='/delivery'||hasModule(modules,'CAIXA_PDV'));
  const links=(items:Item[])=>items.filter(allowed).map(i=><NavLink key={i.to} to={tenantPath(i.to)} end={i.to==='/estoque'||i.to==='/financeiro'} onClick={()=>{setOpen(false);setAccountOpen(false);}} className={({isActive})=>'bf-menu-link '+(isActive?'bf-menu-active':'')}><i.icon size={19}/><span>{i.label}</span></NavLink>);
  const more=additional.filter(allowed);
  return <div className={'bebfy-workspace bf-workspace bf-premium-shell '+(isPdv?'bebfy-pdv-mode':'')}>

@@ -1,42 +1,47 @@
-import { hasModule, routeModules } from '../services/moduleAccess';
-import { useAuth } from '../contexts/AuthContext';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { BarChart3, Boxes, CircleDollarSign, CreditCard, FileBarChart, Wallet } from 'lucide-react';
-import { bebfy } from '../services/bebfy';
-import { tenantPath } from '../services/tenantUrls';
-import type { Dashboard } from '../services/bebfy';
-import { card, dinheiro, Empty, mensagemErro, Notice, PageTitle } from '../components/ui';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {FileBarChart,Search,Printer,ArrowLeft,RefreshCcw,FileDown,Package,Wallet,BarChart3,AlertTriangle} from 'lucide-react';
+import {useAuth} from '../contexts/AuthContext';
+import {api} from '../services/api';
+import {mensagemErro,Notice,dinheiro} from '../components/ui';
+import './relatorios-premium.css';
 
+type Def={codigo:string;nome:string;grupo:string;descricao:string;periodo:boolean};
+type Cell=string|number|null;
+type Result={codigo:string;nome:string;geradoEm:string;inicio:string|null;fim:string|null;colunas:{key:string;label:string;tipo?:string}[];linhas:Record<string,Cell>[];resumo:{label:string;valor:Cell;tipo?:string}[];nota:string};
+const norm=(v:unknown)=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const hoje=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const fmt=(v:Cell|undefined,t?:string)=>v==null?'—':t==='money'?dinheiro(v):t==='date'?String(v).slice(0,10).split('-').reverse().join('/'):t==='datetime'?new Date(String(v)).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):typeof v==='number'?v.toLocaleString('pt-BR'):v;
+function csvCell(v:unknown){let s=String(v??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
 export function RelatoriosPage(){
-  const {modules,user}=useAuth();
-  const manager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
-  const [dados,setDados]=useState<Dashboard|null>(null);
-  const [loading,setLoading]=useState(true);
-  const [erro,setErro]=useState('');
-  const load=useCallback(async()=>{setLoading(true);setErro('');try{setDados(await bebfy.dashboard());}catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}},[]);
-  useEffect(()=>{if(manager)void load();},[load,manager]);
-  const ranking=useMemo(()=>dados?.topProdutosMaisVendidos??[],[dados]);
-  const maximo=Math.max(1,...ranking.map(x=>Number(x.quantidadeVendida)));
-  const cards=[
-    {title:'Faturamento de hoje',value:dinheiro(dados?.faturamentoHoje),desc:`${dados?.totalVendasHoje??0} venda(s) hoje`,icon:CircleDollarSign},
-    {title:'Faturamento do mês',value:dinheiro(dados?.faturamentoMes),desc:`${dados?.totalVendasMes??0} venda(s) no mês`,icon:BarChart3},
-    {title:'Fiado a receber',value:dinheiro(dados?.totalFiadoAReceber),desc:'Saldo de clientes',icon:CreditCard},
-    {title:'Caixas ativos',value:String(dados?.caixasAtivos?.length??0),desc:'Turnos em operação',icon:Wallet},
-  ];
-  if(!manager)return <Notice message="Relatórios gerenciais restritos a gestores."/>;
-  return <>
-    <PageTitle title="Relatórios e indicadores" subtitle="Acompanhe resultados e produtos mais vendidos, calculados pelo backend." onReload={()=>void load()} loading={loading}/>
-    <Notice message={erro}/>
-    {loading&&!dados?<div className={`${card} p-10 text-center text-slate-500`}>Carregando indicadores...</div>:<>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({title,value,desc,icon:Icon})=><div key={title} className={`${card} p-5`}><div className="flex items-center justify-between text-sm text-slate-500"><span>{title}</span><Icon size={21} className="text-teal-700"/></div><strong className="mt-4 block text-2xl font-black text-slate-900">{value}</strong><p className="mt-1 text-xs text-slate-500">{desc}</p></div>)}</section>
-      <div className="mt-6 grid gap-5 xl:grid-cols-5">
-        <section className={`${card} p-5 sm:p-6 xl:col-span-3`}><h2 className="flex items-center gap-2 font-extrabold"><FileBarChart size={21} className="text-teal-700"/> Ranking de produtos</h2><p className="mt-1 text-xs text-slate-500">Volume de unidades vendidas no período calculado pela API.</p>
-          <div className="mt-6 space-y-5">{ranking.map((r,i)=><div key={r.produto?.id??i}><div className="mb-2 flex items-center justify-between gap-4 text-sm"><div className="min-w-0"><strong className="truncate">{r.produto?.nome??'Produto removido'}</strong><span className="ml-2 text-xs text-slate-400">{r.quantidadeVendida} un.</span></div><span className="shrink-0 font-bold text-teal-800">{dinheiro(r.totalArrecadado)}</span></div><div className="h-2.5 rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#262a31] to-emerald-400" style={{width:`${Number(r.quantidadeVendida)/maximo*100}%`}}/></div></div>)}{!ranking.length&&<Empty>Nenhuma venda registrada para gerar ranking.</Empty>}</div>
-        </section>
-        <section className={`${card} p-5 sm:p-6 xl:col-span-2`}><h2 className="mb-4 font-extrabold">Atalhos de gestão</h2><div className="space-y-3">{[{to:'/vendas',title:'Histórico de vendas',desc:'Consulte comprovantes e cancelamentos',icon:FileBarChart},{to:'/estoque',title:'Posição de estoque',desc:'Saldo e movimentações de produtos',icon:Boxes},{to:'/fiados',title:'Valores em aberto',desc:'Consulte clientes devedores',icon:CreditCard},{to:'/caixas',title:'Extratos de caixa',desc:'Confira aberturas, retiradas e fechamento',icon:Wallet}].filter(a=>hasModule(modules,routeModules[a.to])).map(({to,title,desc,icon:Icon})=><Link key={to} to={tenantPath(to)} className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition hover:border-teal-400 hover:bg-teal-50"><Icon size={22} className="shrink-0 text-teal-700"/><div><strong className="text-sm">{title}</strong><p className="mt-1 text-xs text-slate-500">{desc}</p></div></Link>)}</div></section>
-      </div>
-      <p className="mt-5 text-xs text-slate-500">Este relatório exibe os indicadores expostos em GET /relatorios/dashboard. Gráficos históricos por dia, exportação CSV e relatórios contábeis ainda requerem endpoints específicos.</p>
-    </>}
-  </>;
+ const {empresa}=useAuth();
+ const [catalogo,setCatalogo]=useState<Def[]>([]),[busca,setBusca]=useState(''),[grupo,setGrupo]=useState('todos');
+ const [sel,setSel]=useState<Def|null>(null),[dados,setDados]=useState<Result|null>(null),[inicio,setInicio]=useState(()=>hoje().slice(0,7)+'-01'),[fim,setFim]=useState(hoje),[produto,setProduto]=useState(''),[filtro,setFiltro]=useState(''),[pagina,setPagina]=useState(1);
+ const [busy,setBusy]=useState(false),[erro,setErro]=useState(''),[loading,setLoading]=useState(true);
+ const seq=useRef(0),lock=useRef(false);
+ async function carregar(){const n=++seq.current;setLoading(true);setErro('');try{const r=await api.get<Def[]>('/relatorios/catalogo');if(n===seq.current)setCatalogo(r.data);}catch(e){if(n===seq.current){setCatalogo([]);setErro(mensagemErro(e));}}finally{if(n===seq.current)setLoading(false);}}
+ useEffect(()=>{void carregar();return()=>{seq.current++;};},[]);
+ const encontrados=useMemo(()=>catalogo.filter(r=>(grupo==='todos'||r.grupo===grupo)&&norm(r.codigo+' REL-'+r.codigo+' '+r.nome+' '+r.descricao).includes(norm(busca.trim()))),[catalogo,grupo,busca]);
+ const linhas=useMemo(()=>dados?.linhas.filter(r=>Object.values(r).some(v=>norm(v).includes(norm(filtro.trim()))))??[],[dados,filtro]);
+ const paginas=Math.max(1,Math.ceil(linhas.length/15)),atual=Math.min(pagina,paginas);
+ const buscaProduto=Boolean(sel&&['001','002','003','005','007'].includes(sel.codigo));
+ function abrir(r:Def){setSel(r);setDados(null);setProduto('');setFiltro('');setPagina(1);setErro('');}
+ async function gerar(){if(!sel||lock.current)return;lock.current=true;setBusy(true);setErro('');setDados(null);setFiltro('');setPagina(1);
+ try{const r=await api.get<Result>('/relatorios/gerar/'+sel.codigo,{params:{...(sel.periodo?{inicio,fim}:{}),...(buscaProduto&&produto.trim()?{busca:produto.trim()}: {})}});setDados(r.data);}catch(e){setErro(mensagemErro(e));}finally{setBusy(false);lock.current=false;}}
+ function exportar(){if(!dados)return;const csv=[dados.colunas.map(c=>csvCell(c.label)).join(';'),...linhas.map(r=>dados.colunas.map(c=>csvCell(fmt(r[c.key],c.tipo))).join(';'))].join('\r\n');const u=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download='Bebfy-REL-'+dados.codigo+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+ return <div className="rl-page"><header className="rl-header"><span className="rl-head-icon"><FileBarChart size={28}/></span><div><h1>Central de relatórios e DRE</h1><p>Consulte, filtre, exporte e imprima informações para sua gestão.</p></div>{sel?<button className="rl-secondary" disabled={busy} onClick={()=>{setSel(null);setDados(null);setErro('');}}><ArrowLeft size={16}/> Voltar ao catálogo</button>:<button className="rl-secondary" disabled={loading} onClick={()=>void carregar()}><RefreshCcw size={16}/> Atualizar</button>}</header>
+ <Notice message={erro} onClose={()=>setErro('')}/>
+ {!sel?<><div className="rl-kpis">{[{n:'Relatórios disponíveis',v:catalogo.length,I:FileBarChart},{n:'Estoque e compras',v:catalogo.filter(r=>r.grupo==='Estoque e compras').length,I:Package},{n:'Vendas e caixa',v:catalogo.filter(r=>r.grupo==='Vendas e caixa').length,I:BarChart3},{n:'Financeiro',v:catalogo.filter(r=>r.grupo==='Financeiro').length,I:Wallet}].map(k=><div className="rl-panel rl-kpi" key={k.n}><k.I size={24}/><div><small>{k.n}</small><strong>{loading?'—':k.v}</strong></div></div>)}</div>
+ <div className="rl-tools"><label className="rl-search"><Search size={18}/><input placeholder="Pesquisar por código (001), nome ou finalidade..." aria-label="Pesquisar relatório" value={busca} onChange={e=>setBusca(e.target.value)}/></label><select aria-label="Grupo de relatórios" value={grupo} onChange={e=>setGrupo(e.target.value)}><option value="todos">Todos os grupos</option>{Array.from(new Set(catalogo.map(r=>r.grupo))).map(g=><option key={g}>{g}</option>)}</select></div>
+ <section className="rl-panel"><div className="rl-title"><h2>Catálogo de relatórios</h2><small>{encontrados.length} disponíveis</small></div><div className="rl-scroll"><table className="rl-table"><thead><tr><th>Código</th><th>Relatório</th><th>Grupo</th><th>Ação</th></tr></thead><tbody>{encontrados.map(r=><tr key={r.codigo}><td><span className="rl-code">{r.codigo}</span></td><td><strong>{r.nome}</strong><small>{r.descricao}</small></td><td>{r.grupo}</td><td><button type="button" className="rl-primary" onClick={()=>abrir(r)}>Abrir</button></td></tr>)}</tbody></table>{!encontrados.length&&<p className="rl-empty">{loading?'Carregando relatórios...':'Nenhum relatório disponível para os filtros e permissões atuais.'}</p>}</div></section></>:<>
+ <section className="rl-panel rl-config"><div className="rl-title"><h2>REL-{sel.codigo} · {sel.nome}</h2></div><p>{sel.descricao}</p><form className="rl-tools" onSubmit={e=>{e.preventDefault();void gerar();}}>{sel.periodo&&<><label>Data inicial<input type="date" required value={inicio} disabled={busy} onChange={e=>{setInicio(e.target.value);setDados(null);}}/></label><label>Data final<input type="date" required min={inicio} value={fim} disabled={busy} onChange={e=>{setFim(e.target.value);setDados(null);}}/></label></>}{buscaProduto&&<label className="rl-product-search">Produto / código de barras<input value={produto} disabled={busy} maxLength={120} placeholder="Todos os produtos" onChange={e=>{setProduto(e.target.value);setDados(null);}}/></label>}<button className="rl-primary" disabled={busy} type="submit">{busy?'Gerando...':'Gerar relatório'}</button></form></section>
+ {dados&&<section className="rl-panel rl-result"><div className="rl-title"><h2>Resultado · {linhas.length} registros</h2><div className="rl-tools"><button className="rl-secondary" onClick={exportar}><FileDown size={16}/> CSV</button><button className="rl-primary" onClick={()=>window.print()}><Printer size={16}/> Imprimir / PDF</button></div></div>
+ {dados.resumo.length>0&&<div className="rl-kpis rl-summary">{dados.resumo.map(r=><div key={r.label} className="rl-kpi rl-panel"><div><small>{r.label}</small><strong>{fmt(r.valor,r.tipo)}</strong></div></div>)}</div>}
+ <label className="rl-search rl-result-search"><Search size={17}/><input aria-label="Filtrar resultado" placeholder="Pesquisar nos resultados..." value={filtro} onChange={e=>{setFiltro(e.target.value);setPagina(1);}}/></label>
+ {filtro&&<p className="rl-note">Indicadores referem-se ao resultado completo antes da pesquisa local. Impressão e CSV incluem apenas registros filtrados.</p>}
+ <div className="rl-scroll"><table className="rl-table"><thead><tr>{dados.colunas.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead><tbody>{linhas.slice((atual-1)*15,atual*15).map((r,i)=><tr key={i}>{dados.colunas.map(c=><td key={c.key}>{fmt(r[c.key],c.tipo)}</td>)}</tr>)}</tbody></table>{!linhas.length&&<div className="rl-empty">Nenhum registro encontrado.</div>}</div>
+ <footer className="rl-title"><small>Página {atual} de {paginas}</small><div className="rl-tools"><button className="rl-secondary" disabled={atual<=1} onClick={()=>setPagina(atual-1)}>Anterior</button><button className="rl-secondary" disabled={atual>=paginas} onClick={()=>setPagina(atual+1)}>Próxima</button></div></footer>
+ {dados.nota&&<p className="rl-note"><AlertTriangle size={16}/>{dados.nota}</p>}</section>}
+ </>}
+ {dados&&<section className="rl-print"><h1>{empresa?.nomeFantasia??'Bebfy'}</h1><h2>REL-{dados.codigo} · {dados.nome}</h2><p>Gerado em {fmt(dados.geradoEm,'datetime')}{dados.inicio?' · Período: '+fmt(dados.inicio,'date')+' a '+fmt(dados.fim,'date'):''} · {linhas.length} registros</p>{filtro&&<p>Filtro local: {filtro}</p>}<table><thead><tr>{dados.colunas.map(c=><th key={c.key}>{c.label}</th>)}</tr></thead><tbody>{linhas.map((r,i)=><tr key={i}>{dados.colunas.map(c=><td key={c.key}>{c.key==='comprar'?'________':fmt(r[c.key],c.tipo)}</td>)}</tr>)}</tbody></table><p>{dados.nota}</p>{dados.codigo==='001'&&<p>Responsável pela compra: __________________________</p>}</section>}
+ </div>;
 }
