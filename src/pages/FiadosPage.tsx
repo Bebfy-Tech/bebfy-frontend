@@ -1,58 +1,99 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDownCircle, ArrowUpCircle, HandCoins, Search } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDownCircle, ArrowUpCircle, Banknote, ChevronLeft, ChevronRight, CreditCard, Eye, HandCoins, History, MessageCircle, Printer, QrCode, RefreshCcw, Search, Users, Wallet } from 'lucide-react';
 import { api } from '../services/api';
 import { bebfy } from '../services/bebfy';
 import { modalidade, creditoDisponivel, erroCredito, rotuloCredito } from '../services/credito';
+import { useAuth } from '../contexts/AuthContext';
+import { hasModule } from '../services/moduleAccess';
 import type { Caixa, Cliente } from '../services/bebfy';
-import type { Linha } from '../services/operacional';
-import { btn, card, dataBR, dinheiro, Empty, input, mensagemErro, Modal, Notice, PageTitle, secondary, MoneyInput } from '../components/ui';
+import { dinheiro, mensagemErro, Modal, Notice, MoneyInput } from '../components/ui';
+import './fiados-premium.css';
 
+type Movimento={id:string;clienteId:string;cliente?:Cliente;tipo:'DEBITO'|'CREDITO';origem?:string;formaRecebimento?:string;descricao?:string|null;valor:number|string;saldoApos:number|string;criadoEm:string;venda?:{codigoVenda?:number};caixaRecebimentoId?:string|null};
+type Forma='DINHEIRO'|'PIX'|'CARTAO_DEBITO'|'CARTAO_CREDITO';
+type Recibo={cliente:Cliente;mov:Movimento};
+const formas=[{id:'DINHEIRO',n:'Dinheiro',Icon:Banknote},{id:'PIX',n:'PIX',Icon:QrCode},{id:'CARTAO_DEBITO',n:'Débito',Icon:CreditCard},{id:'CARTAO_CREDITO',n:'Crédito',Icon:CreditCard}] as const;
+const origens:Record<string,string>={VENDA:'Venda',RECEBIMENTO:'Recebimento',ESTORNO:'Estorno',AJUSTE_MANUAL:'Ajuste manual',LEGADO:'Registro anterior'};
+const num=(v:unknown)=>Number(v)||0;
+const cents=(v:unknown)=>Math.round(num(v)*100);
+const norm=(v:unknown)=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const dia=(d:Date)=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+const dt=(s:string)=>new Date(s).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+const origem=(m:Movimento)=>origens[m.origem??'LEGADO']??'Registro anterior';
+const codigo=(c?:Cliente)=>c?.codigoCliente!=null?'#'+c.codigoCliente:'—';
+const disponivel=(c:Cliente)=>c.ativo&&modalidade(c)==='ILIMITADO'?'Ilimitado':dinheiro(creditoDisponivel(c));
+const formatForma=(s?:string)=>formas.find(f=>f.id===s)?.n??'Não informada';
+function Pages({total,page,onChange,size=10}:{total:number;page:number;onChange:(n:number)=>void;size?:number}){
+ const pages=Math.max(1,Math.ceil(total/size)),p=Math.min(page,pages);
+ return <div className="fd-pages"><span>Exibindo {total?(p-1)*size+1:0} a {Math.min(p*size,total)} de {total} registros</span><div><button type="button" className="fd-secondary" disabled={p<=1} onClick={()=>onChange(p-1)} aria-label="Página anterior"><ChevronLeft size={16}/></button><span>{p} / {pages}</span><button type="button" className="fd-secondary" disabled={p>=pages} onClick={()=>onChange(p+1)} aria-label="Próxima página"><ChevronRight size={16}/></button></div></div>;
+}
+function MovTable({items,showCliente=true,onReceipt}:{items:Movimento[];showCliente?:boolean;onReceipt?:(m:Movimento)=>void}){
+ return <div className="fd-scroll"><table className="fd-table"><thead><tr>{['Data / horário',...(showCliente?['Código','Cliente']:[]),'Movimentação','Descrição','Valor','Saldo após',...(onReceipt?['Comprovante']:[])].map(n=><th key={n}>{n}</th>)}</tr></thead><tbody>{items.map(m=><tr key={m.id}><td>{dt(m.criadoEm)}</td>{showCliente&&<><td>{codigo(m.cliente)}</td><td>{m.cliente?.nome??'—'}</td></>}<td><span className={'fd-pill '+(m.origem==='RECEBIMENTO'?'green':m.tipo==='DEBITO'?'amber':'neutral')}>{origem(m)}</span></td><td>{m.descricao||'—'}{m.formaRecebimento&&<small>{formatForma(m.formaRecebimento)}</small>}</td><td className={m.tipo==='DEBITO'?'fd-amber':'fd-green'}><b>{m.tipo==='DEBITO'?'+ ':'− '}{dinheiro(m.valor)}</b></td><td>{dinheiro(m.saldoApos)}</td>{onReceipt&&<td>{m.origem==='RECEBIMENTO'&&<button type="button" className="fd-secondary" onClick={()=>onReceipt(m)}><Printer size={15}/> Ver</button>}</td>}</tr>)}</tbody></table>{!items.length&&<div className="fd-empty">Nenhuma movimentação encontrada.</div>}</div>;
+}
 export function FiadosPage(){
-  const [clientes,setClientes]=useState<Cliente[]>([]);
-  const [caixas,setCaixas]=useState<Caixa[]>([]);
-  const [caixaId,setCaixaId]=useState('');
-  const [historico,setHistorico]=useState<Linha[]>([]);
-  const [busca,setBusca]=useState('');
-  const [loading,setLoading]=useState(true);
-  const [busy,setBusy]=useState(false);
-  const [erro,setErro]=useState('');
-  const [sucesso,setSucesso]=useState('');
-  const [tipo,setTipo]=useState<'DEBITO'|'CREDITO'>('DEBITO');
-  const [modal,setModal]=useState(false);
-  const [clienteId,setClienteId]=useState('');
-  const [valor,setValor]=useState('');
-  const [descricao,setDescricao]=useState('');
-  const [forma,setForma]=useState('DINHEIRO');
-  const load=useCallback(async()=>{
-    setLoading(true);setErro('');
-    try{
-      const [c,h,cx]=await Promise.all([bebfy.clientes.listar(),api.get<Linha[]>('/fiados'),bebfy.caixa.listar().catch(()=>[])]);setClientes(c);setHistorico(h.data);setCaixas(cx.filter(x=>x.status==='ABERTO'));
-    }catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}
-  },[]);
-  useEffect(()=>{void load();},[load]);
-  const filtrados=useMemo(()=>clientes.filter(c=>c.nome.toLowerCase().includes(busca.toLowerCase())),[clientes,busca]);
-  function abrir(t:'DEBITO'|'CREDITO',cliente?:Cliente){setTipo(t);setClienteId(cliente?.id||'');setModal(true);setValor('');setDescricao('');setCaixaId('');setErro('');}
-  async function registrar(e:React.FormEvent){
-    e.preventDefault();if(busy||!clienteId)return;const c=clientes.find(x=>x.id===clienteId);if(tipo==='DEBITO'){const msg=erroCredito(c,Number(valor));if(msg){setErro(msg);return;}}setBusy(true);setErro('');
-    try{
-      if(tipo==='CREDITO')await api.post('/fiados/pagar/'+encodeURIComponent(clienteId),{valor:Number(valor),formaPagamento:forma,...(caixaId?{caixaId}:{})});
-      else await api.post('/fiados',{clienteId,tipo:'DEBITO',valor:Number(valor),descricao});
-      setModal(false);setSucesso(tipo==='CREDITO'?'Pagamento registrado.':'Débito registrado.');await load();
-    }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);}
-  }
-  const total=clientes.reduce((s,c)=>s+Number(c.saldoDevedor),0);
-  return <>
-    <PageTitle title="Fiados e recebimentos" subtitle="Controle limites, pagamentos parciais e saldos de clientes." onReload={()=>void load()} loading={loading}/>
-    <Notice message={erro}/><Notice message={sucesso} success/>
-    <section className="mb-5 grid gap-4 sm:grid-cols-3"><div className={`${card} p-5`}><HandCoins size={24} className="text-amber-600"/><p className="mt-3 text-sm text-slate-500">Valor total a receber</p><strong className="text-2xl">{dinheiro(total)}</strong></div><div className={`${card} p-5`}><p className="text-sm text-slate-500">Clientes com débito</p><strong className="mt-3 block text-3xl">{clientes.filter(c=>Number(c.saldoDevedor)>0).length}</strong></div><div className={`${card} p-5`}><p className="text-sm text-slate-500">Movimentações</p><strong className="mt-3 block text-3xl">{historico.length}</strong></div></section>
-    <div className="mb-5 flex flex-wrap gap-3"><button className={btn} onClick={()=>abrir('DEBITO')}><ArrowUpCircle size={18}/> Lançar débito</button><button className={secondary} onClick={()=>abrir('CREDITO')}><ArrowDownCircle size={18}/> Registrar recebimento</button></div>
-    <section className={`${card} mb-5 overflow-hidden`}><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5"><h2 className="font-bold">Saldos por cliente</h2><div className="relative w-full sm:w-72"><Search size={17} className="absolute left-3 top-3.5 text-slate-400"/><input className={`${input} pl-10`} placeholder="Buscar cliente" value={busca} onChange={e=>setBusca(e.target.value)}/></div></div><div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-4">Cliente</th><th className="p-4">Limite</th><th className="p-4">Saldo devedor</th><th className="p-4">Cascos</th><th className="p-4 text-right">Receber</th></tr></thead><tbody className="divide-y divide-slate-100">{filtrados.map(c=><tr key={c.id}><td className="p-4 font-semibold">{c.nome}</td><td className="p-4">{rotuloCredito(c)}{modalidade(c)==='LIMITADO'&&<small className="block">{dinheiro(c.limiteCredito)}</small>}</td><td className="p-4 font-bold text-amber-700">{dinheiro(c.saldoDevedor)}</td><td className="p-4">{c.cascosEmPosse}</td><td className="p-4 text-right"><button disabled={Number(c.saldoDevedor)<=0} onClick={()=>abrir('CREDITO',c)} className="rounded-lg bg-teal-50 px-3 py-2 text-xs font-bold text-teal-800 disabled:opacity-30">Receber</button></td></tr>)}</tbody></table>{!loading&&filtrados.length===0&&<div className="p-5"><Empty>Sem clientes cadastrados.</Empty></div>}</div></section>
-    <section className={`${card} overflow-hidden`}><h2 className="border-b border-slate-100 p-5 font-bold">Histórico de fiados</h2><div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-4">Data</th><th className="p-4">Cliente</th><th className="p-4">Movimento</th><th className="p-4">Valor</th><th className="p-4">Saldo após</th></tr></thead><tbody className="divide-y divide-slate-100">{historico.map(h=><tr key={String(h.id)}><td className="p-4">{dataBR(h.criadoEm)}</td><td className="p-4">{String((h.cliente as Linha|undefined)?.nome||'—')}</td><td className="p-4">{h.tipo==='DEBITO'?'Débito':'Crédito'}</td><td className="p-4 font-bold">{dinheiro(h.valor)}</td><td className="p-4">{dinheiro(h.saldoApos)}</td></tr>)}</tbody></table>{!loading&&!historico.length&&<div className="p-5"><Empty>Nenhuma movimentação de fiado.</Empty></div>}</div></section>
-    {modal&&<Modal title={tipo==='DEBITO'?'Lançar débito de fiado':'Receber pagamento de fiado'} onClose={()=>setModal(false)}><form onSubmit={e=>void registrar(e)} className="space-y-4"><label className="block text-sm font-semibold">Cliente<select required value={clienteId} className={`${input} mt-2`} onChange={e=>setClienteId(e.target.value)}><option value="">Selecione...</option>{clientes.filter(c=>c.ativo&&(tipo==='CREDITO'?Number(c.saldoDevedor)>0:creditoDisponivel(c)>0)).map(c=><option key={c.id} value={c.id}>{c.nome} · {tipo==='DEBITO'?(modalidade(c)==='ILIMITADO'?'Crédito ilimitado':'Disponível '+dinheiro(creditoDisponivel(c))):'Saldo '+dinheiro(c.saldoDevedor)}</option>)}</select></label>
-      <label className="block text-sm font-semibold">Valor (R$)<MoneyInput required className={`${input} mt-2`} value={valor} onValue={setValor}/></label>
-      {tipo==='DEBITO'?<label className="block text-sm font-semibold">Motivo<input className={`${input} mt-2`} value={descricao} onChange={e=>setDescricao(e.target.value)} placeholder="Ex.: ajuste ou venda anterior"/></label>:<label className="block text-sm font-semibold">Forma de pagamento<select className={`${input} mt-2`} value={forma} onChange={e=>setForma(e.target.value)}><option value="DINHEIRO">Dinheiro</option><option value="PIX">PIX</option><option value="CARTAO_DEBITO">Débito</option><option value="CARTAO_CREDITO">Crédito</option></select></label>}
-      {tipo==='CREDITO'&&forma==='DINHEIRO'&&<label className="block text-sm font-semibold">Vincular recebimento ao caixa (opcional)<select className={`${input} mt-2`} value={caixaId} onChange={e=>setCaixaId(e.target.value)}><option value="">Sem vinculação de caixa</option>{caixas.map(c=><option key={c.id} value={c.id}>Caixa {c.id.slice(0,8)} · Saldo inicial {dinheiro(c.saldoInicial)}</option>)}</select></label>}
-      <p className="text-xs text-slate-500">Dinheiro vinculado a um caixa aberto gera suprimento automático no extrato. PIX e cartões não geram movimentação física de dinheiro.</p>
-      {erro&&<Notice message={erro}/>}<div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={()=>setModal(false)}>Cancelar</button><button type="submit" disabled={busy} className={btn}>{busy?'Registrando...':'Confirmar'}</button></div></form></Modal>}
-  </>;
+ const {user,empresa,modules}=useAuth();
+ const gestor=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo??'');
+ const podeReceber=gestor||Boolean(user?.permissoes?.includes('FIADOS_RECEBER'));
+ const podeLancar=gestor||Boolean(user?.permissoes?.includes('FIADOS_LANCAR'));
+ const caixaAtivo=hasModule(modules,'CAIXA_PDV');
+ const [clientes,setClientes]=useState<Cliente[]>([]),[caixas,setCaixas]=useState<Caixa[]>([]),[historico,setHistorico]=useState<Movimento[]>([]);
+ const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[erro,setErro]=useState(''),[sucesso,setSucesso]=useState('');
+ const [aba,setAba]=useState<'saldos'|'movimentos'>('saldos'),[busca,setBusca]=useState(''),[filtro,setFiltro]=useState('devedores'),[ordenar,setOrdenar]=useState('saldo'),[pagina,setPagina]=useState(1);
+ const [inicio,setInicio]=useState(''),[fim,setFim]=useState(''),[tipoFiltro,setTipoFiltro]=useState('todos');
+ const [modal,setModal]=useState(false),[tipo,setTipo]=useState<'DEBITO'|'CREDITO'>('CREDITO'),[clienteId,setClienteId]=useState(''),[valor,setValor]=useState(''),[descricao,setDescricao]=useState(''),[forma,setForma]=useState<Forma>('DINHEIRO'),[caixaId,setCaixaId]=useState(''),[modalErro,setModalErro]=useState('');
+ const [extrato,setExtrato]=useState<Cliente|null>(null),[extratoPage,setExtratoPage]=useState(1),[recibo,setRecibo]=useState<Recibo|null>(null),[printExtrato,setPrintExtrato]=useState(false),[cobranca,setCobranca]=useState<Cliente|null>(null),[mensagem,setMensagem]=useState('');
+ const lock=useRef(false),key=useRef(''),sent=useRef(''),req=useRef(0);
+ const load=useCallback(async()=>{
+  const version=++req.current;setLoading(true);setErro('');
+  try{const [c,h,cx]=await Promise.all([bebfy.clientes.listar(),api.get<Movimento[]>('/fiados'),caixaAtivo?bebfy.caixa.listar().catch(()=>[]):Promise.resolve([])]);if(version===req.current){setClientes(c);setHistorico(h.data);setCaixas(cx.filter(x=>x.status==='ABERTO'));}}
+  catch(e){if(version===req.current)setErro(mensagemErro(e));}finally{if(version===req.current)setLoading(false);}
+ },[caixaAtivo]);
+ useEffect(()=>{void load();return()=>{req.current++;};},[load]);
+ useEffect(()=>setPagina(1),[aba,busca,filtro,ordenar,inicio,fim,tipoFiltro]);
+ const mapa=useMemo(()=>new Map(clientes.map(c=>[c.id,c])),[clientes]);
+ const match=(c?:Cliente)=>!busca.trim()||norm(c?.nome).includes(norm(busca.trim()))||String(c?.codigoCliente??'').includes(busca.trim().replace(/^#/,''));
+ const saldos=clientes.filter(c=>match(c)&&(filtro==='todos'||filtro==='devedores'&&num(c.saldoDevedor)>0||filtro==='limite'&&modalidade(c)==='LIMITADO'&&creditoDisponivel(c)===0||filtro==='bloqueado'&&modalidade(c)==='BLOQUEADO')).sort((a,b)=>ordenar==='nome'?a.nome.localeCompare(b.nome,'pt-BR'):ordenar==='codigo'?num(a.codigoCliente)-num(b.codigoCliente):num(b.saldoDevedor)-num(a.saldoDevedor));
+ const movimentos=historico.filter(m=>match(mapa.get(m.clienteId)??m.cliente)&&(!inicio||dia(new Date(m.criadoEm))>=inicio)&&(!fim||dia(new Date(m.criadoEm))<=fim)&&(tipoFiltro==='todos'||m.origem===tipoFiltro)).map(m=>({...m,cliente:mapa.get(m.clienteId)??m.cliente}));
+ const hoje=dia(new Date()),movHoje=historico.filter(m=>dia(new Date(m.criadoEm))===hoje);
+ const total=clientes.reduce((s,c)=>s+cents(c.saldoDevedor),0)/100;
+ const recebido=movHoje.filter(m=>m.origem==='RECEBIMENTO').reduce((s,m)=>s+cents(m.valor),0)/100;
+ const debitos=movHoje.filter(m=>m.tipo==='DEBITO').reduce((s,m)=>s+cents(m.valor),0)/100;
+ const kpis=[{n:'Total a receber',v:dinheiro(total),Icon:Wallet,c:'amber'},{n:'Clientes devedores',v:String(clientes.filter(c=>num(c.saldoDevedor)>0).length),Icon:Users,c:'blue'},{n:'Recebimentos hoje',v:dinheiro(recebido),Icon:ArrowDownCircle,c:'green'},{n:'Novos débitos hoje',v:dinheiro(debitos),Icon:ArrowUpCircle,c:'amber'}];
+ const selected=mapa.get(clienteId),saldo=cents(selected?.saldoDevedor),q=cents(valor),prev=tipo==='CREDITO'?saldo-q:saldo+q;
+ const valid=Boolean(selected?.ativo&&q>0&&(tipo==='CREDITO'?q<=saldo:!erroCredito(selected,q/100)));
+ const eligible=clientes.filter(c=>c.ativo&&(tipo==='CREDITO'?num(c.saldoDevedor)>0:creditoDisponivel(c)>0));
+ const count=aba==='saldos'?saldos.length:movimentos.length,current=Math.min(pagina,Math.max(1,Math.ceil(count/10)));
+ const slice=<T,>(a:T[])=>a.slice((current-1)*10,current*10);
+ const extratoCliente=extrato?mapa.get(extrato.id)??extrato:null;
+ const extratoMov=extratoCliente?historico.filter(m=>m.clienteId===extratoCliente.id):[];
+ function abrir(t:'DEBITO'|'CREDITO',c?:Cliente){if(lock.current||t==='CREDITO'&&!podeReceber||t==='DEBITO'&&!podeLancar)return;setTipo(t);setClienteId(c?.id??'');setValor('');setDescricao('');setForma('DINHEIRO');setCaixaId('');setModalErro('');setModal(true);key.current=crypto.randomUUID();sent.current='';}
+ async function registrar(e:React.FormEvent){
+  e.preventDefault();if(lock.current||!valid||!selected||tipo==='CREDITO'&&!podeReceber||tipo==='DEBITO'&&!podeLancar)return;
+  const cx=tipo==='CREDITO'&&forma==='DINHEIRO'&&caixaAtivo?caixaId:'';
+  const assinatura=JSON.stringify([clienteId,q,forma,cx]);
+  if(tipo==='CREDITO'&&sent.current&&sent.current!==assinatura){setModalErro('Já houve uma tentativa com outros dados. Feche, atualize o saldo e confira o histórico antes de iniciar outra operação.');return;}
+  lock.current=true;setBusy(true);setModalErro('');setSucesso('');
+  try{
+   if(tipo==='CREDITO'){sent.current=assinatura;const r=await api.post<{historico:Movimento}>('/fiados/pagar/'+encodeURIComponent(clienteId),{valor:q/100,formaPagamento:forma,...(cx?{caixaId:cx}:{}),chaveRecebimento:key.current});setRecibo({cliente:selected,mov:r.data.historico});setSucesso('Recebimento registrado.');}
+   else{await api.post('/fiados',{clienteId,tipo:'DEBITO',valor:q/100,descricao:descricao.trim()});setSucesso('Débito registrado.');}
+   setModal(false);await load();
+  }catch(e){setModalErro(mensagemErro(e));}finally{lock.current=false;setBusy(false);}
+ }
+ function abrirRecibo(m:Movimento){const c=mapa.get(m.clienteId)??m.cliente;if(c&&m.origem==='RECEBIMENTO')setRecibo({cliente:c,mov:m});}
+ function cobrar(c:Cliente){setCobranca(c);setMensagem('Olá, '+c.nome+'! Aqui é da '+(empresa?.nomeFantasia??'distribuidora')+'. Consta um saldo de '+dinheiro(c.saldoDevedor)+' em seu cadastro. Podemos combinar a regularização? Obrigado!');}
+ const telefone=String(cobranca?.telefone??'').replace(/\D/g,'');
+ const whats=telefone.length===10||telefone.length===11?'55'+telefone:telefone.startsWith('55')&&(telefone.length===12||telefone.length===13)?telefone:'';
+ function imprimir(){window.print();}
+ return <div className="fd-page"><header className="fd-header"><span className="fd-header-icon"><HandCoins size={27}/></span><div className="fd-heading"><h1>Fiados e Recebimentos</h1><p>Controle de crédito, cobranças e pagamentos dos clientes.</p></div><button type="button" className="fd-secondary" disabled={loading||busy} onClick={()=>void load()} aria-label="Atualizar"><RefreshCcw size={17} className={loading?'animate-spin':''}/></button>{podeLancar&&<button type="button" className="fd-secondary" disabled={busy||loading} onClick={()=>abrir('DEBITO')}><ArrowUpCircle size={18}/> Lançar débito</button>}{podeReceber&&<button type="button" className="fd-primary" disabled={busy||loading} onClick={()=>abrir('CREDITO')}><ArrowDownCircle size={18}/> Receber pagamento</button>}</header>
+ <Notice message={erro} onClose={()=>setErro('')}/><Notice message={sucesso} success onClose={()=>setSucesso('')}/>
+ <div className="fd-kpis">{kpis.map(k=><article className="fd-panel fd-kpi" key={k.n}><span className={'fd-kpi-icon '+k.c}><k.Icon size={23}/></span><div><small>{k.n}</small><strong className={'fd-'+k.c}>{loading?'—':k.v}</strong></div></article>)}</div>
+ <nav className="fd-tabs"><button type="button" aria-pressed={aba==='saldos'} onClick={()=>setAba('saldos')}><Users size={18}/> Saldos por cliente</button><button type="button" aria-pressed={aba==='movimentos'} onClick={()=>setAba('movimentos')}><History size={18}/> Movimentações</button></nav>
+ <label className="fd-search"><Search size={18}/><input aria-label="Buscar clientes" placeholder="Buscar nome ou código do cliente..." value={busca} onChange={e=>setBusca(e.target.value)}/></label>
+ {aba==='saldos'?<div className="fd-filters"><div>{[['devedores','Devedores'],['todos','Todos'],['limite','Limite atingido'],['bloqueado','Crédito bloqueado']].map(([v,n])=><button type="button" className="fd-secondary" aria-pressed={filtro===v} key={v} onClick={()=>setFiltro(v)}>{n}</button>)}</div><select aria-label="Ordenação" value={ordenar} onChange={e=>setOrdenar(e.target.value)}><option value="saldo">Maior dívida primeiro</option><option value="nome">Nome A–Z</option><option value="codigo">Código</option></select></div>:<div className="fd-filters"><label>De<input type="date" value={inicio} onChange={e=>setInicio(e.target.value)}/></label><label>Até<input type="date" value={fim} onChange={e=>setFim(e.target.value)}/></label><select aria-label="Tipo de movimentação" value={tipoFiltro} onChange={e=>setTipoFiltro(e.target.value)}><option value="todos">Todas as movimentações</option>{Object.entries(origens).map(([v,n])=><option key={v} value={v}>{n}</option>)}</select><button type="button" className="fd-secondary" onClick={()=>{setInicio('');setFim('');setTipoFiltro('todos');}}>Limpar filtros</button></div>}
+ <section className="fd-panel fd-list"><div className="fd-list-head"><h2>{aba==='saldos'?'Saldos por cliente':'Histórico de fiados'}</h2><small>{count} registro(s)</small></div>{loading?<div className="fd-empty">Carregando...</div>:aba==='saldos'?<div className="fd-scroll"><table className="fd-table"><thead><tr>{['Código','Cliente','Modalidade / limite','Saldo devedor','Disponível','Ações'].map(n=><th key={n}>{n}</th>)}</tr></thead><tbody>{slice(saldos).map(c=><tr key={c.id}><td><b>{codigo(c)}</b></td><td><b>{c.nome}</b>{!c.ativo&&<small>Inativo</small>}</td><td><span className={'fd-pill '+(modalidade(c)==='BLOQUEADO'?'red':modalidade(c)==='ILIMITADO'?'green':'amber')}>{rotuloCredito(c)}</span>{modalidade(c)==='LIMITADO'&&<small>{dinheiro(c.limiteCredito)}</small>}</td><td className="fd-amber"><b>{dinheiro(c.saldoDevedor)}</b></td><td className={creditoDisponivel(c)>0?'fd-green':'fd-red'}>{disponivel(c)}</td><td><div className="fd-actions"><button type="button" className="fd-secondary" title="Extrato" aria-label={'Extrato '+c.nome} onClick={()=>{setExtrato(c);setExtratoPage(1);}}><Eye size={16}/></button><button type="button" className="fd-secondary" disabled={num(c.saldoDevedor)<=0} title="Cobrar pelo WhatsApp" aria-label={'Cobrar '+c.nome} onClick={()=>cobrar(c)}><MessageCircle size={16}/></button>{podeReceber&&<button type="button" className="fd-primary" disabled={!c.ativo||num(c.saldoDevedor)<=0||busy} onClick={()=>abrir('CREDITO',c)}>Receber</button>}</div></td></tr>)}</tbody></table>{!saldos.length&&<div className="fd-empty">Nenhum cliente encontrado.</div>}</div>:<MovTable items={slice(movimentos)} onReceipt={abrirRecibo}/>}<Pages total={count} page={current} onChange={setPagina}/></section>
+ {modal&&<Modal title={tipo==='CREDITO'?'Receber pagamento de fiado':'Lançar débito de fiado'} onClose={()=>{if(!busy)setModal(false);}}><form className="fd-form" onSubmit={e=>void registrar(e)}><Notice message={modalErro}/><label>Cliente<select required disabled={busy} value={clienteId} onChange={e=>{setClienteId(e.target.value);setValor('');}}><option value="">Selecione o cliente</option>{eligible.map(c=><option key={c.id} value={c.id}>{codigo(c)} · {c.nome} · {tipo==='CREDITO'?'Saldo '+dinheiro(c.saldoDevedor):'Disponível '+disponivel(c)}</option>)}</select></label>{selected&&<div className="fd-balance"><small>{tipo==='CREDITO'?'Saldo devedor atual':'Crédito disponível'}</small><strong>{tipo==='CREDITO'?dinheiro(saldo/100):disponivel(selected)}</strong></div>}<label>Valor (R$)<div className="fd-value"><MoneyInput required disabled={busy} value={valor} onValue={setValor}/>{tipo==='CREDITO'&&<button type="button" className="fd-secondary" disabled={busy||!selected||saldo<=0} onClick={()=>setValor(String(saldo/100))}>Quitar total</button>}</div></label>{tipo==='CREDITO'?<><div className="fd-pay">{formas.map(f=><button type="button" key={f.id} aria-pressed={forma===f.id} disabled={busy} onClick={()=>{setForma(f.id);setCaixaId('');}}><f.Icon size={21}/>{f.n}</button>)}</div>{forma==='DINHEIRO'&&caixaAtivo&&<label>Vincular ao caixa aberto (opcional)<select disabled={busy} value={caixaId} onChange={e=>setCaixaId(e.target.value)}><option value="">Sem vinculação</option>{caixas.map(c=><option key={c.id} value={c.id}>Caixa {c.id.slice(0,8)} · {dinheiro(c.saldoInicial)}</option>)}</select><small>Ao vincular, o recebimento em dinheiro gera suprimento no caixa.</small></label>}</>:<label>Motivo<input disabled={busy} value={descricao} onChange={e=>setDescricao(e.target.value)} placeholder="Ex.: ajuste autorizado"/></label>}{selected&&<div className="fd-preview"><span>Saldo após operação</span><strong className={prev<0?'fd-red':'fd-green'}>{dinheiro(prev/100)}</strong></div>}{tipo==='CREDITO'&&selected&&q>saldo&&<p className="fd-red">O recebimento não pode ultrapassar a dívida.</p>}{tipo==='DEBITO'&&selected&&q>0&&erroCredito(selected,q/100)&&<p className="fd-red">{erroCredito(selected,q/100)}</p>}<div className="fd-footer"><button type="button" className="fd-secondary" disabled={busy} onClick={()=>setModal(false)}>Cancelar</button><button type="submit" className="fd-primary" disabled={busy||!valid}>{busy?'Registrando...':tipo==='CREDITO'?'Confirmar recebimento':'Confirmar débito'}</button></div></form></Modal>}
+ {extratoCliente&&!recibo&&<Modal wide title={'Extrato · '+codigo(extratoCliente)+' '+extratoCliente.nome} onClose={()=>{setExtrato(null);setPrintExtrato(false);}}><div className="fd-form"><div className="fd-balance"><small>Saldo devedor atual</small><strong>{dinheiro(extratoCliente.saldoDevedor)}</strong></div><div className="fd-no-print"><MovTable items={extratoMov.slice((extratoPage-1)*10,extratoPage*10)} showCliente={false} onReceipt={abrirRecibo}/><Pages total={extratoMov.length} page={extratoPage} onChange={setExtratoPage}/></div>{printExtrato&&<div className="fd-print"><h2>{empresa?.nomeFantasia??'Bebfy'} — Extrato de fiados</h2><p>{codigo(extratoCliente)} · {extratoCliente.nome}</p><p>Saldo: {dinheiro(extratoCliente.saldoDevedor)}</p><MovTable items={extratoMov} showCliente={false}/></div>}<div className="fd-footer"><button type="button" className="fd-secondary" onClick={()=>{setExtrato(null);setPrintExtrato(false);}}>Fechar</button><button type="button" className="fd-primary" onClick={()=>{setPrintExtrato(true);requestAnimationFrame(()=>requestAnimationFrame(imprimir));}}><Printer size={17}/> Imprimir extrato</button></div></div></Modal>}
+ {recibo&&<Modal title="Comprovante de recebimento" onClose={()=>setRecibo(null)}><div className="fd-form"><article className="fd-receipt fd-print"><h2>{empresa?.nomeFantasia??'Bebfy'}</h2><b>COMPROVANTE DE RECEBIMENTO NÃO FISCAL</b><p>Cliente: {codigo(recibo.cliente)} · {recibo.cliente.nome}</p><p>Data: {dt(recibo.mov.criadoEm)}</p><p>Recebimento: {recibo.mov.id}</p><p>Forma: {formatForma(recibo.mov.formaRecebimento)}</p><p>Valor recebido: {dinheiro(recibo.mov.valor)}</p><p>Saldo após recebimento: {dinheiro(recibo.mov.saldoApos)}</p></article><div className="fd-footer"><button type="button" className="fd-secondary" onClick={()=>setRecibo(null)}>Fechar</button><button type="button" className="fd-primary" onClick={imprimir}><Printer size={17}/> Imprimir</button></div></div></Modal>}
+ {cobranca&&<Modal title={'Cobrança · '+cobranca.nome} onClose={()=>setCobranca(null)}><div className="fd-form"><p>Confira a mensagem antes de abrir o WhatsApp.</p><textarea rows={5} value={mensagem} onChange={e=>setMensagem(e.target.value)}/>{!whats&&<p className="fd-amber">Telefone não cadastrado ou inválido. Atualize a ficha do cliente.</p>}<div className="fd-footer"><button type="button" className="fd-secondary" onClick={()=>setCobranca(null)}>Cancelar</button><button type="button" className="fd-primary" disabled={!whats||!mensagem.trim()} onClick={()=>window.open('https://wa.me/'+whats+'?text='+encodeURIComponent(mensagem),'_blank','noopener,noreferrer')}><MessageCircle size={17}/> Abrir WhatsApp</button></div></div></Modal>}
+ </div>;
 }

@@ -23,6 +23,8 @@ export interface Produto {
 
 export type ModalidadeCredito = 'BLOQUEADO' | 'LIMITADO' | 'ILIMITADO';
 export interface Cliente {
+  codigoCliente?: number;
+  telefone?: string | null;
   modalidadeCredito?: ModalidadeCredito;
   criadoEm?:string;
   id: string;
