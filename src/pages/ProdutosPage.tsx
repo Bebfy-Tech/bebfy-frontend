@@ -22,7 +22,7 @@ const vencendo=(p:Linha)=>Boolean(p.ativo)&&Array.isArray(p.lotes)&&p.lotes.some
 const margem=(p:Linha|Valores)=>num(p.precoVendaVarejo)>0?(num(p.precoVendaVarejo)-num(p.precoCusto))/num(p.precoVendaVarejo)*100:null;
 const percent=(v:number|null)=>v===null?'—':v.toLocaleString('pt-BR',{maximumFractionDigits:2})+'%';
 const inicial=():Valores=>Object.fromEntries(campos.map(c=>[c.key,c.type==='checkbox'?false:c.key==='unidadeMedida'?'UN':c.key==='fardoQuantidade'?1:'']));
-const draftOf=(p:Linha):Valores=>Object.fromEntries(campos.map(c=>[c.key,typeof p[c.key]==='boolean'?p[c.key]:String(p[c.key]??'')]));
+const draftOf=(p:Linha):Valores=>Object.fromEntries(campos.map(c=>{const v=p[c.key];return [c.key,typeof v==='boolean'?v:String(v??'')] as const;}));
 const show=(v:unknown)=>v==null||v===''?'—':String(v);
 
 function ProductField({campo,draft,categories,change,disabled=false}:{campo:Campo;draft:Valores;categories:Linha[];change:(key:string,v:string|boolean)=>void;disabled?:boolean}){
