@@ -1,3 +1,4 @@
+import { FuncionariosPage } from '../pages/FuncionariosPage';
 import { ComprasPage } from '../pages/ComprasPage';
 import { FornecedoresPage } from '../pages/FornecedoresPage';
 import { UnidadesPage } from '../pages/UnidadesPage';
@@ -64,7 +65,7 @@ export const AppRoutes = () => (
             <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<FornecedoresPage />} /></Route>
             <Route path="clientes" element={<ClientesPage />} />
-            <Route path="funcionarios" element={<CadastroPage resource="funcionarios" />} />
+            <Route path="funcionarios" element={<FuncionariosPage />} />
             <Route path="estoque" element={<EstoquePage />} />
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="compras" element={<ComprasPage />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="estoque/importar-xml" element={<ImportarXmlPage />} /></Route>
