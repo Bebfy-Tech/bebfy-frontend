@@ -28,7 +28,7 @@ const additional:Item[]=[
  {to:'/financeiro/cadastros',label:'Cadastros financeiros',icon:Settings,manager:true},
  {to:'/categorias',label:'Categorias',icon:Layers3},
  {to:'/lotes',label:'Lotes e validade',icon:Boxes},
- {to:'/fornecedores',label:'Fornecedores',icon:Building2},
+ {to:'/fornecedores',label:'Fornecedores',icon:Building2,permissao:'FORNECEDORES_GERENCIAR'},
  {to:'/funcionarios',label:'Funcionários e acessos',icon:UserRound,manager:true},
  {to:'/ajuda',label:'Ajuda',icon:CircleHelp},
 ];

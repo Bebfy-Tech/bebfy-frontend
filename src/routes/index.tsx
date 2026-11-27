@@ -1,3 +1,4 @@
+import { FornecedoresPage } from '../pages/FornecedoresPage';
 import { UnidadesPage } from '../pages/UnidadesPage';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { PrivateRoute, ModuleRoute } from './PrivateRoute';
@@ -60,7 +61,7 @@ export const AppRoutes = () => (
             <Route path="unidades-medida" element={<UnidadesPage />} />
             <Route path="categorias" element={<CadastroPage resource="categorias" />} />
             <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
-            <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<CadastroPage resource="fornecedores" />} /></Route>
+            <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<FornecedoresPage />} /></Route>
             <Route path="clientes" element={<ClientesPage />} />
             <Route path="funcionarios" element={<CadastroPage resource="funcionarios" />} />
             <Route path="estoque" element={<EstoquePage />} />
