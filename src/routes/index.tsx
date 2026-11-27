@@ -1,3 +1,4 @@
+import { UnidadesPage } from '../pages/UnidadesPage';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { PrivateRoute, ModuleRoute } from './PrivateRoute';
 import { validSlug } from '../services/tenantUrls';
@@ -56,6 +57,7 @@ export const AppRoutes = () => (
             <Route element={<ModuleRoute modulo="CAIXA_PDV" />}><Route path="caixas" element={<CaixasPage />} /></Route>
             <Route element={<ModuleRoute modulo="ENTREGAS_DELIVERY" />}><Route path="delivery" element={<DeliveryPage />} /></Route>
             <Route path="produtos" element={<ProdutosPage />} />
+            <Route path="unidades-medida" element={<UnidadesPage />} />
             <Route path="categorias" element={<CadastroPage resource="categorias" />} />
             <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<CadastroPage resource="fornecedores" />} /></Route>

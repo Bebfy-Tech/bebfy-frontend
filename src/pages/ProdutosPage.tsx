@@ -1,3 +1,5 @@
+import { unidadesApi } from '../services/unidades';
+import type { Unidade } from '../services/unidades';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CalendarClock, Check, ChevronLeft, ChevronRight, Clock, Eye, Grid2X2, Package, Pencil, Plus, RefreshCcw, Save, Search, ShoppingCart, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,7 +26,7 @@ const vencendo=(p:Linha)=>Boolean(p.ativo)&&Array.isArray(p.lotes)&&p.lotes.some
 const margem=(p:Linha|Valores)=>num(p.precoVendaVarejo)>0?(num(p.precoVendaVarejo)-num(p.precoCusto))/num(p.precoVendaVarejo)*100:null;
 const percent=(v:number|null)=>v===null?'—':v.toLocaleString('pt-BR',{maximumFractionDigits:2})+'%';
 const inicial=():Valores=>Object.fromEntries(campos.map(c=>[c.key,c.type==='checkbox'?false:c.key==='unidadeMedida'?'UN':c.key==='fardoQuantidade'?1:'']));
-const draftOf=(p:Linha):Valores=>Object.fromEntries(campos.map(c=>{const v=p[c.key];return [c.key,typeof v==='boolean'?v:String(v??'')] as const;}));
+const draftOf=(p:Linha):Valores=>({...Object.fromEntries(campos.map(c=>{const v=p[c.key];return [c.key,typeof v==='boolean'?v:String(v??'')] as const;})),unidadeMedidaId:String(p.unidadeMedidaId??''),unidadeEmbalagemId:String(p.unidadeEmbalagemId??'')});
 const show=(v:unknown)=>v==null||v===''?'—':String(v);
 
 function ProductField({campo,draft,categories,change,disabled=false}:{campo:Campo;draft:Valores;categories:Linha[];change:(key:string,v:string|boolean)=>void;disabled?:boolean}){
@@ -44,7 +46,7 @@ export function ProdutosPage(){
  const canManage=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'')||Boolean(user?.permissoes?.includes('PRODUTOS_GERENCIAR'));
  const lotesAtivos=hasModule(modules,'ESTOQUE_LOTES');
  const cascosAtivos=hasModule(modules,'VASILHAMES_RETORNAVEIS');
- const [items,setItems]=useState<Linha[]>([]),[categories,setCategories]=useState<Linha[]>([]);
+ const [items,setItems]=useState<Linha[]>([]),[categories,setCategories]=useState<Linha[]>([]),[unidades,setUnidades]=useState<Unidade[]>([]);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[erro,setErro]=useState(''),[success,setSuccess]=useState('');
  const [busca,setBusca]=useState(''),[filtro,setFiltro]=useState<Filtro>('todos'),[categoria,setCategoria]=useState(''),[ordem,setOrdem]=useState('nome');
  const [page,setPage]=useState(1),[size,setSize]=useState(8);
@@ -52,7 +54,7 @@ export function ProdutosPage(){
  const [target,setTarget]=useState<Linha|null>(null);
  const [history,setHistory]=useState<Linha[]>([]),[historyLoading,setHistoryLoading]=useState(false),[historyError,setHistoryError]=useState('');
  const load=useCallback(async()=>{setLoading(true);setErro('');try{
-  const [p,c]=await Promise.all([recursoApi.listar(canManage?'/produtos/gestao':'/produtos'),recursoApi.listar('/categorias')]);setItems(p);setCategories(c);
+  const [p,c,u]=await Promise.all([recursoApi.listar(canManage?'/produtos/gestao':'/produtos'),recursoApi.listar('/categorias'),canManage?unidadesApi.listar():Promise.resolve([])]);setItems(p);setCategories(c);setUnidades(u);
  }catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}},[canManage]);
  useEffect(()=>{void load();},[load]);
  useEffect(()=>{setPage(1);},[busca,filtro,categoria,ordem,size]);
@@ -63,7 +65,7 @@ export function ProdutosPage(){
   return [p.nome,p.id,p.codigoBarras,p.marca,p.fabricante,p.grupo,p.subgrupo,p.ncm,p.cest].some(v=>String(v??'').toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR').trim()));
  }).sort((a,b)=>ordem==='estoque'?num(a.estoqueAtual)-num(b.estoqueAtual):ordem==='recentes'?String(b.criadoEm).localeCompare(String(a.criadoEm)):String(a.nome).localeCompare(String(b.nome),'pt-BR')),[items,busca,filtro,categoria,ordem]);
  const pages=Math.max(1,Math.ceil(filtered.length/size)),current=Math.min(page,pages),rows=filtered.slice((current-1)*size,current*size);
- function open(p?:Linha){setSelected(p??null);setDraft(p?draftOf(p):inicial());setAba('identificacao');setErro('');setSuccess('');setHistory([]);setHistoryError('');}
+ function open(p?:Linha){setSelected(p??null);setDraft(p?draftOf(p):{...inicial(),unidadeMedidaId:unidades.find(u=>u.ativo&&u.sigla==='UN')?.id??'',unidadeEmbalagemId:''});setAba('identificacao');setErro('');setSuccess('');setHistory([]);setHistoryError('');}
  function close(){setDraft(null);setSelected(null);setErro('');setSuccess('');}
  const id=selected?.id;
  useEffect(()=>{if(aba!=='historico'||id==null)return;let alive=true;setHistoryLoading(true);setHistoryError('');
@@ -76,9 +78,17 @@ export function ProdutosPage(){
   if(draft.precoVendaVarejo===''||draft.precoVendaVarejo==null){setAba('comercial');setErro('Informe o preço de varejo.');return;}
   for(const c of campos){if(c.type!=='number'||draft[c.key]===''||draft[c.key]==null)continue;const n=Number(draft[c.key]);if(!Number.isFinite(n)||n<0||(!c.step&&!Number.isInteger(n))){setErro('Verifique o valor de '+c.label+'.');return;}}
   for(const key of ['ncm','cest'] as const){const v=String(draft[key]??'').trim();if(v&&!(key==='ncm'?/^\d{8}$/:/^\d{7}$/).test(v)){setAba('identificacao');setErro(key.toUpperCase()+' deve conter '+limite(key)+' dígitos.');return;}}
+  const base=unidades.find(u=>u.id===draft.unidadeMedidaId),qtd=Number(draft.fardoQuantidade||1),emb=unidades.find(u=>u.id===draft.unidadeEmbalagemId);
+  if(!selected&&(!base||!base.ativo)||selected&&String(draft.unidadeMedidaId??'')!==String(selected.unidadeMedidaId??'')&&(!base||!base.ativo)){setErro('Selecione uma unidade de estoque ativa.');return;}
+  if(!Number.isInteger(qtd)||qtd<1){setErro('Quantidade por embalagem deve ser inteira e positiva.');return;}
+  if(qtd>1&&(!emb||!emb.ativo)&&(!selected||!selected.unidadeEmbalagemId||String(draft.unidadeEmbalagemId??'')!==String(selected.unidadeEmbalagemId))){setAba('identificacao');setErro('Selecione uma unidade de embalagem ativa.');return;}
   setBusy(true);setErro('');setSuccess('');
   try{
    const dados=montarDados(campos,draft,Boolean(selected));
+   delete dados.unidadeMedida;
+   if(base&&(!selected||String(selected.unidadeMedidaId??'')!==base.id))dados.unidadeMedidaId=base.id;
+   dados.fardoQuantidade=qtd;
+   if(qtd===1)dados.unidadeEmbalagemId=null;else if(emb&&(!selected||String(selected.unidadeEmbalagemId??'')!==emb.id))dados.unidadeEmbalagemId=emb.id;
    // Optional metadata can be cleared explicitly when editing.
    for(const key of Object.keys(metadados)){const value=String(draft[key]??'').trim();if(value)dados[key]=value;else if(selected)dados[key]=null;}
    if(!cascosAtivos)delete dados.retornavel;
@@ -105,20 +115,20 @@ export function ProdutosPage(){
     <label className="bp-field"><span>Código interno</span><input readOnly value={selected?String(selected.id):'Gerado automaticamente'}/></label>
     {fields(['codigoBarras'])}
     <label className="bp-field"><span>Situação</span><div className="bp-status-field"><span className={selected&&!selected.ativo?'bp-inactive':'bp-active'}>● {selected&&!selected.ativo?'Inativo':'Ativo'}</span>{canManage&&selected&&<button type="button" onClick={()=>setTarget(selected)} disabled={busy}>{selected.ativo?'Desativar':'Reativar'}</button>}</div></label>
-    {fields(['nome','categoriaId','unidadeMedida'])}
+    {fields(['nome','categoriaId'])}<label className="bp-field"><span>Unidade de estoque</span>{!editable?<input readOnly value={String(draft.unidadeMedida??'UN')}/>:<select disabled={busy} value={String(draft.unidadeMedidaId??'')} onChange={e=>{const u=unidades.find(x=>x.id===e.target.value);if(u)setDraft(d=>d?{...d,unidadeMedidaId:u.id,unidadeMedida:u.sigla}:d);}}><option value="">{selected?'Anterior: '+String(selected.unidadeMedida??'UN'):'Selecione...'}</option>{unidades.filter(u=>u.ativo||u.id===selected?.unidadeMedidaId).map(u=><option key={u.id} value={u.id} disabled={!u.ativo}>{u.sigla} — {u.descricao}{u.ativo?'':' (inativa)'}</option>)}</select>}</label>
    </div>
   </section>
   <nav className="bp-tabs" aria-label="Seções da ficha">{([{key:'identificacao',label:'Identificação',Icon:Package},{key:'comercial',label:'Comercial',Icon:ShoppingCart},{key:'estoque',label:'Estoque',Icon:Grid2X2},{key:'historico',label:'Histórico',Icon:Clock}] as const).map(t=><button key={t.key} type="button" aria-pressed={aba===t.key} onClick={()=>setAba(t.key)}><t.Icon size={19}/>{t.label}</button>)}</nav>
   <div className="bp-ficha-body">
    <section className="bp-panel bp-detail">
     <h2>{aba==='identificacao'?'Informações gerais':aba==='comercial'?'Preços e condições comerciais':aba==='estoque'?'Estoque e lotes':'Histórico de movimentações'}</h2>
-    {aba==='identificacao'&&<div className="bp-fields">{fields(['marca','fabricante','grupo','subgrupo','ml','fardoQuantidade','retornavel','descricaoComplementar'])}</div>}
+    {aba==='identificacao'&&<div className="bp-fields">{fields(['marca','fabricante','grupo','subgrupo','ml'])}<label className="bp-field"><span>Quantidade por embalagem</span><input type="number" min={1} step={1} disabled={!editable||busy} value={String(draft.fardoQuantidade??1)} onChange={e=>change('fardoQuantidade',e.target.value)}/></label>{num(draft.fardoQuantidade)>1&&<label className="bp-field"><span>Unidade de embalagem</span>{!editable?<input readOnly value={String(selected?.unidadeEmbalagemSigla??'FD')}/>:<select disabled={busy} value={String(draft.unidadeEmbalagemId??'')} onChange={e=>change('unidadeEmbalagemId',e.target.value)}><option value="">Selecione...</option>{unidades.filter(u=>u.tipo==='EMBALAGEM'&&(u.ativo||u.id===selected?.unidadeEmbalagemId)).map(u=><option key={u.id} value={u.id} disabled={!u.ativo}>{u.sigla} — {u.descricao}{u.ativo?'':' (inativa)'}</option>)}</select>}</label>}{fields(['retornavel','descricaoComplementar'])}</div>}
     {aba==='identificacao'&&<><h2>Identificação fiscal</h2><div className="bp-fields">{fields(['ncm','cest'])}</div><p className="bp-note">Campos opcionais. Confira a classificação fiscal com a documentação do produto ou seu contador.</p></>}
     {aba==='comercial'&&<div className="bp-fields">{fields(['precoCusto','precoVendaVarejo','precoVendaAtacado','qtdAtacadoMinima'])}<label className="bp-field"><span>Acréscimo sobre custo (%)</span><input type="number" step=".01" min="-100" disabled={!editable||busy||num(draft.precoCusto)<=0} value={num(draft.precoCusto)>0?((num(draft.precoVendaVarejo)/num(draft.precoCusto)-1)*100).toFixed(2):''} onChange={e=>{const n=Number(e.target.value);if(Number.isFinite(n))change('precoVendaVarejo',String(Math.max(0,Math.round(num(draft.precoCusto)*(1+n/100)*100)/100)));}}/></label></div>}
     {aba==='estoque'&&<><div className="bp-fields">{fields(['estoqueAtual','estoqueMinimo'])}</div>{selected&&<p className="bp-note">Para alterar o saldo, use Movimentações de estoque.</p>}{lotesAtivos&&<div className="bp-lotes"><h3>Lotes cadastrados</h3><table><thead><tr><th>Lote</th><th>Validade</th><th>Quantidade</th></tr></thead><tbody>{(Array.isArray(selected?.lotes)?selected.lotes as Linha[]:[]).map(l=><tr key={String(l.id)}><td>{show(l.numeroLote)}</td><td>{dataBR(l.dataVencimento)}</td><td>{show(l.quantidade)} un.</td></tr>)}</tbody></table>{(!Array.isArray(selected?.lotes)||!selected.lotes.length)&&<p className="bp-note">Nenhum lote cadastrado.</p>}</div>}</>}
     {aba==='historico'&&<div className="bp-lotes"><Notice message={historyError}/>{historyLoading?<p className="bp-note">Carregando histórico...</p>:<><table><thead><tr><th>Data</th><th>Movimento</th><th>Qtd.</th><th>Motivo</th></tr></thead><tbody>{history.map(m=><tr key={String(m.id)}><td>{dataBR(m.criadoEm)}</td><td>{show(m.tipo).replaceAll('_',' ')}</td><td>{show(m.quantidade)}</td><td>{show(m.motivo)}</td></tr>)}</tbody></table>{!history.length&&!historyError&&<p className="bp-note">Nenhuma movimentação manual registrada.</p>}</>}</div>}
    </section>
-   <section className="bp-panel bp-detail"><h2>Resumo do produto</h2><div className="bp-summary-grid">{[{n:'Custo',v:dinheiro(draft.precoCusto),c:'red'},{n:'Varejo',v:dinheiro(draft.precoVendaVarejo),c:'mint'},{n:'Atacado',v:draft.precoVendaAtacado===''?'—':dinheiro(draft.precoVendaAtacado),c:'blue'},{n:'Margem sobre venda',v:percent(margem(draft)),c:'amber'},{n:'Qtd. por fardo',v:show(draft.fardoQuantidade)+' un.',c:'blue'},{n:'Estoque disponível',v:show(draft.estoqueAtual)+' un.',c:'mint'},{n:'Estoque mínimo',v:show(draft.estoqueMinimo)+' un.',c:'amber'}].map(k=><div key={k.n} className="bp-mini"><span className={'bp-mini-icon '+k.c}><Package size={19}/></span><div><small>{k.n}</small><strong>{k.v}</strong></div></div>)}</div></section>
+   <section className="bp-panel bp-detail"><h2>Resumo do produto</h2><div className="bp-summary-grid">{[{n:'Custo',v:dinheiro(draft.precoCusto),c:'red'},{n:'Varejo',v:dinheiro(draft.precoVendaVarejo),c:'mint'},{n:'Atacado',v:draft.precoVendaAtacado===''?'—':dinheiro(draft.precoVendaAtacado),c:'blue'},{n:'Margem sobre venda',v:percent(margem(draft)),c:'amber'},{n:'Qtd. por embalagem',v:show(draft.fardoQuantidade)+' '+String(unidades.find(u=>u.id===draft.unidadeMedidaId)?.sigla??draft.unidadeMedida??'UN'),c:'blue'},{n:'Estoque disponível',v:show(draft.estoqueAtual)+' '+String(unidades.find(u=>u.id===draft.unidadeMedidaId)?.sigla??draft.unidadeMedida??'UN'),c:'mint'},{n:'Estoque mínimo',v:show(draft.estoqueMinimo)+' '+String(unidades.find(u=>u.id===draft.unidadeMedidaId)?.sigla??draft.unidadeMedida??'UN'),c:'amber'},...(num(draft.fardoQuantidade)>1?[{n:'Embalagens completas',v:String(Math.floor(num(draft.estoqueAtual)/num(draft.fardoQuantidade))),c:'blue'}]:[])].map(k=><div key={k.n} className="bp-mini"><span className={'bp-mini-icon '+k.c}><Package size={19}/></span><div><small>{k.n}</small><strong>{k.v}</strong></div></div>)}</div></section>
   </div>
   <footer className="bp-ficha-footer"><button type="button" className="bp-secondary" onClick={close} disabled={busy}><X size={17}/>{editable?'Cancelar':'Voltar'}</button>{editable&&<button type="submit" className="bp-primary" disabled={busy}><Save size={18}/>{busy?'Salvando...':'Salvar produto'}</button>}</footer>
  </form>:<>

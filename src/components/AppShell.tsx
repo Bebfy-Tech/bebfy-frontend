@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import './tenant-workspace.css';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BarChart3, Building2, ChevronDown, CreditCard, FileBarChart, HandCoins, Layers3, LogOut, Menu, Package, Settings, ShoppingCart, Truck, UserRound, Users, Wallet, Warehouse, X, FileUp, CircleHelp, Store, Boxes, ClipboardList } from 'lucide-react';
+import { Home, BarChart3, Building2, ChevronDown, CreditCard, FileBarChart, HandCoins, Layers3, LogOut, Menu, Package, Settings, ShoppingCart, Truck, UserRound, Users, Wallet, Warehouse, X, FileUp, CircleHelp, Store, Boxes, ClipboardList, Ruler } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileModal } from './ProfileModal';
 import { tenantPath } from '../services/tenantUrls';
 import { hasModule, routeModules } from '../services/moduleAccess';
 import type { ComponentType } from 'react';
 
-type Item={to:string;label:string;icon:ComponentType<{size?:number;className?:string}>;manager?:boolean};
+type Item={to:string;label:string;icon:ComponentType<{size?:number;className?:string}>;manager?:boolean;permissao?:string};
 const primary:Item[]=[
  {to:'/dashboard',label:'Visão Geral',icon:Home},
  {to:'/pdv',label:'Frente de Caixa',icon:ShoppingCart},
@@ -24,6 +24,7 @@ const primary:Item[]=[
  {to:'/relatorios',label:'Relatórios',icon:FileBarChart,manager:true},
 ];
 const additional:Item[]=[
+ {to:'/unidades-medida',label:'Unidades de medida',icon:Ruler,permissao:'PRODUTOS_GERENCIAR'},
  {to:'/financeiro/cadastros',label:'Cadastros financeiros',icon:Settings,manager:true},
  {to:'/categorias',label:'Categorias',icon:Layers3},
  {to:'/lotes',label:'Lotes e validade',icon:Boxes},
@@ -38,7 +39,7 @@ export function AppShell(){
  const [open,setOpen]=useState(false);const [profileOpen,setProfileOpen]=useState(false);const [accountOpen,setAccountOpen]=useState(false);
  const manager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
  const isPdv=location.pathname.endsWith('/pdv');
- const allowed=(i:Item)=>modulesStatus==='ready'&&(!i.manager||manager)&&hasModule(modules,routeModules[i.to])&&(i.to!='/delivery'||hasModule(modules,'CAIXA_PDV'));
+ const allowed=(i:Item)=>modulesStatus==='ready'&&(!i.manager||manager)&&(!i.permissao||manager||Boolean(user?.permissoes?.includes(i.permissao)))&&hasModule(modules,routeModules[i.to])&&(i.to!='/delivery'||hasModule(modules,'CAIXA_PDV'));
  const links=(items:Item[])=>items.filter(allowed).map(i=><NavLink key={i.to} to={tenantPath(i.to)} end={i.to==='/estoque'||i.to==='/financeiro'} onClick={()=>{setOpen(false);setAccountOpen(false);}} className={({isActive})=>'bf-menu-link '+(isActive?'bf-menu-active':'')}><i.icon size={19}/><span>{i.label}</span></NavLink>);
  const more=additional.filter(allowed);
  return <div className={'bebfy-workspace bf-workspace bf-premium-shell '+(isPdv?'bebfy-pdv-mode':'')}>
