@@ -13,6 +13,7 @@ import { SaasAccess } from '../pages/SaasAccess';
 import { SaasConsole } from '../pages/SaasConsole';
 import { ProdutosPage } from '../pages/ProdutosPage';
 import { CadastroPage } from '../pages/CadastroPage';
+import { ClientesPage } from '../pages/ClientesPage';
 import { EstoquePage } from '../pages/EstoquePage';
 import { ImportarXmlPage } from '../pages/ImportarXmlPage';
 import { AjudaPage } from '../pages/AjudaPage';
@@ -57,7 +58,7 @@ export const AppRoutes = () => (
             <Route path="categorias" element={<CadastroPage resource="categorias" />} />
             <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<CadastroPage resource="fornecedores" />} /></Route>
-            <Route path="clientes" element={<CadastroPage resource="clientes" />} />
+            <Route path="clientes" element={<ClientesPage />} />
             <Route path="funcionarios" element={<CadastroPage resource="funcionarios" />} />
             <Route path="estoque" element={<EstoquePage />} />
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="estoque/importar-xml" element={<ImportarXmlPage />} /></Route>
