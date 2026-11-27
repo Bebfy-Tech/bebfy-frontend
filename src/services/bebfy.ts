@@ -19,6 +19,7 @@ export interface Produto {
   unidadeMedidaId?:string|null;
   unidadeEmbalagemId?:string|null;
   unidadeEmbalagemSigla?:string|null;
+  precoCusto?: string | number | null;
   precoVendaVarejo: string | number;
   precoVendaAtacado: string | number | null;
   fardoQuantidade: number | null;

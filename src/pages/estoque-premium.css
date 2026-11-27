@@ -24,3 +24,34 @@
 @media(min-width:1024px){.es-list .es-table-scroll{max-height:calc(100dvh - 340px);min-height:130px;}}
 @media(max-width:1100px){.es-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.es-kpi{min-height:72px;}}
 @media(max-width:620px){.es-page{gap:9px;}.es-kpi{min-height:62px;padding:8px;gap:7px;}.es-kpi-icon{width:32px;height:32px;}.es-kpi-icon svg{width:19px;}.es-kpi strong{font-size:19px;}.es-tabs button{font-size:10px;gap:4px;padding:5px;}.es-tabs svg{width:15px;}.es-form-fields{grid-template-columns:1fr;}.es-pages{flex-basis:100%;}.es-list-footer{gap:8px;}}
+
+/* Etapa 17: central compacta, preservando a paleta grafite/verde. */
+.es-workspace{display:grid;min-width:0;gap:12px;align-items:start}
+.es-aside{display:grid;gap:10px;min-width:0}
+.es-side-panel{padding:12px;display:grid;gap:7px}
+.es-side-panel h2{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;margin:0 0 4px}
+.es-side-panel button{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--es-line);border-radius:7px;background:#20262d;color:#dce5eb;min-height:37px;padding:7px 9px;font-size:11px}
+.es-side-panel button>span{flex:1}
+.es-side-panel button>svg:first-child{color:#72e5b3;flex:none}
+.es-side-panel button>svg:last-child{color:var(--es-muted);flex:none}
+.es-tabs{flex-wrap:wrap}.es-tabs button{flex:1 1 132px}
+.es-kpi strong{font-size:clamp(16px,1.6vw,24px);overflow-wrap:anywhere}
+.es-kpi>div{min-width:0}
+.es-actions-row{display:flex;justify-content:flex-end}
+.es-inventory{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.es-inventory-note{display:flex;gap:9px;align-items:flex-start;margin:0 14px;padding:10px;border:1px solid #66502e;background:#2b251d;color:#f8c565;border-radius:7px;font-size:12px;line-height:1.5}
+.es-inventory-note svg{flex:none}
+.es-inventory-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 14px}
+.es-inventory-summary>div{padding:10px;border:1px solid var(--es-line);border-radius:7px;background:#20262d}
+.es-inventory-summary small{display:block;color:var(--es-muted);font-size:11px}
+.es-inventory-summary strong{font-size:22px;font-weight:800}
+.es-inventory-progress{display:flex;gap:10px;align-items:center;padding:0 14px;font-size:11px;color:var(--es-muted)}
+.es-inventory-progress progress{flex:1;min-width:0;height:8px;accent-color:#32dca0}
+.es-inventory-filters{display:flex;flex-wrap:wrap;gap:7px;padding:0 14px}
+.es-inventory-filters .es-search{flex:1;min-width:170px}
+.es-count-input{width:100px;max-width:100%;padding:6px 8px;background:#20262d;color:#eff3f6;border:1px solid #414b55;border-radius:6px}
+.es-count-input:focus{outline:1px solid #32dca0}
+.es-count-input[aria-invalid=true]{border-color:#ff7c87}
+@media(min-width:1350px){.es-workspace-position{grid-template-columns:minmax(0,1fr) 255px}}
+@media(max-width:1349px){.es-aside{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
+@media(max-width:620px){.es-inventory-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.es-tabs button{flex:1 1 90px}.es-inventory-note{margin:0 9px}.es-inventory-filters{padding:0 9px}}
