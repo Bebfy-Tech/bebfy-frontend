@@ -59,6 +59,8 @@ export interface ItemVendaEntrada {
 
 export interface PagamentoVendaEntrada {
   formaPagamento: FormaPagamento;
+  formaCadastroId?:string;
+  parcelas?:number;
   valor: number;
   troco?: number;
 }
@@ -105,6 +107,8 @@ export interface Venda {
   }>;
   pagamentos: Array<{
     formaPagamento: FormaPagamento;
+    formaNome?:string|null;
+    parcelasPagamento?:number;
     valor: string | number;
     troco: string | number;
   }>;

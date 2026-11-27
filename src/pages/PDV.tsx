@@ -1,3 +1,5 @@
+import { pagamentosOperacionais, parcelasDisponiveis, formaInicial } from '../services/pagamentosOperacionais';
+import type { FormaOperacional } from '../services/pagamentosOperacionais';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Boxes, CreditCard, Minus, Plus, Printer, CheckCircle2, RefreshCcw, Search, ShoppingCart, Trash2, Wallet, Grid2X2, List, Package, ChevronLeft, ChevronRight, Banknote, QrCode, HandCoins } from 'lucide-react';
@@ -15,13 +17,8 @@ import type { ExtratoCasco } from '../services/vasilhames';
 import './pdv-premium.css';
 
 type ItemCarrinho={produto:Produto;quantidade:number;isFardo:boolean};
-type Pagamento={forma:FormaPagamento;valor:string};
-const FORMAS:{key:FormaPagamento;label:string}[]=[
-  {key:'DINHEIRO',label:'Dinheiro'},{key:'PIX',label:'PIX'},
-  {key:'CARTAO_DEBITO',label:'Cartão de débito'},
-  {key:'CARTAO_CREDITO',label:'Cartão de crédito'},
-  {key:'FIADO',label:'Fiado'},
-];
+type Pagamento={forma:FormaPagamento;id:string;parcelas:number;valor:string};
+const novoPagamento=(f:FormaOperacional,valor=''):Pagamento=>({forma:f.formaPagamento,id:f.id,parcelas:1,valor});
 const price=(i:ItemCarrinho)=>Number(i.isFardo&&i.produto.precoVendaAtacado!=null
   ?i.produto.precoVendaAtacado:i.produto.precoVendaVarejo);
 const maxQuantity=(i:ItemCarrinho)=>Math.floor(i.produto.estoqueAtual/
@@ -67,7 +64,9 @@ export function PDV(){
   const [enderecoEntrega,setEnderecoEntrega]=useState('');
   const [taxaEntrega,setTaxaEntrega]=useState('0');
   const [desconto,setDesconto]=useState('0');
-  const [pagamentos,setPagamentos]=useState<Pagamento[]>([{forma:'DINHEIRO',valor:''}]);
+  const [pagamentos,setPagamentos]=useState<Pagamento[]>([]);
+  const [formas,setFormas]=useState<FormaOperacional[]>([]);
+  const [formasLoading,setFormasLoading]=useState(false);
   const [devolucoes,setDevolucoes]=useState<Record<string,string>>({});
   const [extratoCascos,setExtratoCascos]=useState<ExtratoCasco|null>(null);
   const [cascosErro,setCascosErro]=useState('');
@@ -82,14 +81,14 @@ export function PDV(){
     if(!user?.funcionarioId)return;
     setLoading(true);setErro('');
     try{
-      const [catalogo,cli,aberto]=await Promise.all([
+      const [catalogo,cli,aberto,opcoes]=await Promise.all([
         bebfy.produtos.listar(),bebfy.clientes.listar(),
         bebfy.caixa.abertoPorOperador(user.funcionarioId).catch((e:unknown)=>{
           if((e as {response?:{status?:number}})?.response?.status===404)return null;
           throw e;
-        }),
+        }),pagamentosOperacionais.pdv(),
       ]);
-      setProdutos(catalogo.filter(p=>p.ativo));setClientes(cli.filter(c=>c.ativo));setCaixa(aberto);
+      setProdutos(catalogo.filter(p=>p.ativo));setClientes(cli.filter(c=>c.ativo));setCaixa(aberto);setFormas(opcoes);
     }catch(e){setErro(mensagemErro(e));}finally{setLoading(false);}
   },[user?.funcionarioId]);
   useEffect(()=>{void carregar();},[carregar]);
@@ -110,6 +109,8 @@ export function PDV(){
   const saldoCasco=(key:string)=>key==='legado'?(extratoCascos?.legado??0):((extratoCascos?.saldos.find(t=>String(t.id)===key)?.quantidade??0)+(novosCascos.get(Number(key))??0));
   const retornoValido=Object.entries(devolucoes).every(([k,v])=>Number.isInteger(Number(v))&&Number(v)>=0&&Number(v)<=saldoCasco(k));
   const podeFiado=fiadoAtivo&&creditoDisponivel(escolhido)>0;
+  const disponiveis=formas.filter(f=>podeFiado||f.formaPagamento!=='FIADO');
+  const pagamentosValidos=pagamentos.length>0&&pagamentos.every(p=>disponiveis.some(f=>f.id===p.id&&f.formaPagamento===p.forma&&parcelasDisponiveis(f).includes(p.parcelas)));
   const valorFiado=pagamentos.filter(p=>p.forma==='FIADO').reduce((s,p)=>s+Number(p.valor||0),0);
   const categorias=useMemo(()=>Array.from(new Set(produtos.map(p=>p.categoria?.nome).filter((v):v is string=>Boolean(v)))).sort((a,b)=>a.localeCompare(b,'pt-BR')),[produtos]);
   const filtrados=useMemo(()=>{
@@ -150,6 +151,7 @@ export function PDV(){
   const pagamentoNet=()=>{
     const resultado=pagamentos.map(p=>({
       formaPagamento:p.forma,
+      formaCadastroId:p.id,parcelas:p.parcelas,
       valor:Number(p.valor),
       ...(p.forma==='DINHEIRO'&&troco>0?{troco}:{}),
     }));
@@ -172,6 +174,7 @@ export function PDV(){
     if(entrega==='DELIVERY'&&!enderecoEntrega.trim()){setErro('Informe o endereço da entrega.');return;}
     if(cascosAtivo&&clienteId&&carrinho.some(i=>i.produto.retornavel&&!i.produto.tipoVasilhameId)){setErro('Associe os produtos retornáveis a seus tipos de vasilhame antes da venda.');return;}
     if(cascosAtivo&&Object.values(devolucoes).some(v=>Number(v)>0)&&(!clienteId||extratoCascos?.cliente.id!==clienteId||!retornoValido)){setErro('Confira os saldos e quantidades de devolução por tipo.');return;}
+    if(!pagamentosValidos){setErro('Escolha formas ativas e parcelamentos disponíveis.');return;}
     if(pagamentos.some(p=>!Number.isFinite(Number(p.valor))||Number(p.valor)<=0)){
       setErro('Informe um valor positivo em todos os pagamentos.');return;
     }
@@ -194,7 +197,7 @@ export function PDV(){
       });
       setRecebimento(false);setVendaConcluida({id:venda.id,numero:String(venda.codigoVenda),total});setReceiptError('');setReceiptLoading(true);
       // The server has committed the sale. Never repeat it if receipt retrieval fails.
-      setCarrinho([]);setDesconto('0');setPagamentos([{forma:'DINHEIRO',valor:''}]);
+      setCarrinho([]);setDesconto('0');setPagamentos([]);
       setClienteId('');setEntrega('RETIRADA_BALCAO');setEnderecoEntrega('');
       setTaxaEntrega('0');setDevolucoes({});
       setSucesso(`Venda #${venda.codigoVenda} registrada com sucesso.`);
@@ -206,7 +209,7 @@ export function PDV(){
   }
   const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');setCategoria('');setPagina(1);requestAnimationFrame(()=>searchRef.current?.focus());};
   const retryReceipt=async()=>{if(!vendaConcluida||receiptLoading)return;setReceiptLoading(true);setReceiptError('');try{setComprovante(await bebfy.vendas.comprovante(vendaConcluida.id));}catch(e){setReceiptError(mensagemErro(e));}finally{setReceiptLoading(false);}};
-  const abrirRecebimento=()=>{if(!carrinho.length||total<=0||busy||vendaConcluida)return;if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setPagamentos(p=>p.length===1?[{...p[0],forma:!podeFiado&&p[0].forma==='FIADO'?'DINHEIRO':p[0].forma,valor:String(total)}]:p);setRecebimento(true);};
+  const abrirRecebimento=async()=>{if(!carrinho.length||total<=0||busy||vendaConcluida||formasLoading)return;if(descontoVal>subtotal){setErro('Desconto não pode ultrapassar subtotal.');return;}if(entrega==='DELIVERY'&&(!deliveryAtivo||!enderecoEntrega.trim())){setErro('Confira os dados da entrega.');return;}setErro('');setFormasLoading(true);try{const opcoes=await pagamentosOperacionais.pdv();setFormas(opcoes);const inicial=formaInicial(opcoes.filter(f=>podeFiado||f.formaPagamento!=='FIADO'));if(!inicial){setErro('Nenhuma forma de pagamento disponível. Solicite a configuração ao gestor.');return;}setPagamentos([novoPagamento(inicial,String(total))]);setRecebimento(true);}catch(e){setErro(mensagemErro(e));}finally{setFormasLoading(false);}};
   useEffect(()=>{if(recebimento)requestAnimationFrame(()=>pagamentoRef.current?.focus());},[recebimento]);
   const botoesProduto=(p:Produto)=><div className="pdv3-add"><button type="button" aria-label={'Adicionar unidade de '+p.nome} onClick={()=>inserir(p)} disabled={busy||restante(p)<1} className="pdv3-primary"><Plus size={15}/> Un.</button>{Number(p.fardoQuantidade)>1&&<button type="button" aria-label={'Adicionar fardo de '+p.nome} onClick={()=>fardo(p)} disabled={busy||restante(p)<Number(p.fardoQuantidade)} className="pdv3-secondary"><Boxes size={15}/> Fardo</button>}</div>;
   const foto=(p:Produto)=><div className="pdv3-photo"><ProdutoFoto produtoId={String(p.id)} editable={false}/></div>;
@@ -241,19 +244,19 @@ export function PDV(){
         {cascosAtivo&&clienteId&&<details className="pdv3-field"><summary>Devolução de vasilhames por tipo</summary>{cascosLoading?<p>Consultando saldo...</p>:cascosErro?<p className="pdv3-note">{cascosErro}</p>:extratoCascos&&<>{[...extratoCascos.saldos.map(t=>({key:String(t.id),nome:t.nome})),...Array.from(novosCascos.keys()).filter(id=>!extratoCascos.saldos.some(t=>t.id===id)).map(id=>({key:String(id),nome:'Tipo #'+id+' (nesta venda)'})),...(extratoCascos.legado>0?[{key:'legado',nome:'Saldo antigo não classificado'}]:[])].map(t=><label className="pdv3-field" key={t.key}>{t.nome} · até {saldoCasco(t.key)} un.<input type="number" min={0} step={1} max={saldoCasco(t.key)} value={devolucoes[t.key]??'0'} onChange={e=>setDevolucoes(d=>({...d,[t.key]:e.target.value}))}/></label>)}<p className="pdv3-note">O saldo inclui os cascos desta venda. Confira o tipo efetivamente recebido.</p></>}</details>}
         <div className="pdv3-totals"><div><span>Subtotal</span><strong>{dinheiro(subtotal)}</strong></div>{descontoVal>0&&<div><span>Desconto</span><strong>− {dinheiro(descontoVal)}</strong></div>}{entregaVal>0&&<div><span>Entrega</span><strong>{dinheiro(entregaVal)}</strong></div>}</div>
        </div>
-       <footer className="pdv3-sale-footer"><div className="pdv3-total"><span>TOTAL A RECEBER</span><strong>{dinheiro(total)}</strong></div><button type="button" className="pdv3-primary pdv3-receive" onClick={abrirRecebimento} disabled={busy||!carrinho.length||total<=0}><CreditCard size={20}/> Receber venda</button></footer>
+       <footer className="pdv3-sale-footer"><div className="pdv3-total"><span>TOTAL A RECEBER</span><strong>{dinheiro(total)}</strong></div><button type="button" className="pdv3-primary pdv3-receive" onClick={()=>void abrirRecebimento()} disabled={busy||!carrinho.length||total<=0}><CreditCard size={20}/> Receber venda</button></footer>
       </section>
     </div>}
     {recebimento&&<Modal title="Recebimento da venda" onClose={()=>{if(!busy)setRecebimento(false);}}>
       <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>{fiadoAtivo&&<p className="pdv3-note">{escolhido?rotuloCredito(escolhido)+(modalidade(escolhido)==='LIMITADO'?' · Disponível: '+dinheiro(creditoDisponivel(escolhido)):''):'Selecione um cliente para utilizar fiado.'}</p>}{valorFiado>0&&erroCredito(escolhido,valorFiado)&&<Notice message={erroCredito(escolhido,valorFiado)!}/>}
-      {pagamentos.length===1&&<div className="pdv3-payment-options">{FORMAS.filter(f=>podeFiado||f.key!=='FIADO').map(f=>{const Icon=f.key==='DINHEIRO'?Banknote:f.key==='PIX'?QrCode:f.key==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.key} aria-pressed={pagamentos[0].forma===f.key} disabled={busy} onClick={()=>setPagamentos([{forma:f.key,valor:String(total)}])}><Icon size={22}/>{f.label}</button>;})}</div>}
+      {pagamentos.length===1&&<div className="pdv3-payment-options">{disponiveis.map(f=>{const Icon=f.formaPagamento==='DINHEIRO'?Banknote:f.formaPagamento==='PIX'?QrCode:f.formaPagamento==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.id} aria-pressed={pagamentos[0].id===f.id} disabled={busy} onClick={()=>setPagamentos([novoPagamento(f,String(total))])}><Icon size={22}/>{f.nome}</button>;})}</div>}
       <Notice message={erro}/>
-          <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button onClick={()=>setPagamentos(a=>[...a,{forma:'PIX',valor:''}])} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
-            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="flex gap-2"><select ref={i===0?pagamentoRef:undefined} aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.forma} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,forma:e.target.value as FormaPagamento}:x))}>{FORMAS.filter(f=>podeFiado||f.key!=='FIADO').map(f=><option key={f.key} value={f.key}>{f.label}</option>)}</select><MoneyInput aria-label={`Valor ${i+1}`} className={input} value={p.valor} onValue={v=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:v}:x))}/>{pagamentos.length>1&&<button aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>)}</div>
+          <div className="border-t border-slate-100 pt-3"><div className="mb-3 flex justify-between"><strong className="flex items-center gap-2 text-sm"><CreditCard size={16}/> Pagamentos</strong><button disabled={busy||!disponiveis.length||pagamentos.length>=20} onClick={()=>{const f=disponiveis.find(x=>x.formaPagamento==='PIX')??formaInicial(disponiveis);if(f)setPagamentos(a=>[...a,novoPagamento(f)]);}} className="text-xs font-bold text-teal-800">+ Dividir pagamento</button></div>
+            <div className="space-y-2">{pagamentos.map((p,i)=><div key={i} className="space-y-1"><div className="flex gap-2"><select disabled={busy} ref={i===0?pagamentoRef:undefined} aria-label={`Forma ${i+1}`} className={`${input} !w-[54%]`} value={p.id} onChange={e=>{const f=disponiveis.find(x=>x.id===e.target.value);if(f)setPagamentos(a=>a.map((x,k)=>k===i?novoPagamento(f,x.valor):x));}}>{!disponiveis.some(f=>f.id===p.id)&&<option value={p.id}>Forma indisponível</option>}{disponiveis.map(f=><option key={f.id} value={f.id}>{f.nome}</option>)}</select><MoneyInput disabled={busy} aria-label={`Valor ${i+1}`} className={input} value={p.valor} onValue={v=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,valor:v}:x))}/>{pagamentos.length>1&&<button disabled={busy} aria-label="Remover forma de pagamento" onClick={()=>setPagamentos(a=>a.filter((_,k)=>k!==i))} className="text-rose-500"><Trash2 size={17}/></button>}</div>{p.forma==='CARTAO_CREDITO'&&<label className="pdv3-field">Parcelamento<select disabled={busy} className={input} value={p.parcelas} onChange={e=>setPagamentos(a=>a.map((x,k)=>k===i?{...x,parcelas:Number(e.target.value)}:x))}>{parcelasDisponiveis(disponiveis.find(f=>f.id===p.id)).map(n=><option key={n} value={n}>{n}x {n>1?'(aprox. '+dinheiro(Number(p.valor||0)/n)+' por parcela)':'à vista'}</option>)}</select></label>}</div>)}</div>
             <div className={`mt-3 flex items-center justify-between rounded-xl border p-4 ${troco>0?'border-amber-500/40 bg-amber-500/10 text-amber-200':'border-[#273247] bg-[#101829] text-slate-300'}`}><span className="text-sm font-bold">{diferenca>0?'Faltam':troco>0?'TROCO':'Pagamentos completos'}</span><strong className={troco>0?'text-2xl font-black':'text-lg font-extrabold'}>{dinheiro(Math.abs(diferenca))}</strong></div>
           </div>
 
-      <button className={`${btn} mt-4 w-full`} onClick={()=>void finalizar()} disabled={busy||diferenca>0.009}>{busy?'Registrando venda...':'Confirmar venda'}</button>
+      <button className={`${btn} mt-4 w-full`} onClick={()=>void finalizar()} disabled={busy||!pagamentosValidos||diferenca>0.009}>{busy?'Registrando venda...':'Confirmar venda'}</button>
       <p className="mt-3 text-center text-xs text-slate-400">Pix e cartão são informados pelo operador; confirme o recebimento antes de finalizar.</p>
     </Modal>}
     {vendaConcluida&&<Modal title="Venda realizada" onClose={novaVenda}>
