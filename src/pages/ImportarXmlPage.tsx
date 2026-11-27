@@ -6,7 +6,7 @@ import { tenantPath } from '../services/tenantUrls';
 import { btn, card, dinheiro, input, mensagemErro, Notice, secondary } from '../components/ui';
 
 interface ProdutoDisponivel { id:number; nome:string; codigoBarras:string|null; estoqueAtual:number; }
-interface ItemXml { indice:number; codigo:string; ean:string|null; nome:string; quantidade:number; valorUnitario:number; produtoSugeridoId:number|null; }
+interface ItemXml { indice:number; codigo:string; ean:string|null; nome:string; ncm?:string|null; cest?:string|null; quantidade:number; valorUnitario:number; produtoSugeridoId:number|null; }
 interface Preview {
  chave:string; numero:string; data:string; valor:number;
  fornecedor:{cnpj:string;razaoSocial:string};
@@ -91,8 +91,8 @@ export function ImportarXmlPage() {
     </section>
     <section className={`${card} p-5 sm:p-6`}>
      <div className="flex items-center gap-2"><Link2 className="text-emerald-300"/><h2 className="text-lg font-extrabold">3. Associe os produtos (De-Para)</h2></div>
-     <p className="mt-2 text-sm text-slate-400">Confira cada item da nota e escolha seu produto correspondente. Produtos não encontrados precisam ser cadastrados antes de finalizar.</p>
-     <div className="bf-table-scroll mt-3 overflow-x-auto"><table className="w-full min-w-[780px] text-left text-sm"><thead><tr><th>Item</th><th>Produto do fornecedor</th><th>EAN</th><th>Qtd.</th><th>Valor unit.</th><th>Produto no Bebfy (De-Para)</th></tr></thead><tbody>{preview.itens.map(item=><tr key={item.indice}><td>{item.indice}</td><td className="font-semibold">{item.nome}</td><td>{item.ean||'—'}</td><td>{item.quantidade}</td><td className="whitespace-nowrap">{dinheiro(item.valorUnitario)}</td><td><select aria-label={`Associar produto ${item.nome}`} required className={input} value={associacoes[item.indice]||''} onChange={e=>setAssociacoes(a=>({...a,[item.indice]:e.target.value}))}><option value="">Escolher produto cadastrado...</option>{preview.produtos.map(p=><option key={p.id} value={p.id}>{p.nome} · estoque: {p.estoqueAtual}</option>)}</select></td></tr>)}</tbody></table></div>
+     <p className="mt-2 text-sm text-slate-400">Confira cada item da nota e escolha seu produto correspondente. Produtos não encontrados precisam ser cadastrados antes de finalizar. NCM e CEST da nota são exibidos para conferência, sem substituir automaticamente a classificação do cadastro.</p>
+     <div className="bf-table-scroll mt-3 overflow-x-auto"><table className="w-full min-w-[780px] text-left text-sm"><thead><tr><th>Item</th><th>Produto do fornecedor</th><th>EAN</th><th>NCM</th><th>CEST</th><th>Qtd.</th><th>Valor unit.</th><th>Produto no Bebfy (De-Para)</th></tr></thead><tbody>{preview.itens.map(item=><tr key={item.indice}><td>{item.indice}</td><td className="font-semibold">{item.nome}</td><td>{item.ean||'—'}</td><td>{item.ncm||'—'}</td><td>{item.cest||'—'}</td><td>{item.quantidade}</td><td className="whitespace-nowrap">{dinheiro(item.valorUnitario)}</td><td><select aria-label={`Associar produto ${item.nome}`} required className={input} value={associacoes[item.indice]||''} onChange={e=>setAssociacoes(a=>({...a,[item.indice]:e.target.value}))}><option value="">Escolher produto cadastrado...</option>{preview.produtos.map(p=><option key={p.id} value={p.id}>{p.nome} · estoque: {p.estoqueAtual}</option>)}</select></td></tr>)}</tbody></table></div>
      <Link to={tenantPath('produtos')} className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-blue-300">Cadastrar produto que está faltando <ArrowRight size={16}/></Link>
     </section>
     <section className={`${card} p-6`}>

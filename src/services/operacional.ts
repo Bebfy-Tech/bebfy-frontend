@@ -19,6 +19,10 @@ export const definicoes: Record<Recurso,Definicao> = {
     columns:[{key:'nome',label:'Produto'},{key:'codigoBarras',label:'Código'},{key:'categoria.nome',label:'Categoria'},{key:'precoVendaVarejo',label:'Varejo',format:'money'},{key:'estoqueAtual',label:'Estoque',format:'stock'},{key:'ativo',label:'Situação',format:'boolean'}],
     fields:[
       {key:'nome',label:'Nome do produto',required:true},{key:'codigoBarras',label:'Código de barras'},
+      {key:'marca',label:'Marca'},{key:'fabricante',label:'Fabricante'},
+      {key:'grupo',label:'Grupo'},{key:'subgrupo',label:'Subgrupo'},
+      {key:'descricaoComplementar',label:'Descrição complementar',type:'textarea',span:true},
+      {key:'ncm',label:'NCM'},{key:'cest',label:'CEST'},
       {key:'categoriaId',label:'Categoria',type:'select',resource:'categorias'},
       {key:'unidadeMedida',label:'Unidade',type:'select',options:[{value:'UN',label:'Unidade'},{value:'CX',label:'Caixa'},{value:'FARDO',label:'Fardo'},{value:'L',label:'Litro'}]},
       {key:'ml',label:'Volume (ml)',type:'number'},{key:'fardoQuantidade',label:'Unidades por fardo',type:'number'},
