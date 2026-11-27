@@ -1,10 +1,11 @@
+import type { StatusCompra } from './compras';
 import { api } from './api';
 export type Pessoa='FISICA'|'JURIDICA';
 export type FornecedorDraft={tipoPessoa:Pessoa;cnpj:string;razaoSocial:string;nomeFantasia:string|null;inscricaoEstadual:string|null;telefone:string|null;email:string|null;endereco:string|null;contatoComercial:string|null;cep:string|null;cidade:string|null;uf:string|null;segmento:string|null;observacao:string|null;ativo:boolean};
 export type Fornecedor=FornecedorDraft&{id:string;codigoFornecedor:number;criadoEm:string;atualizadoEm:string;saldoPendente?:string|number|null;notasMes?:string|number|null;_count?:{notasFiscais:number}};
 export type NotaFornecedor={id:string;numeroNota:string;chaveAcesso:string;dataEmissao:string;criadoEm:string;valorTotal:string|number;itens:{quantidade:number;valorUnitario:string|number;produto:{id:number;nome:string}}[]};
 export type ContaFornecedor={id:string;descricao:string;categoria:string;valor:string|number;valorBaixado:string|number;status:'PENDENTE'|'PAGO'|'CANCELADO';dataVencimento:string;notaFiscalId:string|null};
-export type FichaFornecedor={fornecedor:Fornecedor;notas:NotaFornecedor[];contasPagar:ContaFornecedor[]|null;saldoPendente:string|number|null};
+export type FichaFornecedor={compras?:{id:string;codigoCompra:number;status:StatusCompra;total:string|number;criadoEm:string;recebimentos:{total:string|number}[]}[]|null;fornecedor:Fornecedor;notas:NotaFornecedor[];contasPagar:ContaFornecedor[]|null;saldoPendente:string|number|null};
 const root='/fornecedores';
 export const fornecedoresApi={
  listar:()=>api.get<Fornecedor[]>(root+'/gestao').then(r=>r.data),
