@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { tenantPath } from '../services/tenantUrls';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownCircle, ArrowUpCircle, CalendarDays, CheckCircle, CreditCard, Wallet, XCircle } from 'lucide-react';
 import { api } from '../services/api';
@@ -54,6 +56,7 @@ export function FinanceiroPage(){
   }
   return <>
     <PageTitle title="Financeiro" subtitle="Controle de contas a pagar e a receber, vencimentos e saldo previsto." onReload={()=>void load()} loading={loading}/>
+    <div className="mb-3 flex justify-end"><Link to={tenantPath('/financeiro/cadastros')} className={secondary}>Cadastros financeiros</Link></div>
     <Notice message={erro}/><Notice message={sucesso} success/>
     <section className="mb-5 grid gap-4 sm:grid-cols-3">
       <div className={`${card} p-5`}><ArrowUpCircle className="text-rose-600"/><p className="mt-3 text-sm text-slate-500">Contas a pagar (pendentes)</p><strong className="text-2xl">{dinheiro(somar(resumo?.contasPagar||[],'PENDENTE'))}</strong></div>

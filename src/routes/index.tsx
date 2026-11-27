@@ -22,6 +22,7 @@ import { VasilhamesPage } from '../pages/VasilhamesPage';
 import { VendasPage } from '../pages/VendasPage';
 import { CaixasPage } from '../pages/CaixasPage';
 import { DeliveryPage } from '../pages/DeliveryPage';
+import { CadastrosFinanceirosPage } from '../pages/CadastrosFinanceirosPage';
 import { FinanceiroPage } from '../pages/FinanceiroPage';
 import { RelatoriosPage } from '../pages/RelatoriosPage';
 import { ConfiguracoesPage } from '../pages/ConfiguracoesPage';
@@ -65,6 +66,7 @@ export const AppRoutes = () => (
             <Route element={<ModuleRoute modulo="FIADOS" />}><Route path="fiados" element={<FiadosPage />} /></Route>
             <Route element={<ModuleRoute modulo="VASILHAMES_RETORNAVEIS" />}><Route path="vasilhames" element={<VasilhamesPage />} /></Route>
             <Route path="financeiro" element={<FinanceiroPage />} />
+            <Route path="financeiro/cadastros" element={<CadastrosFinanceirosPage />} />
             <Route element={<ModuleRoute modulo="RELATORIOS_AVANCADOS" />}><Route path="relatorios" element={<RelatoriosPage />} /></Route>
             <Route path="configuracoes" element={<ConfiguracoesPage />} />
             <Route path="ajuda" element={<AjudaPage />} />

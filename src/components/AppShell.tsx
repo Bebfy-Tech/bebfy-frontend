@@ -24,6 +24,7 @@ const primary:Item[]=[
  {to:'/relatorios',label:'Relatórios',icon:FileBarChart,manager:true},
 ];
 const additional:Item[]=[
+ {to:'/financeiro/cadastros',label:'Cadastros financeiros',icon:Settings,manager:true},
  {to:'/categorias',label:'Categorias',icon:Layers3},
  {to:'/lotes',label:'Lotes e validade',icon:Boxes},
  {to:'/fornecedores',label:'Fornecedores',icon:Building2},
@@ -38,7 +39,7 @@ export function AppShell(){
  const manager=['PROPRIETARIO','ADMINISTRADOR','GERENTE'].includes(user?.cargo||'');
  const isPdv=location.pathname.endsWith('/pdv');
  const allowed=(i:Item)=>modulesStatus==='ready'&&(!i.manager||manager)&&hasModule(modules,routeModules[i.to])&&(i.to!='/delivery'||hasModule(modules,'CAIXA_PDV'));
- const links=(items:Item[])=>items.filter(allowed).map(i=><NavLink key={i.to} to={tenantPath(i.to)} end={i.to==='/estoque'} onClick={()=>{setOpen(false);setAccountOpen(false);}} className={({isActive})=>'bf-menu-link '+(isActive?'bf-menu-active':'')}><i.icon size={19}/><span>{i.label}</span></NavLink>);
+ const links=(items:Item[])=>items.filter(allowed).map(i=><NavLink key={i.to} to={tenantPath(i.to)} end={i.to==='/estoque'||i.to==='/financeiro'} onClick={()=>{setOpen(false);setAccountOpen(false);}} className={({isActive})=>'bf-menu-link '+(isActive?'bf-menu-active':'')}><i.icon size={19}/><span>{i.label}</span></NavLink>);
  const more=additional.filter(allowed);
  return <div className={'bebfy-workspace bf-workspace bf-premium-shell '+(isPdv?'bebfy-pdv-mode':'')}>
   {open&&<button className="bf-mobile-backdrop" aria-label="Fechar navegação" onClick={()=>setOpen(false)}/>}
@@ -47,7 +48,7 @@ export function AppShell(){
     <div className="bf-company"><Store size={25}/><div><strong>{empresa?.nomeFantasia||'Distribuidora'}</strong><small>{empresa?.subdominio||'Empresa conectada'}</small></div></div>
     <nav className="bf-sidebar-nav" aria-label="Módulos disponíveis">
       <div className="bf-premium-nav-main">{links(primary)}</div>
-      {more.length>0&&<details className="bf-premium-more" open={more.some(i=>location.pathname===tenantPath(i.to))||undefined}><summary>Mais opções <ChevronDown size={14}/></summary>{links(more)}</details>}
+      {more.length>0&&<details className="bf-premium-more" open={more.some(i=>location.pathname===tenantPath(i.to))||undefined}><summary>Cadastros e opções <ChevronDown size={14}/></summary>{links(more)}</details>}
       <div className="bf-premium-nav-secondary">{links(secondary)}</div>
       {modulesStatus!=='ready'&&<p className="bf-menu-status">{modulesStatus==='error'?'Não foi possível consultar módulos.':'Carregando módulos…'}</p>}
     </nav>
