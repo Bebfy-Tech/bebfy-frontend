@@ -11,6 +11,7 @@ export const routeModules: Record<string, NomeModulo> = {
   '/lotes': 'ESTOQUE_LOTES',
   '/estoque/importar-xml': 'COMPRAS_FORNECEDORES',
   '/fornecedores': 'COMPRAS_FORNECEDORES',
+  '/compras': 'COMPRAS_FORNECEDORES',
   '/fiados': 'FIADOS',
   '/vasilhames': 'VASILHAMES_RETORNAVEIS',
   '/relatorios': 'RELATORIOS_AVANCADOS',

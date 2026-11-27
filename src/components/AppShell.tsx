@@ -17,6 +17,7 @@ const primary:Item[]=[
  {to:'/delivery',label:'Entregas (Delivery)',icon:Truck},
  {to:'/produtos',label:'Produtos',icon:Package},
  {to:'/estoque',label:'Estoque',icon:Warehouse},
+ {to:'/compras',label:'Compras',icon:ClipboardList,manager:true},
  {to:'/clientes',label:'Clientes',icon:Users},
  {to:'/fiados',label:'Fiados',icon:HandCoins},
  {to:'/vasilhames',label:'Vasilhames',icon:ClipboardList},

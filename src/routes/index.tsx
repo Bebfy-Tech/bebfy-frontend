@@ -1,3 +1,4 @@
+import { ComprasPage } from '../pages/ComprasPage';
 import { FornecedoresPage } from '../pages/FornecedoresPage';
 import { UnidadesPage } from '../pages/UnidadesPage';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
@@ -65,6 +66,7 @@ export const AppRoutes = () => (
             <Route path="clientes" element={<ClientesPage />} />
             <Route path="funcionarios" element={<CadastroPage resource="funcionarios" />} />
             <Route path="estoque" element={<EstoquePage />} />
+            <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="compras" element={<ComprasPage />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="estoque/importar-xml" element={<ImportarXmlPage />} /></Route>
             <Route element={<ModuleRoute modulo="FIADOS" />}><Route path="fiados" element={<FiadosPage />} /></Route>
             <Route element={<ModuleRoute modulo="VASILHAMES_RETORNAVEIS" />}><Route path="vasilhames" element={<VasilhamesPage />} /></Route>
