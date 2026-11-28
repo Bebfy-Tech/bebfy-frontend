@@ -9,7 +9,7 @@ export interface SaasUser {
   permissoes: string[];
   ativo: boolean;
 }
-export interface SaasFuncionario extends SaasUser { criadoEm?: string; }
+export interface SaasFuncionario extends SaasUser { criadoEm?: string; atualizadoEm?:string; }
 export const saasClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
   timeout: 20000,
@@ -27,6 +27,7 @@ export const saasAuthApi = {
   atualizarPerfil: (data: {nome?:string;email?:string;senhaAtual?:string;novaSenha?:string}) =>
     saasClient.patch<SaasUser>('/saas/auth/perfil',data).then(r=>r.data),
   funcionarios: () => saasClient.get<SaasFuncionario[]>('/saas/admin/funcionarios').then(r=>r.data),
-  criarFuncionario: (data:{codigo:number;nome:string;senha:string;cargo:'OPERADOR';permissoes:string[]}) => saasClient.post('/saas/admin/funcionarios',data).then(r=>r.data),
+  criarFuncionario: (data:{codigo:number;nome:string;email?:string;senha:string;cargo:'OPERADOR';permissoes:string[]}) => saasClient.post('/saas/admin/funcionarios',data).then(r=>r.data),
+  encerrarSessao: (id:string)=>saasClient.post<{encerrada:boolean}>('/saas/admin/funcionarios/'+id+'/encerrar-sessao').then(r=>r.data),
   alterarFuncionario: (id:string,data:{codigo?:number;ativo?:boolean;permissoes?:string[];nome?:string;email?:string|null;senha?:string}) => saasClient.patch('/saas/admin/funcionarios/'+id,data).then(r=>r.data),
 };

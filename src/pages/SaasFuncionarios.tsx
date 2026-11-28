@@ -1,176 +1,79 @@
-import { useEffect, useState } from 'react';
-import { Check, Eye, EyeOff, Pencil, Plus, Shield, Users, X } from 'lucide-react';
-import { saasAuthApi } from '../services/saasAuth';
-import type { SaasFuncionario, SaasUser } from '../services/saasAuth';
-
-const options = [
-  ['EMPRESAS', 'Distribuidoras'],
-  ['PLANOS', 'Planos e assinaturas'],
-  ['MODULOS', 'Módulos'],
-  ['FUNCIONARIOS', 'Gestão de funcionários'],
-  ['SUPORTE', 'Central de suporte'],
+import {useCallback,useEffect,useState} from 'react';
+import {Check,Eye,EyeOff,LockKeyhole,Pencil,Plus,RefreshCcw,Search,Shield,UserCheck,Users,X} from 'lucide-react';
+import {saasAuthApi} from '../services/saasAuth';
+import type {SaasFuncionario,SaasUser} from '../services/saasAuth';
+const options=[
+ ['EMPRESAS','Distribuidoras','Cadastro de empresas, financeiro e monitoramento.'],
+ ['PLANOS','Planos e assinaturas','Preços e composição dos planos.'],
+ ['MODULOS','Módulos','Catálogo e liberações por distribuidora.'],
+ ['FUNCIONARIOS','Gestão de operadores','Equipe administrativa e auditoria.'],
+ ['SUPORTE','Central de suporte','Ordens de serviço e atendimentos.'],
 ] as const;
-const field = 'saas-field mt-2 min-h-12 w-full rounded-xl border border-[#425658] bg-[#172327] px-4 py-3 text-white outline-none focus:border-emerald-300';
-const btn = 'rounded-xl bg-[#53dcae] px-5 py-3 text-sm font-bold text-[#11382e] hover:bg-[#7ceac1] disabled:opacity-50';
-
-export function SaasFuncionarios({ current }: { current: SaasUser | null }) {
-  const [users, setUsers] = useState<SaasFuncionario[]>([]);
-  const [codigo, setCodigo] = useState('');
-  const [nome, setNome] = useState('');
-  const [senha, setSenha] = useState('');
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [permissoes, setPermissoes] = useState<string[]>(['EMPRESAS']);
-  const [selected, setSelected] = useState<SaasFuncionario | null>(null);
-  const [editCode, setEditCode] = useState('');
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPassword, setEditPassword] = useState('');
-  const [editPermissions, setEditPermissions] = useState<string[]>([]);
-  const [editActive, setEditActive] = useState(true);
-  const [showEditPassword, setShowEditPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const canManage = current?.cargo === 'SUPER_ADMIN' || current?.permissoes.includes('FUNCIONARIOS');
-
-  const reload = async () => {
-    const data = await saasAuthApi.funcionarios();
-    setUsers(data);
-    const ids = new Set(data.map(u => u.codigo));
-    let suggested = 3;
-    while (ids.has(suggested)) suggested++;
-    setCodigo(String(suggested));
-  };
-
-  useEffect(() => {
-    if (!canManage) return;
-    let mounted = true;
-    setLoading(true);
-    void saasAuthApi.funcionarios().then(data => {
-      if (!mounted) return;
-      setUsers(data);
-      const ids = new Set(data.map(u => u.codigo));
-      let suggested = 3;
-      while (ids.has(suggested)) suggested++;
-      setCodigo(String(suggested));
-    }).catch(() => { if (mounted) setError('Não foi possível carregar a equipe.'); })
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
-  }, [canManage]);
-
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (busy) return;
-    setBusy(true); setError(''); setMessage('');
-    try {
-      await saasAuthApi.criarFuncionario({
-        codigo: Number(codigo), nome: nome.trim(), senha, cargo: 'OPERADOR', permissoes,
-      });
-      setNome(''); setSenha(''); setPermissoes(['EMPRESAS']);
-      await reload(); setMessage('Funcionário cadastrado com sucesso.');
-    } catch (err) {
-      const response = err as { response?: { data?: { message?: string } } };
-      setError(response.response?.data?.message || 'Não foi possível cadastrar o funcionário.');
-    } finally { setBusy(false); }
-  };
-
-  const openEditor = (u: SaasFuncionario) => {
-    setSelected(u); setEditCode(String(u.codigo)); setEditName(u.nome); setEditEmail(u.email || '');
-    setEditPassword(''); setEditPermissions([...u.permissoes]); setEditActive(u.ativo);
-    setError(''); setMessage(''); setShowEditPassword(false);
-  };
-
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selected || busy) return;
-    setBusy(true); setError('');
-    try {
-      await saasAuthApi.alterarFuncionario(selected.id, selected.cargo === 'SUPER_ADMIN'
-        ? { nome: editName.trim(), email: editEmail.trim() || null }
-        : { codigo: Number(editCode), nome: editName.trim(), ...(editEmail.trim()?{email:editEmail.trim()}: {}), permissoes: editPermissions,
-            ativo: editActive, ...(editPassword ? { senha: editPassword } : {}) });
-      setSelected(null); await reload(); setMessage('Cadastro atualizado com sucesso.');
-    } catch (err) {
-      const response = err as { response?: { data?: { message?: string } } };
-      setError(response.response?.data?.message || 'Não foi possível salvar as alterações.');
-    } finally { setBusy(false); }
-  };
-
-  const permissionList = (items: string[], setter: (values:string[]) => void) => <div className="grid gap-3 sm:grid-cols-2">
-    {options.map(([key,title])=><label key={key} className="flex min-h-10 cursor-pointer items-center gap-2 text-xs text-slate-200">
-      <input type="checkbox" checked={items.includes(key)} onChange={e=>setter(e.target.checked ? [...items,key] : items.filter(x=>x!==key))}/>
-      {title}
-    </label>)}
-  </div>;
-  if (!canManage) return <p role="alert" className="text-rose-200">Sua conta não tem permissão para gerenciar funcionários.</p>;
-
-  return <div className="saas-staff space-y-6">
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h2 className="text-2xl font-extrabold">Equipe administrativa</h2><p className="mt-1 text-sm text-slate-400">Gerencie os acessos internos da plataforma sem alterar funcionários das distribuidoras.</p></div>
-      <span className="rounded-full border border-white/15 px-3 py-2 text-xs text-slate-300">{users.length} colaboradores</span>
-    </div>
-    {error && !selected && <p role="alert" className="rounded-xl border border-rose-400/25 bg-rose-500/10 p-4 text-sm text-rose-200">{error}</p>}
-    {message && <p role="status" className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-200"><Check size={17}/>{message}</p>}
-    <form onSubmit={e=>void create(e)} className="saas-card space-y-5 rounded-2xl p-6">
-      <div className="flex items-center gap-2"><Plus size={20} className="text-emerald-300"/><h3 className="text-lg font-extrabold">Cadastrar funcionário</h3></div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className="text-sm font-semibold">Código de acesso
-          <input className={field} type="number" min="3" required value={codigo} onChange={e=>setCodigo(e.target.value)}/>
-        </label>
-        <label className="text-sm font-semibold">Nome completo
-          <input className={field} minLength={2} required value={nome} onChange={e=>setNome(e.target.value)}/>
-        </label>
-        <label className="text-sm font-semibold">Senha inicial
-          <span className="relative block"><input className={field + ' pr-12'} required type={mostrarSenha?'text':'password'} autoComplete="new-password" value={senha} onChange={e=>setSenha(e.target.value)}/>
-          <button type="button" onClick={()=>setMostrarSenha(!mostrarSenha)} aria-label={mostrarSenha?'Ocultar senha':'Mostrar senha'} className="absolute right-3 top-4 rounded-lg p-2 text-slate-300 hover:bg-white/10">{mostrarSenha?<EyeOff size={18}/>:<Eye size={18}/>}</button></span>
-        </label>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-bold">Permissões de acesso</h4><button type="button" onClick={()=>setPermissoes(permissoes.length===options.length?[]:options.map(([key])=>key))} className="text-xs font-bold text-emerald-300 hover:underline">{permissoes.length===options.length?'Desmarcar todas':'Marcar todas as permissões'}</button></div>
-      {permissionList(permissoes,setPermissoes)}
-
-      <button type="submit" disabled={busy} className={btn}>{busy?'Salvando...':'Cadastrar funcionário'}</button>
-    </form>
-
-    <section className="saas-card space-y-4 rounded-2xl p-6">
-      <div className="flex items-center justify-between gap-3"><h3 className="text-lg font-extrabold">Equipe cadastrada</h3><Users size={20} className="text-emerald-300"/></div>
-      {loading && <p className="text-sm text-slate-400">Carregando colaboradores...</p>}
-      {!loading && users.map(u=><button type="button" key={u.id} onClick={()=>openEditor(u)} disabled={u.cargo==='SUPER_ADMIN'&&current?.cargo!=='SUPER_ADMIN'}
-        className="flex w-full flex-col gap-3 rounded-xl border border-white/10 bg-white/[.025] p-4 text-left transition hover:border-emerald-400/35 hover:bg-white/[.04] sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><strong>{u.nome}</strong><span className={'rounded-full px-2 py-0.5 text-[10px] font-bold ' + (u.ativo?'bg-emerald-400/10 text-emerald-200':'bg-slate-400/15 text-slate-300')}>{u.ativo?'Ativo':'Desativado'}</span></div>
-          <p className="mt-1 text-xs text-slate-400">Código {u.codigo} · {u.cargo==='SUPER_ADMIN'?'Administrador geral':'Operador SaaS'}</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">{u.permissoes.map(p=><span key={p} className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold text-slate-300">{options.find(([key])=>key===p)?.[1]||p}</span>)}</div>
-        </div>
-        <span className="inline-flex shrink-0 items-center gap-2 text-xs font-bold text-emerald-300">{u.cargo==='SUPER_ADMIN'?<><Shield size={16}/> Editar administrador</>:<><Pencil size={16}/> Editar funcionário</>}</span>
-      </button>)}
-      {!loading && !users.length && <p className="py-8 text-center text-sm text-slate-400">Nenhum funcionário cadastrado.</p>}
-    </section>
-
-    {selected && <div role="dialog" aria-modal="true" aria-labelledby="saas-staff-modal-title" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
-      <form onSubmit={e=>void save(e)} className="max-h-[95dvh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-white/15 bg-[#202b2e] p-6 text-white shadow-2xl sm:p-8">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">EQUIPE SAAS</p><h2 id="saas-staff-modal-title" className="mt-1 text-2xl font-extrabold">{selected.cargo==='SUPER_ADMIN'?'Editar administrador':'Editar funcionário'}</h2></div><button type="button" onClick={()=>setSelected(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={20}/></button></div>
-        {error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-200">{error}</p>}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-semibold">Nome completo<input className={field} minLength={2} required value={editName} onChange={e=>setEditName(e.target.value)}/></label>
-          <label className="text-sm font-semibold">Código de acesso<input className={field} type="number" min={selected.cargo==='SUPER_ADMIN'?1:3} disabled={selected.cargo==='SUPER_ADMIN'} required value={editCode} onChange={e=>setEditCode(e.target.value)}/></label>
-        </div>
-        <label className="block text-sm font-semibold">E-mail<input className={field} type="email" value={editEmail} onChange={e=>setEditEmail(e.target.value)} placeholder="nome@dominio.com"/></label>
-        {selected.cargo==='SUPER_ADMIN'?
-          <p className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4 text-xs leading-5 text-emerald-100">
-            Administradores principais (códigos 1 e 2): nome e e-mail podem ser alterados aqui. Os códigos, privilégios e ativação permanecem protegidos. Cada administrador altera a própria senha em Meu perfil, informando a senha atual.
-          </p> : <>
-        <label className="block text-sm font-semibold">Nova senha (opcional)
-          <span className="relative block"><input className={field+' pr-12'} type={showEditPassword?'text':'password'} autoComplete="new-password" value={editPassword} onChange={e=>setEditPassword(e.target.value)} placeholder="Mantenha em branco para não alterar"/>
-            <button type="button" onClick={()=>setShowEditPassword(!showEditPassword)} aria-label={showEditPassword?'Ocultar senha':'Mostrar senha'} className="absolute right-3 top-4 p-2 text-slate-300">{showEditPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button>
-          </span>
-        </label>
-        <div className="flex justify-between gap-3"><h3 className="text-sm font-bold">Permissões</h3><button type="button" onClick={()=>setEditPermissions(editPermissions.length===options.length?[]:options.map(([key])=>key))} className="text-xs font-bold text-emerald-300">{editPermissions.length===options.length?'Desmarcar todas':'Marcar todas'}</button></div>
-        {permissionList(editPermissions,setEditPermissions)}
-        <label className="flex items-center gap-3 rounded-xl border border-white/10 p-4 text-sm"><input type="checkbox" checked={editActive} onChange={e=>setEditActive(e.target.checked)}/> Acesso ativo</label>
-        </>}
-        <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setSelected(null)} className="rounded-xl border border-white/15 px-5 py-3 text-sm font-bold">Cancelar</button><button type="submit" disabled={busy} className={btn}>{busy?'Salvando...':'Salvar alterações'}</button></div>
-      </form>
-    </div>}
-  </div>;
+const normalize=(v:string)=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+const field='saas-field sop-field w-full';
+const errorText=(e:unknown)=>{const m=(e as {response?:{data?:{message?:string|string[]}}})?.response?.data?.message;return Array.isArray(m)?m.join(' · '):m||'Não foi possível concluir a operação.'};
+type Editor={mode:'create'|'edit';target:SaasFuncionario|null;codigo:string;nome:string;email:string;senha:string;confirm:string;permissoes:string[];ativo:boolean};
+const validPassword=(v:string)=>v.length>=12&&v.trim().length>0&&new TextEncoder().encode(v).length<=72;
+export function SaasFuncionarios({current}:{current:SaasUser|null}){
+ const [users,setUsers]=useState<SaasFuncionario[]>([]),[loading,setLoading]=useState(true),[available,setAvailable]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const [query,setQuery]=useState(''),[status,setStatus]=useState('TODOS'),[role,setRole]=useState('TODOS'),[permission,setPermission]=useState('TODAS'),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(10);
+ const [editor,setEditor]=useState<Editor|null>(null),[tab,setTab]=useState<'dados'|'permissoes'|'seguranca'>('dados'),[show,setShow]=useState(false);
+ const isAdmin=current?.cargo==='SUPER_ADMIN';
+ const canManage=isAdmin||current?.permissoes.includes('FUNCIONARIOS');
+ const allowed=options.filter(([key])=>isAdmin||key!=='FUNCIONARIOS'&&current?.permissoes.includes(key));
+ const mayEdit=(u:SaasFuncionario)=>u.cargo==='SUPER_ADMIN'?isAdmin&&[1,2].includes(u.codigo):u.id!==current?.id&&(isAdmin||u.permissoes.every(p=>p!=='FUNCIONARIOS'&&current?.permissoes.includes(p)));
+ const reload=useCallback(async()=>{
+   setLoading(true);
+   try{setUsers(await saasAuthApi.funcionarios());setAvailable(true);}
+   catch(e){setAvailable(false);setError(errorText(e));}
+   finally{setLoading(false);}
+ },[]);
+ useEffect(()=>{if(canManage)void reload();},[canManage,reload]);
+ const reset=()=>{setQuery('');setStatus('TODOS');setRole('TODOS');setPermission('TODAS');setPage(1);};
+ const list=users.filter(u=>normalize(u.nome+' '+u.codigo+' '+(u.email||'')).includes(normalize(query.trim()))&&(status==='TODOS'||u.ativo===(status==='ATIVOS'))&&(role==='TODOS'||u.cargo===role)&&(permission==='TODAS'||u.cargo==='SUPER_ADMIN'||u.permissoes.includes(permission))).sort((a,b)=>a.codigo-b.codigo);
+ const maxPage=Math.max(1,Math.ceil(list.length/pageSize)),actualPage=Math.min(page,maxPage);
+ const patch=(v:Partial<Editor>)=>setEditor(p=>p?{...p,...v}:p);
+ const open=(u?:SaasFuncionario)=>{
+   if(u&&!mayEdit(u))return;
+   let suggested=3;const used=new Set(users.map(x=>x.codigo));while(used.has(suggested))suggested++;
+   setError('');setMessage('');setTab('dados');setShow(false);
+   setEditor(u?{mode:'edit',target:u,codigo:String(u.codigo),nome:u.nome,email:u.email||'',senha:'',confirm:'',permissoes:[...u.permissoes],ativo:u.ativo}:{mode:'create',target:null,codigo:String(suggested),nome:'',email:'',senha:'',confirm:'',permissoes:[],ativo:true});
+ };
+ const close=()=>{if(!busy){setEditor(null);setShow(false);setError('');}};
+ const save=async(e:React.FormEvent)=>{
+   e.preventDefault();if(!editor||busy)return;
+   const d=editor,admin=d.target?.cargo==='SUPER_ADMIN',code=Number(d.codigo);
+   if(d.nome.trim().length<2){setTab('dados');setError('Informe o nome completo.');return;}
+   if(!admin&&(!Number.isInteger(code)||code<3||code>2147483647)){setTab('dados');setError('Informe um código inteiro a partir de 3.');return;}
+   if(!admin&&(d.mode==='create'||d.senha)&&(!validPassword(d.senha)||d.senha!==d.confirm)){setTab('seguranca');setError('Informe uma senha de pelo menos 12 caracteres, até 72 bytes, e confirme corretamente.');return;}
+   if(d.target&&!admin&&(!d.ativo&&d.target.ativo||d.senha||code!==d.target.codigo||d.permissoes.slice().sort().join(',')!==d.target.permissoes.slice().sort().join(','))&&!window.confirm('Confirmar alterações de acesso? A sessão existente deste operador será encerrada se as credenciais, permissões ou situação forem alteradas.'))return;
+   setBusy(true);setError('');setMessage('');
+   try{
+     if(d.mode==='create')await saasAuthApi.criarFuncionario({codigo:code,nome:d.nome.trim(),email:d.email.trim()||undefined,senha:d.senha,cargo:'OPERADOR',permissoes:d.permissoes});
+     else if(d.target)await saasAuthApi.alterarFuncionario(d.target.id,admin?{nome:d.nome.trim(),email:d.email.trim()||null}:{codigo:code,nome:d.nome.trim(),email:d.email.trim()||null,permissoes:d.permissoes,ativo:d.ativo,...(d.senha?{senha:d.senha}:{})});
+     setEditor(null);setShow(false);setMessage(d.mode==='create'?'Operador cadastrado.':'Cadastro atualizado.');await reload();
+   }catch(e){setError(errorText(e));}finally{setBusy(false);}
+ };
+ const revoke=async(u:SaasFuncionario)=>{
+   if(busy||!mayEdit(u)||u.cargo==='SUPER_ADMIN')return;
+   if(!window.confirm('Encerrar a sessão administrativa de '+u.nome+'? O operador poderá entrar novamente se o acesso continuar habilitado.'))return;
+   setBusy(true);setError('');setMessage('');
+   try{await saasAuthApi.encerrarSessao(u.id);setMessage('Sessão encerrada.');}catch(e){setError(errorText(e));}finally{setBusy(false);}
+ };
+ const protectedAdmin=editor?.target?.cargo==='SUPER_ADMIN';
+ if(!canManage)return <p role="alert" className="sd-warning">Sua conta não possui permissão para gerenciar operadores.</p>;
+ return <div className="sc-page sop-page">
+   <div className="sd-heading"><div><h2>Operadores SaaS</h2><p>Gerencie os acessos da equipe do Bebfy, independentemente dos funcionários das distribuidoras.</p></div><div className="sd-actions"><button className="sd-secondary" disabled={busy||loading} onClick={()=>{setError('');void reload();}}><RefreshCcw size={16}/> Atualizar</button><button className="sd-primary" disabled={busy||!available} onClick={()=>open()}><Plus size={16}/> Novo operador</button></div></div>
+   {error&&!editor&&<p role="alert" className="sd-warning">{error}</p>}{message&&<p role="status" className="text-emerald-300 text-sm flex items-center gap-2"><Check size={16}/>{message}</p>}
+   <div className="sd-kpis">{([{label:'Equipe cadastrada',value:users.length,icon:Users,filter:'TODOS',cargo:'TODOS'},{label:'Acessos habilitados',value:users.filter(u=>u.ativo).length,icon:UserCheck,filter:'ATIVOS',cargo:'TODOS'},{label:'Acessos desativados',value:users.filter(u=>!u.ativo).length,icon:LockKeyhole,filter:'INATIVOS',cargo:'TODOS'},{label:'Administradores gerais',value:users.filter(u=>u.cargo==='SUPER_ADMIN').length,icon:Shield,filter:'TODOS',cargo:'SUPER_ADMIN'}] as const).map(({label,value,icon:Icon,filter,cargo})=><button key={label} className="sd-panel sd-kpi text-left" disabled={!available||busy} onClick={()=>{reset();setStatus(filter);setRole(cargo);}}><span className="sd-icon"><Icon size={22}/></span><div><small>{label}</small><strong>{available?value:'—'}</strong><span>Equipe administrativa</span></div></button>)}</div>
+   <section className="sc-panel sop-protection"><Shield size={21}/><div><h3>Administradores principais protegidos</h3><p className="sd-muted">Códigos 1 e 2 reservados. Nome e e-mail editáveis pelos superadministradores; senha alterada pelo titular em Meu perfil. Operadores delegados não administram outros gestores nem concedem privilégios superiores aos próprios.</p></div></section>
+   <section className="sc-panel"><div className="sc-filters"><label className="sd-search sc-query"><Search size={16}/><input aria-label="Pesquisar operador" placeholder="Nome, código ou e-mail" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/></label><label>Status<select value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}}><option value="TODOS">Todos</option><option value="ATIVOS">Ativos</option><option value="INATIVOS">Desativados</option></select></label><label>Cargo<select value={role} onChange={e=>{setRole(e.target.value);setPage(1);}}><option value="TODOS">Todos</option><option value="SUPER_ADMIN">Administrador geral</option><option value="OPERADOR">Operador SaaS</option></select></label><label>Permissão<select value={permission} onChange={e=>{setPermission(e.target.value);setPage(1);}}><option value="TODAS">Todas</option>{options.map(([k,t])=><option key={k} value={k}>{t}</option>)}</select></label><button className="sd-secondary" onClick={reset}>Limpar</button></div></section>
+   <section className="sc-panel sc-list"><div className="sd-panel-head"><h3>Equipe cadastrada · {available?list.length:'—'}</h3></div><div className="sc-table-scroll"><table className="sc-table sop-table"><thead><tr><th>Código / nome</th><th>Cargo</th><th>Permissões</th><th>Status</th><th>Ações</th></tr></thead><tbody>{available&&list.slice((actualPage-1)*pageSize,actualPage*pageSize).map(u=><tr key={u.id}><td><strong>#{u.codigo} · {u.nome}{current?.id===u.id?' (você)':''}</strong><small>{u.email||'E-mail não informado'}</small>{u.criadoEm&&<small>Cadastrado em {new Date(u.criadoEm).toLocaleDateString('pt-BR')}</small>}</td><td>{u.cargo==='SUPER_ADMIN'?'Administrador geral':'Operador SaaS'}</td><td>{u.cargo==='SUPER_ADMIN'?<span className="text-emerald-300">Acesso integral</span>:<div className="sop-tags">{u.permissoes.length?u.permissoes.map(p=><span key={p}>{options.find(([k])=>k===p)?.[1]||p}</span>):'Sem permissões operacionais'}</div>}</td><td><span className={u.ativo?'text-emerald-300':'text-slate-400'}>{u.ativo?'Ativo':'Desativado'}</span></td><td><div className="sd-actions">{mayEdit(u)?<><button className="sd-secondary" disabled={busy} onClick={()=>open(u)}><Pencil size={14}/> Editar</button>{u.cargo!=='SUPER_ADMIN'&&<button className="sd-secondary" disabled={busy} onClick={()=>void revoke(u)}><LockKeyhole size={14}/> Encerrar sessão</button>}</>:<span className="sd-muted">{current?.id===u.id?'Meu perfil':'Protegido'}</span>}</div></td></tr>)}</tbody></table>{loading&&!available?<p className="sd-empty">Consultando equipe…</p>:!available?<p className="sd-empty">Consulta indisponível.</p>:!list.length?<p className="sd-empty">Nenhum operador encontrado.</p>:null}</div><footer className="sc-pagination"><label>Por página <select value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setPage(1);}}>{[10,20,50].map(n=><option key={n}>{n}</option>)}</select></label><span>Página {actualPage} de {maxPage}</span><div className="sd-actions"><button className="sd-secondary" disabled={busy||actualPage<=1} onClick={()=>setPage(actualPage-1)}>Anterior</button><button className="sd-secondary" disabled={busy||actualPage>=maxPage} onClick={()=>setPage(actualPage+1)}>Próxima</button></div></footer></section>
+   {editor&&<div role="dialog" aria-modal="true" aria-label="Cadastro de operador" className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-3"><form className="sc-panel sop-dialog" onSubmit={e=>void save(e)}><div className="sd-panel-head"><div><h3>{editor.mode==='create'?'Novo operador SaaS':protectedAdmin?'Editar administrador':'Editar operador'}</h3><p className="sd-muted">Acesso exclusivo ao SaaS Admin.</p></div><button type="button" className="sd-secondary" disabled={busy} onClick={close} aria-label="Fechar"><X size={17}/></button></div>{error&&<p role="alert" className="sd-warning">{error}</p>}
+   <nav className="sc-tabs" aria-label="Cadastro">{(['dados','permissoes','seguranca'] as const).map(t=><button key={t} type="button" disabled={busy} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t==='dados'?'Dados':t==='permissoes'?'Permissões':'Segurança'}</button>)}</nav>
+   {tab==='dados'&&<div className="sop-form"><label>Nome completo<input className={field} maxLength={120} required value={editor.nome} onChange={e=>patch({nome:e.target.value})}/></label><label>Código de acesso<input className={field} type="number" min={protectedAdmin?1:3} max={2147483647} disabled={protectedAdmin} required value={editor.codigo} onChange={e=>patch({codigo:e.target.value})}/></label><label>E-mail (opcional)<input className={field} type="email" maxLength={254} value={editor.email} onChange={e=>patch({email:e.target.value})}/></label><p className="sd-muted">Cargo: {protectedAdmin?'Administrador geral (protegido)':'Operador SaaS'}</p></div>}
+   {tab==='permissoes'&&(protectedAdmin?<p className="sd-muted">Administrador geral possui acesso integral. Os privilégios não podem ser alterados.</p>:<div className="sop-permissions"><div className="sd-panel-head"><h3>Permissões individuais</h3><button type="button" className="sd-secondary" onClick={()=>patch({permissoes:editor.permissoes.length===allowed.length?[]:allowed.map(([k])=>k)})}>{editor.permissoes.length===allowed.length?'Desmarcar':'Marcar permitidas'}</button></div>{options.map(([key,title,desc])=><label key={key} className="sop-permission"><input type="checkbox" disabled={busy||!allowed.some(([k])=>k===key)} checked={editor.permissoes.includes(key)} onChange={e=>patch({permissoes:e.target.checked?[...editor.permissoes,key]:editor.permissoes.filter(p=>p!==key)})}/><span><strong>{title}</strong><small>{desc}</small></span></label>)}<p className="sd-muted">Sem permissões por padrão no cadastro. Conceda apenas o necessário.</p></div>)}
+   {tab==='seguranca'&&(protectedAdmin?<p className="sd-muted">Os administradores principais não podem ser desativados. Cada titular altera sua própria senha em Meu perfil, confirmando a senha atual.</p>:<div className="sop-form"><label>{editor.mode==='create'?'Senha inicial':'Nova senha (opcional)'}<span className="sop-password"><input className={field} type={show?'text':'password'} autoComplete="new-password" value={editor.senha} onChange={e=>patch({senha:e.target.value})}/><button type="button" aria-label={show?'Ocultar senha':'Mostrar senha'} onClick={()=>setShow(!show)}>{show?<EyeOff size={17}/>:<Eye size={17}/>}</button></span></label><label>Confirmar senha<input className={field} type={show?'text':'password'} autoComplete="new-password" value={editor.confirm} onChange={e=>patch({confirm:e.target.value})}/></label><p className="sd-muted">Use ao menos 12 caracteres e até 72 bytes. A senha não é exibida nem recuperada do banco.</p>{editor.mode==='edit'&&<label className="sop-permission"><input type="checkbox" checked={editor.ativo} onChange={e=>patch({ativo:e.target.checked})}/> Acesso habilitado</label>}</div>)}
+   <div className="sd-actions sop-footer"><button type="button" className="sd-secondary" disabled={busy} onClick={close}>Cancelar</button><button type="submit" className="sd-primary" disabled={busy}>{busy?'Salvando…':editor.mode==='create'?'Cadastrar operador':'Salvar alterações'}</button></div></form></div>}
+ </div>;
 }
