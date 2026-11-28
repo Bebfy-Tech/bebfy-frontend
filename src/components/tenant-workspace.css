@@ -509,3 +509,32 @@
 .bf-shell-v22 .cl-receipt,.bf-shell-v22 .fd-receipt{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 @media(max-width:520px){.bf-shell-v22 .bf-casco-summary{grid-template-columns:1fr 1fr}.bf-shell-v22 .bf-casco-summary>div:last-child{grid-column:1/-1}.bf-shell-v22 .vc-tools>*{min-width:0}.bf-shell-v22 .fd-value{flex-wrap:wrap}.bf-shell-v22 .fd-value input{flex:1 1 125px}.bf-shell-v22 .cl-credit-modes{grid-template-columns:1fr}}
 }
+
+/* 22.8 — financial details and DRE presentation. No accounting formula changes. */
+@media screen{
+.bebfy-workspace.bf-workspace.bf-shell-v22 .rl-search:focus-within{border-color:#32dca0!important;box-shadow:0 0 0 2px #32dca018}
+.bebfy-workspace.bf-workspace.bf-shell-v22 .rl-search input:is(:focus,:focus-visible){outline:0!important;border:0!important;box-shadow:none!important}
+.bebfy-workspace.bf-workspace.bf-shell-v22 :is(.gf-form,.gf-filters,.cf-form,.cf-tools,.rl-tools) :is(input:not([type=checkbox]):not([type=radio]),select,textarea):is(:focus,:focus-visible){border-color:#32dca0!important;outline:0!important;box-shadow:0 0 0 2px #32dca018!important}
+.bebfy-workspace.bf-workspace.bf-shell-v22 :is(.gf-filters,.cf-tools,.rl-tools) :is(.fd-search,.rl-search) input:is(:focus,:focus-visible){outline:0!important;border:0!important;box-shadow:none!important}
+.bf-shell-v22 .bf-fin-period{display:flex;gap:5px;flex-wrap:wrap}
+.bf-shell-v22 .bf-fin-breakdown{display:grid;gap:7px;border:1px solid #343d46;background:#20262d;padding:12px;border-radius:7px;font-size:12px}
+.bf-shell-v22 .bf-fin-breakdown>div{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.bf-shell-v22 .bf-fin-breakdown span{color:#c6d0da}
+.bf-shell-v22 .bf-fin-total{padding:9px 0;border-top:1px solid #414b55;border-bottom:1px solid #414b55}
+.bf-shell-v22 .bf-fin-total strong{font-size:23px;overflow-wrap:anywhere}
+.bf-shell-v22 .bf-fin-fields{display:grid;gap:12px;min-width:0;border:0;padding:0;margin:0}
+.bf-shell-v22 .cf-rate>b small{display:block;font-size:10px;font-weight:500}
+.bf-shell-v22 .gf-form .fd-footer,.bf-shell-v22 .cf-form .fd-footer{position:sticky;bottom:0;background:#17191e;z-index:4;flex-wrap:wrap;padding:10px 0}
+.bf-shell-v22 .gf-summary strong,.bf-shell-v22 .gf-summary b{overflow-wrap:anywhere}
+.bf-shell-v22 .bf-dre-warning{margin:0 12px 10px;padding:9px 12px;border:1px solid #66532e;background:#30291d;color:#f8d29a;border-radius:7px;font-size:12px}
+.bf-shell-v22 .bf-dre-scroll{overflow:auto;padding:0 12px}
+.bf-shell-v22 .bf-dre-table{min-width:0;table-layout:fixed}
+.bf-shell-v22 .bf-dre-table th:last-child,.bf-shell-v22 .bf-dre-table td:last-child{text-align:right;width:32%;font-variant-numeric:tabular-nums}
+.bf-shell-v22 .bf-dre-table td{padding:12px 10px;white-space:normal;overflow-wrap:anywhere}
+.bf-shell-v22 .bf-dre-cost td:last-child{color:#f8c565!important}
+.bf-shell-v22 .bf-dre-income td:last-child,.bf-shell-v22 .bf-dre-subtotal td:last-child,.bf-shell-v22 .bf-dre-result td:last-child{color:#72e5b3!important;font-weight:800}
+.bf-shell-v22 .bf-dre-subtotal{background:#202c29;font-weight:750}
+.bf-shell-v22 .bf-dre-result{background:#193b2e;font-weight:850;font-size:15px}
+.bf-shell-v22 .bf-dre-table td.bf-dre-negative{color:#ff7c87!important}
+@media(max-width:600px){.bf-shell-v22 .bf-dre-table td{padding:9px 6px}.bf-shell-v22 .bf-dre-table th:last-child,.bf-shell-v22 .bf-dre-table td:last-child{width:36%}.bf-shell-v22 .bf-fin-period{width:100%}}
+}
