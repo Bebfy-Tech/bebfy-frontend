@@ -54,6 +54,7 @@ export async function imprimirDocumento(tipo:Documento,source:string|HTMLElement
   win.addEventListener('afterprint',cleanup,{once:true});
   timer=window.setTimeout(cleanup,300000);
   await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
+  await Promise.all(Array.from(doc.images).map(img=>img.decode().catch(()=>{img.remove();})));
   win.focus();win.print();
  }catch(e){cleanup();window.alert('Não foi possível preparar a impressão. '+(e instanceof Error?e.message:mensagemErro(e)));}
 }

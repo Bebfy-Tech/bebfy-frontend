@@ -1,3 +1,4 @@
+import { LogoComprovanteConfig, LogoComprovante } from './LogoComprovante';
 import {useEffect,useRef,useState} from 'react';
 import {Printer,RefreshCcw,Save} from 'lucide-react';
 import {documentos,impressaoApi,imprimirDocumento,medidas,padrao,pendentes,validarPerfil} from '../services/impressao';
@@ -6,6 +7,7 @@ import {mensagemErro,Notice} from '../components/ui';
 import './impressao-config.css';
 
 export function ImpressaoConfig({editavel,empresa,onDirty,onBusy,onSaved}:{editavel:boolean;empresa:string;onDirty:(v:boolean)=>void;onBusy:(v:boolean)=>void;onSaved:(revisao:string|null)=>void}){
+ const [logo,setLogo]=useState<string|null>(null);
  const [dados,setDados]=useState<Impressao|null>(null),[draft,setDraft]=useState<Impressao|null>(null),[tipo,setTipo]=useState<Documento>('venda'),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[erro,setErro]=useState(''),[ok,setOk]=useState('');
  const seq=useRef(0),lock=useRef(false),preview=useRef<HTMLDivElement>(null);
  const dirty=Boolean(dados&&draft&&JSON.stringify(dados)!==JSON.stringify(draft));
@@ -42,14 +44,14 @@ export function ImpressaoConfig({editavel,empresa,onDirty,onBusy,onSaved}:{edita
  </div>{p.papel==='PERSONALIZADO'&&<label className="bp-print-check"><input type="checkbox" checked={p.altura===null} disabled={disabled} onChange={ev=>change({altura:ev.target.checked?null:297,...(ev.target.checked?{orientacao:'RETRATO' as const}:{})})}/> Papel contínuo</label>}
  <h3>Margens (mm)</h3><div className="cf-grid">{number('Superior','superior',0,40,0.1)}{number('Inferior','inferior',0,40,0.1)}{number('Esquerda','esquerda',0,40,0.1)}{number('Direita','direita',0,40,0.1)}</div>
  <div className="cf-grid"><label>Fonte<select value={p.fonte} disabled={disabled} onChange={ev=>change({fonte:ev.target.value as Perfil['fonte']})}><option value="Arial">Arial</option><option value="monospace">Monoespaçada</option></select></label>{number('Tamanho (pt)','tamanho',8,18)}</div>
- {tipo==='venda'&&<><h3>Informações opcionais</h3>{([['endereco','Endereço e telefone da loja'],['operador','Operador'],['rodape','Mensagem de atendimento']] as const).map(([k,n])=><label key={k} className="bp-print-check"><input type="checkbox" checked={p[k]} disabled={disabled} onChange={ev=>change({[k]:ev.target.checked})}/>{n}</label>)}</>}
+ {tipo==='venda'&&<><LogoComprovanteConfig editavel={editavel} onLogo={setLogo}/><h3>Informações opcionais</h3>{([['endereco','Endereço e telefone da loja'],['operador','Operador'],['rodape','Mensagem de atendimento']] as const).map(([k,n])=><label key={k} className="bp-print-check"><input type="checkbox" checked={p[k]} disabled={disabled} onChange={ev=>change({[k]:ev.target.checked})}/>{n}</label>)}</>}
  {tipo==='financeiro'&&<label className="bp-print-check"><input type="checkbox" checked={p.operador} disabled={disabled} onChange={ev=>change({operador:ev.target.checked})}/> Exibir responsável</label>}
  <p className="cf-note">A impressora, o tamanho físico do rolo, a escala e a quantidade de vias são escolhidos na janela do navegador. A altura contínua depende do driver.</p>
  {e&&<p role="alert" className="bp-print-error">{e}</p>}
  <button type="button" className="cf-secondary" disabled={disabled} onClick={()=>change(padrao(tipo))}>Restaurar padrão deste documento</button></section>
  <section className="cf-panel"><h2>Pré-visualização</h2><p>{m.w} mm × {m.h===null?'contínuo':m.h+' mm'} · {p.tamanho} pt · margens {p.superior}/{p.direita}/{p.inferior}/{p.esquerda} mm</p>
  <div className="bp-print-preview"><div ref={preview} className="bp-print-paper" style={{width:'min(100%, '+Math.max(40,Math.min(1000,m.w))+'mm)',fontFamily:p.fonte==='monospace'?'monospace':'Arial, sans-serif',fontSize:Math.max(8,Math.min(18,p.tamanho))+'pt',padding:[p.superior,p.direita,p.inferior,p.esquerda].map(n=>Math.max(0,Math.min(40,n))+'mm').join(' ')}}>
- <header><h2>{empresa}</h2><p><b>{documentos[tipo]}</b></p>{tipo==='venda'&&p.endereco&&<p data-print-option="endereco">Endereço e telefone de exemplo</p>}</header><hr/><p>Documento de teste · Nº 000125</p>{(tipo==='venda'||tipo==='financeiro')&&p.operador&&<p data-print-option="operador">Operador: Exemplo</p>}
+ <header>{tipo==='venda'&&<LogoComprovante base64={logo}/>}<h2>{empresa}</h2><p><b>{documentos[tipo]}</b></p>{tipo==='venda'&&p.endereco&&<p data-print-option="endereco">Endereço e telefone de exemplo</p>}</header><hr/><p>Documento de teste · Nº 000125</p>{(tipo==='venda'||tipo==='financeiro')&&p.operador&&<p data-print-option="operador">Operador: Exemplo</p>}
  <table><thead><tr><th>Descrição</th><th>Valor</th></tr></thead><tbody><tr><td>Produto exemplo × 2</td><td>R$ 20,00</td></tr><tr><td>Produto exemplo × 1</td><td>R$ 8,00</td></tr></tbody></table><hr/><p><b>Total: R$ 28,00</b></p>{tipo==='venda'&&p.rodape&&<p data-print-option="rodape">Obrigado pela preferência!</p>}<p>TESTE — SEM VALOR FISCAL</p></div></div>
  <button type="button" className="cf-secondary" disabled={busy||!!e} onClick={()=>{if(preview.current)void imprimirDocumento(tipo,preview.current,p);}}><Printer size={16}/> Testar impressão</button><small>A prévia contém dados fictícios e não representa uma venda real.</small></section></div>
  {editavel&&<footer className="cf-footer"><span>{dirty?'Alterações não salvas':'Perfis sincronizados'}</span><button type="button" className="cf-secondary" disabled={!dirty||busy} onClick={()=>{setDraft(dados);setErro('');}}>Descartar alterações</button><button type="button" className="cf-primary" disabled={!dirty||disabled||!!e} onClick={()=>void save()}><Save size={17}/> {busy?'Salvando...':'Salvar perfis'}</button></footer>}</div>;

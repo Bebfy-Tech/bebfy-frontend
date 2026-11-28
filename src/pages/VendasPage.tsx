@@ -1,3 +1,4 @@
+import { LogoComprovante } from '../components/LogoComprovante';
 import {imprimirDocumento} from '../services/impressao';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -34,7 +35,7 @@ function StatusPill({status}:{status:string}){
 }
 function Receipt({dados}:{dados:ComprovanteNaoFiscal}){
  return <article className="print-area vs-receipt">
-  <header><h2>{dados.loja.nome}</h2><strong>{dados.titulo}</strong>{dados.loja.endereco&&<p data-print-option="endereco">{dados.loja.endereco}</p>}{dados.loja.telefone&&<p data-print-option="endereco">{dados.loja.telefone}</p>}</header>
+  <header><LogoComprovante base64={dados.loja.logoBase64}/><h2>{dados.loja.nome}</h2><strong>{dados.titulo}</strong>{dados.loja.endereco&&<p data-print-option="endereco">{dados.loja.endereco}</p>}{dados.loja.telefone&&<p data-print-option="endereco">{dados.loja.telefone}</p>}</header>
   <div className="vs-receipt-meta">Venda #{dados.venda.numero} · {dateTime(dados.venda.realizadaEm)}<p data-print-option="operador">Operador: {dados.venda.operador}</p>{dados.venda.cliente&&<p>Cliente: {dados.venda.cliente}</p>}<p>Situação: {STATUS[dados.venda.status]??dados.venda.status}</p></div>
   {dados.itens.map((i,k)=><div className="vs-receipt-line" key={k}><span>{i.quantidade}× {i.descricao}</span><span>{dinheiro(i.total)}</span></div>)}
   <div className="vs-receipt-meta"><div className="vs-receipt-line"><span>Subtotal</span><span>{dinheiro(dados.valores.subtotal)}</span></div><div className="vs-receipt-line"><span>Desconto</span><span>{dinheiro(dados.valores.desconto)}</span></div>{dados.valores.taxaEntrega>0&&<div className="vs-receipt-line"><span>Entrega</span><span>{dinheiro(dados.valores.taxaEntrega)}</span></div>}<div className="vs-receipt-line"><strong>Total</strong><strong>{dinheiro(dados.valores.total)}</strong></div></div>

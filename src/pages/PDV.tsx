@@ -1,3 +1,4 @@
+import { LogoComprovante } from '../components/LogoComprovante';
 import {rejeicaoDefinitiva,confirmarAbandonoOperacao} from '../services/operacaoSegura';
 import {imprimirDocumento} from '../services/impressao';
 import { pagamentosOperacionais, parcelasDisponiveis, formaInicial } from '../services/pagamentosOperacionais';
@@ -29,7 +30,7 @@ const maxQuantity=(i:ItemCarrinho)=>Math.floor(i.produto.estoqueAtual/
 
 function Comprovante({dados}:{dados:ComprovanteNaoFiscal}){
   return <article className="print-area mx-auto max-w-sm space-y-3 bg-white p-6 font-mono text-xs text-black print:max-w-none print:p-0">
-    <h2 className="text-center text-base font-extrabold">{dados.titulo}</h2>
+    <LogoComprovante base64={dados.loja.logoBase64}/><h2 className="text-center text-base font-extrabold">{dados.titulo}</h2>
     <p className="text-center font-semibold">{dados.loja.nome}</p>
     {dados.loja.endereco&&<p className="text-center" data-print-option="endereco">{dados.loja.endereco}</p>}
     {dados.loja.telefone&&<p className="text-center" data-print-option="endereco">{dados.loja.telefone}</p>}

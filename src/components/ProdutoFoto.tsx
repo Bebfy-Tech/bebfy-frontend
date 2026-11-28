@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { mensagemErro } from './ui';
 
 /** Compress user-selected raster image to a small JPEG, then persist through the tenant API. */
-async function compress(file:File):Promise<string>{
+export async function compress(file:File):Promise<string>{
   if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>8*1024*1024)throw new Error('Selecione JPG, PNG ou WebP de até 8 MB.');
   const bitmap=await createImageBitmap(file);
   try{

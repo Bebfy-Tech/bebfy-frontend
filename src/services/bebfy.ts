@@ -125,7 +125,7 @@ export interface ComprovanteNaoFiscal {
   tipo: 'COMPROVANTE_NAO_FISCAL';
   titulo: 'COMPROVANTE NÃO FISCAL';
   aviso: string;
-  loja: { nome: string; telefone: string | null; endereco: string | null; mensagem?: string | null };
+  loja: { nome: string; telefone: string | null; endereco: string | null; mensagem?: string | null; logoBase64?: string | null };
   venda: {
     id: string; numero: number; realizadaEm: string; status: StatusVenda;
     operador: string; cliente: string | null;
