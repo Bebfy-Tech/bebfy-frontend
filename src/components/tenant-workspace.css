@@ -456,3 +456,25 @@
 .bf-shell-v22 .es-count-input[aria-invalid=true]{border-color:#ff7c87!important}
 @media(max-width:700px){.bf-shell-v22 .bp-ficha-footer{bottom:0}.bf-shell-v22 .bf-register-v22 .bf-table-scroll{max-height:none}.bf-shell-v22 .bf-register-pagination>div{width:100%;justify-content:flex-end}}
 }
+
+/* 22.6 — purchase and invoice details, keeping operational layouts intact. */
+@media screen{
+.bebfy-workspace.bf-workspace.bf-shell-v22 .xp-search:focus-within{border-color:#32dca0!important;box-shadow:0 0 0 2px #32dca018}
+.bebfy-workspace.bf-workspace.bf-shell-v22 .xp-search input:is(:focus,:focus-visible){outline:none!important;border:0!important;box-shadow:none!important}
+.bebfy-workspace.bf-workspace.bf-shell-v22 :is(.cp-form,.fo-form,.cp-filters,.fo-filters,.xp-item-map,.xp-date) :is(input:not([type=checkbox]):not([type=radio]),select,textarea):is(:focus,:focus-visible){border-color:#32dca0!important;outline:none!important;box-shadow:0 0 0 2px #32dca018!important}
+.bf-shell-v22 .bf-purchase-note{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid #635133;border-radius:7px;background:#30291d;color:#f1ca86;font-size:12px;line-height:1.5}
+.bf-shell-v22 .bf-purchase-progress{display:grid;gap:8px;padding:12px 14px;font-size:12px;color:#aab7c3}
+.bf-purchase-progress>div{display:flex;justify-content:space-between;gap:8px}.bf-purchase-progress b{color:#72e5b3}
+.bf-purchase-progress progress{width:100%;height:7px;accent-color:#32dca0;background:#303740;border:0;border-radius:8px;overflow:hidden}
+.bf-purchase-progress progress::-webkit-progress-bar{background:#303740}.bf-purchase-progress progress::-webkit-progress-value{background:#32dca0}.bf-purchase-progress progress::-moz-progress-bar{background:#32dca0}
+.bf-shell-v22 .bf-form-section{font-size:12px;font-weight:750;color:#b8c6d1;border-bottom:1px solid #343d46;padding:8px 0;margin-bottom:4px}
+.bf-shell-v22 .fo-grid>div{padding:0}
+.bf-shell-v22 .cp-form .fd-footer,.bf-shell-v22 .fo-form .fd-footer{position:sticky;bottom:-14px;background:#17191e;padding:10px 0;z-index:4;flex-wrap:wrap}
+.bf-shell-v22 .cp-summary b{overflow-wrap:anywhere}
+.bf-shell-v22 .bf-xml-association{display:grid;gap:6px}
+.bf-shell-v22 .bf-xml-association input{width:100%;min-width:0;min-height:33px;background:#20262d;color:#eff3f6;border:1px solid #414b55;border-radius:6px;padding:6px 8px;font-size:12px}
+.bf-shell-v22 .xp-footer{position:sticky;bottom:-14px;background:#17191e;z-index:4;flex-wrap:wrap;padding-bottom:4px}
+.bf-shell-v22 .xp-invoice>div{min-width:0;overflow-wrap:anywhere}
+.bf-shell-v22 .xp-track{height:8px}
+@media(max-width:640px){.bf-shell-v22 .cp-add{align-items:stretch;flex-wrap:wrap}.bf-shell-v22 .cp-add label{flex:1 1 100%}.bf-shell-v22 .cp-form .fd-footer,.bf-shell-v22 .fo-form .fd-footer,.bf-shell-v22 .xp-footer{bottom:0}.bf-shell-v22 .xp-item-qty strong{white-space:normal}}
+}
