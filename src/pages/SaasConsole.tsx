@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Settings2, ShieldCheck, Users, Wallet, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import { SaasFinanceiro } from './SaasFinanceiro';
 import { SaasSuporte } from './SaasSuporte';
 import { SaasCompanies, SaasCompanyHistory } from './SaasCompanies';
+import { SaasModules } from './SaasModules';
 import { SaasPlans } from './SaasPlans';
 import { SaasExecutiveOverview } from './SaasExecutiveOverview';
 import { SaasMonitoramento } from './SaasMonitoramento';
@@ -18,12 +19,7 @@ import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao, SaasCobranca } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'financeiro' | 'suporte' | 'monitoramento' | 'auditoria' | 'planos' | 'modulos' | 'funcionarios';
-const moduloIcon: Record<NomeModulo,typeof Activity> = {
-  CAIXA_PDV:ShoppingCart, FIADOS:CreditCard, VASILHAMES_RETORNAVEIS:Package,
-  ENTREGAS_DELIVERY:Truck, PEDIDOS_ATACADO:ShoppingCart, TABELA_PRECO_VOLUME:CreditCard,
-  ROTAS_CAMINHOES:Route, CREDITO_B2B:HandCoins, ESTOQUE_LOTES:Boxes,
-  COMPRAS_FORNECEDORES:Package, RELATORIOS_AVANCADOS:FileText,
-};
+
 
 const statusText: Record<StatusEmpresa,string> = { ATIVA: 'Ativa', EM_TESTE: 'Em teste', SUSPENSA: 'Suspensa', CANCELADA: 'Cancelada' };
 const statusStyle: Record<StatusEmpresa,string> = {
@@ -92,11 +88,7 @@ export function SaasConsole() {
   const [editPlan,setEditPlan] = useState<number | null>(null);
   const [planModal,setPlanModal] = useState(false);
   const [documentType,setDocumentType] = useState<'CPF'|'CNPJ'>('CNPJ');
-  const [moduleEditor,setModuleEditor] = useState<NomeModulo|null>(null);
   const [modDescriptions,setModDescriptions] = useState<SaasModuloDescricao[]>([]);
-  const [moduleName,setModuleName] = useState('');
-  const [moduleDescription,setModuleDescription] = useState('');
-  const [moduleSearch,setModuleSearch] = useState('');
   const [companyEdit,setCompanyEdit] = useState(false);
   const [cobrancas,setCobrancas] = useState<SaasCobranca[]>([]);
   const [billingForm,setBillingForm] = useState({referencia:'',valor:0,vencimento:'',linhaDigitavel:'',observacao:''});
@@ -129,34 +121,6 @@ export function SaasConsole() {
   },[user?.cargo,user?.permissoes]);
 
   useEffect(()=>{void refresh();},[refresh]);
-
-  function openModulo(modulo:NomeModulo) {
-    const item=MODULOS.find(m=>m.key===modulo);
-    const custom=modDescriptions.find(m=>m.modulo===modulo);
-    setModuleName(custom?.nome||item?.nome||modulo);
-    setModuleDescription(custom?.descricao||item?.descricao||'');
-    setModuleSearch('');setAlert('');setModuleEditor(modulo);
-  }
-  async function updateModuleCompany(empresaId:number,modulo:NomeModulo,ativo:boolean) {
-    if(busy)return;
-    setBusy(true);setAlert('');
-    try {
-      await saasApi.alternarModulo(empresaId,modulo,ativo);
-      setEmpresas(await saasApi.empresas());
-      if(selected?.id===empresaId)setSelected(await saasApi.empresa(empresaId));
-      setOk('Módulo atualizado para a distribuidora.');
-    }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
-  }
-  async function saveModulo(e:React.FormEvent) {
-    e.preventDefault();
-    if(!moduleEditor||busy)return;
-    setBusy(true);setAlert('');
-    try{
-      await saasApi.personalizarModulo(moduleEditor,{nome:moduleName.trim(),descricao:moduleDescription.trim()});
-      setModDescriptions(await saasApi.descricoesModulos());
-      setOk('Dados comerciais do módulo salvos.');
-    }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
-  }
 
   function exportarResumo() {
     // Neutralize formula injection when viewed in Excel and preserve UTF-8 accents.
@@ -432,27 +396,7 @@ export function SaasConsole() {
 
           {section==='planos'&&<SaasPlans planos={planos} available={planosDisponiveis} busy={busy} descriptions={modDescriptions} onCreate={()=>openPlanEditor()} onEdit={openPlanEditor} onRefresh={()=>void refresh()}/>}
 
-          {section==='modulos'&&<>
-            <div><h2 className="text-xl font-extrabold">Catálogo de módulos</h2><p className="mt-1 text-sm text-slate-400">Gerencie os recursos fixos da plataforma, seus textos comerciais e as liberações por empresa.</p></div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {MODULOS.map(m=>{
-                const Icon=moduloIcon[m.key];
-                const count=empresas.filter(e=>moduloLiberado(e,m.key)).length;
-                const included=planos.filter(p=>p.modulosPadrao?.includes(m.key)).map(p=>p.nome);
-                const custom=modDescriptions.find(c=>c.modulo===m.key);
-                return <button key={m.key} type="button" onClick={()=>openModulo(m.key)} className={card+' p-5 text-left transition hover:border-emerald-300/35'} aria-label={'Gerenciar módulo '+m.nome}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="rounded-xl bg-slate-500/15 p-3 text-emerald-200"><Icon size={22}/></span>
-                    <span className={'rounded-full border px-3 py-1.5 text-[11px] font-bold '+(count?'border-emerald-300/25 bg-emerald-500/10 text-emerald-200':'border-white/10 bg-white/5 text-slate-400')}>{count} {count===1?'empresa':'empresas'}</span>
-                  </div>
-                  <h3 className="mt-5 text-base font-extrabold">{custom?.nome||m.nome}</h3>
-                  <p className="mt-2 min-h-10 text-xs leading-6 text-slate-400">{custom?.descricao||m.descricao}</p>
-                  <p className="mt-3 text-[11px] text-slate-300">{included.length?'Incluso em: '+included.join(', '):'Nenhum plano inclui este módulo por padrão'}</p>
-                  <div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-xs font-bold text-emerald-200">Gerenciar por empresa <ArrowRight size={15}/></div>
-                </button>;
-              })}
-            </div>
-          </>}
+          {section==='modulos'&&<SaasModules descriptions={modDescriptions} onDescriptions={setModDescriptions}/>}
 
         </>}
       </div>
@@ -473,35 +417,6 @@ export function SaasConsole() {
         <p className="text-xs leading-5 text-amber-200/80">Registro manual: não gera boleto, não efetua cobrança e não verifica recebimentos automaticamente.</p>
         <div className="flex justify-end gap-2"><button type="button" className="rounded-xl border border-white/15 px-4 py-3 text-xs font-bold" onClick={()=>setBillingOpen(false)}>Cancelar</button><button type="submit" disabled={busy||billingForm.valor<=0} className="rounded-xl bg-emerald-300 px-4 py-3 text-xs font-extrabold text-[#0b3329] disabled:opacity-50">{busy?'Salvando...':'Registrar cobrança'}</button></div>
       </form>
-    </div>}
-    {moduleEditor&&<div role="dialog" aria-modal="true" aria-labelledby="saas-module-title" className="fixed inset-0 z-[85] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
-      <div className="max-h-[95dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#202c2e] p-6 text-white shadow-2xl sm:p-8">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">MÓDULO DA PLATAFORMA</p><h2 id="saas-module-title" className="mt-1 text-2xl font-extrabold">{modDescriptions.find(m=>m.modulo===moduleEditor)?.nome||MODULOS.find(m=>m.key===moduleEditor)?.nome}</h2></div><button type="button" onClick={()=>setModuleEditor(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-white/10"><X size={22}/></button></div>
-        {alert&&<p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-200">{alert}</p>}
-        <form onSubmit={e=>void saveModulo(e)} className="space-y-4 rounded-xl border border-white/10 bg-white/[.025] p-4">
-          <h3 className="text-sm font-extrabold">Apresentação comercial</h3>
-          <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-300">Nome exibido<input className={input+' mt-2'} required maxLength={90} minLength={2} value={moduleName} onChange={e=>setModuleName(e.target.value)}/></label><label className="text-xs font-semibold text-slate-300">Código fixo<input className={input+' mt-2'} disabled value={moduleEditor}/></label></div>
-          <label className="block text-xs font-semibold text-slate-300">Descrição curta<textarea className={input+' mt-2'} required maxLength={240} minLength={2} rows={2} value={moduleDescription} onChange={e=>setModuleDescription(e.target.value)}/></label>
-          <button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-4 py-3 text-xs font-extrabold text-[#0c3029] disabled:opacity-50">Salvar apresentação</button>
-        </form>
-        <div className="space-y-3">
-          <div><h3 className="text-sm font-extrabold">Gerenciar por distribuidora</h3><p className="mt-1 text-xs text-slate-400">Libere ou retire atribuições avulsas. Os módulos incluídos em planos também são apresentados.</p></div>
-          <div className="relative"><Search size={17} className="pointer-events-none absolute left-3 top-3.5 text-slate-400"/><input className={input+' pl-10'} placeholder="Buscar distribuidora..." value={moduleSearch} onChange={e=>setModuleSearch(e.target.value)}/></div>
-          <div className="max-h-[260px] space-y-2 overflow-y-auto pr-1">
-            {empresas.filter(e=>e.nomeFantasia.toLowerCase().includes(moduleSearch.trim().toLowerCase())).map(e=>{
-              const viaPlano=Boolean(planos.find(p=>p.id===e.planoId)?.modulosPadrao?.includes(moduleEditor));
-              const assigned=e.modulosAtivos.find(a=>a.modulo===moduleEditor);
-              const enabled=moduloLiberado(e,moduleEditor);
-              return <div key={e.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3">
-                <div className="min-w-0"><strong className="block truncate text-sm">{e.nomeFantasia}</strong><span className={'mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold '+(viaPlano?'bg-emerald-300/10 text-emerald-200':'bg-white/10 text-slate-300')}>{PENDENTES.includes(moduleEditor)?'Em desenvolvimento':assigned?(enabled?'Liberado manualmente':'Bloqueado manualmente'):viaPlano?'Via plano':enabled?'Legado':'Não atribuído'}</span></div>
-                <button type="button" role="switch" aria-label={'Acesso ao módulo para '+e.nomeFantasia} aria-checked={enabled} disabled={busy||PENDENTES.includes(moduleEditor)} onClick={()=>void updateModuleCompany(e.id,moduleEditor,!enabled)} className={'relative h-7 w-12 shrink-0 rounded-full '+(enabled?'bg-emerald-400':'bg-slate-600')}><span className={'absolute top-1 h-5 w-5 rounded-full bg-white '+(enabled?'left-6':'left-1')}/></button>
-              </div>;
-            })}
-            {!empresas.length&&<p className="p-4 text-center text-xs text-slate-400">Nenhuma distribuidora cadastrada.</p>}
-          </div>
-          <p className="text-xs text-slate-400">As atribuições de módulos não substituem verificações de autorização no backend. O controle de acesso deve ser validado por rota antes da comercialização.</p>
-        </div>
-      </div>
     </div>}
     {companyEdit&&selected&&<div role="dialog" aria-modal="true" aria-labelledby="company-edit-title" className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6">
       <form onSubmit={e=>void saveCompanyDetails(e)} className="max-h-[95dvh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#222b2e] p-6 text-white shadow-2xl sm:p-8">

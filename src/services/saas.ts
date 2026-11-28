@@ -20,6 +20,7 @@ export const MODULOS: { key: NomeModulo; nome: string; descricao: string }[] = [
   { key: 'RELATORIOS_AVANCADOS', nome: 'Relatórios avançados', descricao: 'Análises e acompanhamento do negócio' },
 ];
 
+export interface SaasModuloEmpresaVisao {id:number;nomeFantasia:string;slug:string;status:StatusEmpresa;planoId:number|null;plano:{id:number;nome:string;modulosPadrao:NomeModulo[]}|null;modulosAtivos:{modulo:NomeModulo;ativo:boolean}[];efetivos:Record<NomeModulo,boolean>}
 export interface PlanoSaas {
   id: number;
   nome: string;
@@ -194,6 +195,8 @@ export const saasApi = {
   cobrancas: (id:number) => saasClient.get<SaasCobranca[]>('/saas/admin/empresas/'+id+'/cobrancas').then(r=>r.data),
   criarCobranca: (id:number,dados:CriarSaasCobranca) => saasClient.post<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas',dados).then(r=>r.data),
   marcarPagamento: (id:number,cobrancaId:string,pago:boolean) => saasClient.patch<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas/'+cobrancaId+'/pagamento',{pago}).then(r=>r.data),
+  visaoModulos: () => saasClient.get<SaasModuloEmpresaVisao[]>('/saas/admin/modulos/visao').then(r=>r.data),
+  restaurarModulo: (id:number,modulo:NomeModulo) => saasClient.delete<{modulo:NomeModulo;ativo:boolean}>(`/saas/admin/empresas/${id}/modulos/${modulo}`).then(r=>r.data),
   descricoesModulos: () => saasClient.get<SaasModuloDescricao[]>('/saas/admin/modulos').then(r=>r.data),
   personalizarModulo: (modulo: NomeModulo, dados: {nome:string;descricao:string}) => saasClient.patch<SaasModuloDescricao>('/saas/admin/modulos/'+modulo,dados).then(r=>r.data),
   empresasPaginadas: (params:{busca:string;status:string;plano:string;financeiro:string;pagina:string;limite:string;ordem:string}) => saasClient.get<SaasEmpresasPagina>('/saas/admin/empresas/paginadas',{params}).then(r=>r.data),
