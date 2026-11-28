@@ -71,6 +71,7 @@ export interface PagamentoVendaEntrada {
 }
 
 export interface NovaVenda {
+  chaveOperacao?:string;
   caixaId: string;
   funcionarioId: string;
   clienteId?: string;

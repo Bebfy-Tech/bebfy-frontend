@@ -1,3 +1,4 @@
+import {rejeicaoDefinitiva,confirmarAbandonoOperacao} from '../services/operacaoSegura';
 import {imprimirDocumento} from '../services/impressao';
 import {Printer} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -45,6 +46,8 @@ export function CaixasPage(){
  const [saldoInicial,setSaldoInicial]=useState('0'),[saldoFinal,setSaldoFinal]=useState(''),[contar,setContar]=useState(false);
  const [valor,setValor]=useState(''),[categoria,setCategoria]=useState(''),[observacao,setObservacao]=useState('');
  const lock=useRef(false);
+ const tentativa=useRef<{chave:string;assinatura:string}|null>(null);
+ function fecharModal(){if(!busy&&confirmarAbandonoOperacao(Boolean(tentativa.current))){tentativa.current=null;setModal(null);}}
  const load=useCallback(async()=>{setLoading(true);setErro('');try{const r=await bebfy.caixa.listar();setCaixas(r);setRevision(v=>v+1);return r;}catch(e){setErro(mensagemErro(e));return null;}finally{setLoading(false);}},[]);
  useEffect(()=>{void load();},[load]);
  const range=intervalo(periodo,inicio,fim);
@@ -67,7 +70,7 @@ export function CaixasPage(){
  const kpis=[{n:'Caixas abertos',v:String(abertas.length),Icon:Wallet,c:'green'},{n:'Caixas fechados',v:String(filtrados.filter(c=>c.status==='FECHADO').length),Icon:Lock,c:'blue'},{n:'Total de vendas',v:dinheiro(filtrados.reduce((s,c)=>s+num(c.totalVendas),0)),Icon:ShoppingCart,c:'blue'},{n:'Saldo inicial em aberto',v:dinheiro(abertas.reduce((s,c)=>s+num(c.saldoInicial),0)),Icon:Banknote,c:'green'}];
  const size=8,pages=Math.max(1,Math.ceil(filtrados.length/size)),current=Math.min(pagina,pages),rows=filtrados.slice((current-1)*size,current*size);
  const selecionadoFora=Boolean(selecionado&&!filtrados.some(c=>c.id===id));
- function abrirModal(acao:Acao){setModalError('');setSaldoInicial('0');setSaldoFinal('');setContar(false);setValor('');setCategoria('');setObservacao('');setModal(acao);}
+ function abrirModal(acao:Acao){if(lock.current)return;tentativa.current=null;setModalError('');setSaldoInicial('0');setSaldoFinal('');setContar(false);setValor('');setCategoria('');setObservacao('');setModal(acao);}
  async function salvar(e:React.FormEvent){e.preventDefault();if(!modal||lock.current)return;const acao=modal;const target=id;
   const v=Number(acao==='abrir'?saldoInicial:acao==='fechar'?saldoFinal:valor);
   if(acao==='abrir'&&(!user?.funcionarioId||caixaProprio||saldoInicial===''||!Number.isFinite(v)||v<0)){setModalError('Confira o operador e o saldo inicial.');return;}
@@ -78,10 +81,10 @@ export function CaixasPage(){
   try{
    if(acao==='abrir'){const c=await bebfy.caixa.abrir({operadorId:user!.funcionarioId!,saldoInicial:v});setId(c.id);setSucesso('Caixa aberto com sucesso.');}
    else if(acao==='fechar'){await bebfy.caixa.fechar(target!,contar?v:undefined);setSucesso(contar?'Caixa fechado com contagem registrada.':'Caixa fechado sem conferência física.');}
-   else {await api.post('/caixa/'+encodeURIComponent(target!)+'/movimentacao',{tipo:acao==='sangria'?'SANGRIA':'SUPRIMENTO',valor:v,categoria:categoria.trim(),observacao:observacao.trim()});setSucesso('Movimentação registrada no caixa.');}
+   else {const dados={tipo:acao==='sangria'?'SANGRIA':'SUPRIMENTO',valor:v,categoria:categoria.trim(),observacao:observacao.trim()};const assinatura=JSON.stringify([target,dados]);if(tentativa.current&&tentativa.current.assinatura!==assinatura){setModalError('Há uma movimentação sem confirmação com outros dados. Confira o extrato antes de abandonar a tentativa.');return;}if(!tentativa.current)tentativa.current={chave:crypto.randomUUID(),assinatura};await api.post('/caixa/'+encodeURIComponent(target!)+'/movimentacao',{...dados,chaveOperacao:tentativa.current.chave});tentativa.current=null;setSucesso('Movimentação registrada no caixa.');}
    // Do not repeat a committed operation if refreshing the statement fails.
    setModal(null);await load();
-  }catch(e){setModalError(mensagemErro(e));}finally{lock.current=false;setBusy(false);}
+  }catch(e){if(rejeicaoDefinitiva(e))tentativa.current=null;setModalError(mensagemErro(e)+(tentativa.current?' · Resultado não confirmado. Repita os mesmos dados.':''));}finally{lock.current=false;setBusy(false);}
  }
  const pagamentos=FORMAS.map(([key,n,c])=>({n,c,v:num(ex?.pagamentos?.[key])}));
  const paymentTotal=pagamentos.reduce((s,p)=>s+Math.max(0,p.v),0);
@@ -117,11 +120,11 @@ export function CaixasPage(){
     </>}
    </section>
   </div>
-  {modal&&<Modal busy={busy} title={modal==='abrir'?'Abrir meu caixa':modal==='fechar'?'Fechar caixa':modal==='sangria'?'Registrar sangria':'Registrar suprimento'} onClose={()=>{if(!busy)setModal(null);}}><form className="cx-form" onSubmit={e=>void salvar(e)}><Notice message={modalError} onClose={()=>setModalError('')}/>
+  {modal&&<Modal busy={busy} title={modal==='abrir'?'Abrir meu caixa':modal==='fechar'?'Fechar caixa':modal==='sangria'?'Registrar sangria':'Registrar suprimento'} onClose={fecharModal}><form className="cx-form" onSubmit={e=>void salvar(e)}><Notice message={modalError} onClose={()=>setModalError('')}/>
    {modal==='abrir'&&<label>Dinheiro inicial para troco (R$)<MoneyInput required disabled={busy} value={saldoInicial} onValue={setSaldoInicial}/></label>}
    {modal==='fechar'&&<><p>Confira o extrato antes de encerrar o turno.</p><div className="cx-form-summary"><div>Total de vendas <b>{dinheiro(ex?.totalVendas)}</b></div><div>Quantidade de vendas <b>{ex?.quantidadeVendas??0}</b></div><div>Saldo esperado em dinheiro <b className="cx-green">{dinheiro(ex?.saldoParcialSistema)}</b></div></div><label className="cx-checkbox"><input type="checkbox" checked={contar} disabled={busy} onChange={e=>setContar(e.target.checked)}/> Informar contagem física (opcional)</label>{contar&&<><label>Dinheiro contado (R$)<MoneyInput required disabled={busy} value={saldoFinal} onValue={setSaldoFinal}/></label>{saldoFinal!==''&&<p>Diferença estimada: <b>{dinheiro(num(saldoFinal)-num(ex?.saldoParcialSistema))}</b></p>}</>}<p className="cx-note">Sem contagem, será registrado somente o saldo calculado pelo sistema.</p></>}
    {(modal==='sangria'||modal==='suprimento')&&<><p>{modal==='sangria'?'Retirada de dinheiro da gaveta.':'Entrada manual de dinheiro na gaveta.'}</p><label>Valor (R$)<MoneyInput required disabled={busy} value={valor} onValue={setValor}/></label><label>Categoria / motivo<input required disabled={busy} value={categoria} onChange={e=>setCategoria(e.target.value)} placeholder={modal==='sangria'?'Ex.: retirada de segurança':'Ex.: troco adicional'}/></label><label>Observação (opcional)<textarea rows={3} disabled={busy} value={observacao} onChange={e=>setObservacao(e.target.value)}/></label></>}
-   <div className="cx-form-footer"><button type="button" className="cx-secondary" disabled={busy} onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className={modal==='sangria'?'cx-danger':'cx-primary'} disabled={busy}>{busy?'Processando...':modal==='abrir'?'Abrir caixa':modal==='fechar'?'Confirmar fechamento':'Registrar movimentação'}</button></div>
+   <div className="cx-form-footer"><button type="button" className="cx-secondary" disabled={busy} onClick={fecharModal}>Cancelar</button><button type="submit" className={modal==='sangria'?'cx-danger':'cx-primary'} disabled={busy}>{busy?'Processando...':modal==='abrir'?'Abrir caixa':modal==='fechar'?'Confirmar fechamento':'Registrar movimentação'}</button></div>
   </form></Modal>}
  </div>;
 }

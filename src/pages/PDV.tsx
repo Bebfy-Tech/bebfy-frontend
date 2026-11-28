@@ -1,3 +1,4 @@
+import {rejeicaoDefinitiva,confirmarAbandonoOperacao} from '../services/operacaoSegura';
 import {imprimirDocumento} from '../services/impressao';
 import { pagamentosOperacionais, parcelasDisponiveis, formaInicial } from '../services/pagamentosOperacionais';
 import type { FormaOperacional } from '../services/pagamentosOperacionais';
@@ -9,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { hasModule } from '../services/moduleAccess';
 import { bebfy } from '../services/bebfy';
 import { tenantPath } from '../services/tenantUrls';
-import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega } from '../services/bebfy';
+import type { Caixa, Cliente, ComprovanteNaoFiscal, FormaPagamento, Produto, TipoEntrega, NovaVenda } from '../services/bebfy';
 import { btn, dinheiro, input, mensagemErro, Notice, secondary, Modal, MoneyInput } from '../components/ui';
 
 import { ProdutoFoto } from '../components/ProdutoFoto';
@@ -49,6 +50,7 @@ export function PDV(){
   const searchRef=useRef<HTMLInputElement>(null);
   const pagamentoRef=useRef<HTMLSelectElement>(null);
   const submitting=useRef(false);
+  const tentativa=useRef<{chave:string;assinatura:string}|null>(null);
   const [vendaConcluida,setVendaConcluida]=useState<{id:string;numero:string;total:number}|null>(null);
   const [receiptError,setReceiptError]=useState('');
   const [receiptLoading,setReceiptLoading]=useState(false);
@@ -190,7 +192,7 @@ export function PDV(){
     // Single synchronous lock prevents rapid clicks or repeated submissions.
     submitting.current=true;setBusy(true);
     try{
-      const venda=await bebfy.vendas.registrar({
+      const dados:NovaVenda={
         caixaId:caixa.id,funcionarioId:user.funcionarioId,
         ...(clienteId?{clienteId}:{}),desconto:descontoVal,
         tipoEntrega:entrega,taxaEntrega:entregaVal,
@@ -199,7 +201,12 @@ export function PDV(){
         itens:carrinho.map(i=>({produtoId:i.produto.id,quantidade:i.quantidade,
           precoUnitario:price(i),isFardo:i.isFardo})),
         pagamentos:pagamentoNet(),
-      });
+      };
+      const assinatura=JSON.stringify(dados);
+      if(tentativa.current&&tentativa.current.assinatura!==assinatura){setErro('Há uma venda sem confirmação com outros dados. Confira o histórico antes de abandonar a tentativa.');return;}
+      if(!tentativa.current)tentativa.current={chave:crypto.randomUUID(),assinatura};
+      const venda=await bebfy.vendas.registrar({...dados,chaveOperacao:tentativa.current.chave});
+      tentativa.current=null;
       setRecebimento(false);setVendaConcluida({id:venda.id,numero:String(venda.codigoVenda),total});setReceiptError('');setReceiptLoading(true);
       // The server has committed the sale. Never repeat it if receipt retrieval fails.
       setCarrinho([]);setDesconto('0');setPagamentos([]);
@@ -210,7 +217,7 @@ export function PDV(){
       try{setComprovante(await bebfy.vendas.comprovante(venda.id));}
       catch{setComprovante(null);setReceiptError('Venda registrada. Não foi possível carregar o comprovante. Tente novamente ou consulte o histórico.');}
       finally{setReceiptLoading(false);}
-    }catch(e){setErro(mensagemErro(e));}finally{setBusy(false);submitting.current=false;}
+    }catch(e){if(rejeicaoDefinitiva(e))tentativa.current=null;setErro(mensagemErro(e)+(tentativa.current?' · Resultado não confirmado. Reenvie os mesmos dados para consultar/concluir a operação, sem duplicá-la.':''));}finally{setBusy(false);submitting.current=false;}
   }
   const novaVenda=()=>{if(receiptLoading)return;setVendaConcluida(null);setComprovante(null);setReceiptError('');setSucesso('');setBusca('');setCategoria('');setPagina(1);requestAnimationFrame(()=>searchRef.current?.focus());};
   const retryReceipt=async()=>{if(!vendaConcluida||receiptLoading)return;setReceiptLoading(true);setReceiptError('');try{setComprovante(await bebfy.vendas.comprovante(vendaConcluida.id));}catch(e){setReceiptError(mensagemErro(e));}finally{setReceiptLoading(false);}};
@@ -252,7 +259,7 @@ export function PDV(){
        <footer className="pdv3-sale-footer"><div className="pdv3-total"><span>TOTAL A RECEBER</span><strong>{dinheiro(total)}</strong></div><button type="button" className="pdv3-primary pdv3-receive" onClick={()=>void abrirRecebimento()} disabled={busy||!carrinho.length||total<=0}><CreditCard size={20}/> Receber venda</button></footer>
       </section>
     </div>}
-    {recebimento&&<Modal title="Recebimento da venda" busy={busy} onClose={()=>{if(!busy)setRecebimento(false);}}>
+    {recebimento&&<Modal title="Recebimento da venda" busy={busy} onClose={()=>{if(!busy&&confirmarAbandonoOperacao(Boolean(tentativa.current))){tentativa.current=null;setRecebimento(false);}}}>
       <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>{fiadoAtivo&&<p className="pdv3-note">{escolhido?rotuloCredito(escolhido)+(modalidade(escolhido)==='LIMITADO'?' · Disponível: '+dinheiro(creditoDisponivel(escolhido)):''):'Selecione um cliente para utilizar fiado.'}</p>}{valorFiado>0&&erroCredito(escolhido,valorFiado)&&<Notice message={erroCredito(escolhido,valorFiado)!}/>}
       {pagamentos.length===1&&<div className="pdv3-payment-options">{disponiveis.map(f=>{const Icon=f.formaPagamento==='DINHEIRO'?Banknote:f.formaPagamento==='PIX'?QrCode:f.formaPagamento==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.id} aria-pressed={pagamentos[0].id===f.id} disabled={busy} onClick={()=>setPagamentos([novoPagamento(f,String(total))])}><Icon size={22}/>{f.nome}</button>;})}</div>}
       <Notice message={erro}/>
