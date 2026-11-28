@@ -16,7 +16,7 @@ import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
 import { MODULOS, saasApi, PENDENTES, DISPONIVEIS, PLANOS_PADRAO, moduloLiberado } from '../services/saas';
 import { saasLoginPath } from '../services/tenantUrls';
-import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, NomeModulo, SaasModuloDescricao, SaasCobranca } from '../services/saas';
+import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, SaasModuloDescricao, SaasCobranca } from '../services/saas';
 
 type Section = 'visao' | 'empresas' | 'financeiro' | 'suporte' | 'monitoramento' | 'auditoria' | 'planos' | 'modulos' | 'funcionarios';
 
