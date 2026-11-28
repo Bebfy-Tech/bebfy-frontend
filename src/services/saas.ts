@@ -170,7 +170,13 @@ export interface SaasAuditPage {
  total:number;pagina:number;limite:number;resumo:{operadores:number;porMetodo:Record<string,number>};
 }
 export interface SaasAuditQuery {busca?:string;operador?:string;metodo?:string;inicio?:string;fim?:string;pagina:number;limite:number;ordem:string}
+export interface SaasAssinaturaPagina {
+ empresa:{id:number;status:StatusEmpresa;testeAte:string|null;plano:{id:number;nome:string;precoMensal:string|number}|null};
+ total:number;pagina:number;limite:number;
+ itens:Array<SaasFinanceiroEvento & {operadorNome:string|null}>;
+}
 export const saasApi = {
+  historicoAssinatura: (id:number,pagina:number) => saasClient.get<SaasAssinaturaPagina>(`/saas/admin/empresas/${id}/assinatura/historico`,{params:{pagina}}).then(r=>r.data),
   auditoriaPaginada: (params:SaasAuditQuery)=>saasClient.get<SaasAuditPage>('/saas/admin/auditoria/paginada',{params}).then(r=>r.data),
   verificarEndereco: (subdominio:string) => saasClient.get<EnderecoDisponivel>('/saas/admin/empresas/verificar-endereco',{params:{subdominio}}).then(r=>r.data),
   auditoria: () => saasClient.get<SaasAuditEvent[]>('/saas/admin/auditoria').then(r=>r.data),
