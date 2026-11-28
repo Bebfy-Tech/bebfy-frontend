@@ -85,7 +85,7 @@ export function SaasAccess() {
             <button type="button" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} aria-pressed={showPassword} onClick={()=>setShowPassword(!showPassword)} className="absolute right-2 top-2.5 rounded-lg p-2 text-[#779186] hover:bg-[#f0f6f1] hover:text-[#14664b]">{showPassword?<EyeOff size={19}/>:<Eye size={19}/>}</button>
           </div></div>
           <button type="submit" disabled={busy||loading} className="mt-2 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-[#20bd88] px-5 text-sm font-extrabold text-[#063329] transition hover:bg-[#51dcaa] disabled:opacity-60">{busy?<LoaderCircle size={19} className="animate-spin"/>:<ArrowRight size={19}/>} {busy?'Autenticando...':'Entrar no painel'}</button>
-          <p className="text-center text-xs leading-5 text-[#73887d]">Acesso exclusivo à equipe administrativa autorizada. Em caso de perda de acesso, procure um administrador responsável.</p>
+          <details className="rounded-lg border border-white/10 p-3 text-xs leading-5"><summary className="cursor-pointer font-bold text-emerald-300">Esqueci minha senha</summary><p className="mt-2">Operadores devem solicitar a redefinição a um administrador autorizado. Administradores principais precisam utilizar o procedimento seguro de recuperação interna. Não há recuperação automática por e-mail neste ambiente.</p></details><p className="text-center text-xs leading-5 text-[#73887d]">Acesso exclusivo à equipe administrativa autorizada.</p>
         </form>
         <Link to="/" className="inline-flex items-center justify-center gap-2 border-t border-[#dbe6dd] pt-5 text-xs font-bold text-[#23664f] hover:text-[#0b4633]"><ArrowLeft size={15}/> Voltar à página inicial</Link>
       </section>

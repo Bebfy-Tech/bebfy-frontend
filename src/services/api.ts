@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { tenantFromPath, tenantPath, saasLoginPath } from './tenantUrls';
+import { tenantFromPath } from './tenantUrls';
 
 const baseURL=import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -24,15 +24,17 @@ export const getTenantSlug=():string=>{
   return '';
 };
 
+export const TENANT_SESSION_EVENT='bebfy:tenant-session-invalid';
+const publicAuth=(url:string)=>['/auth/login','/auth/primeiro-acesso/alterar-senha','/auth/recuperar-senha/solicitar','/auth/recuperar-senha/confirmar'].includes(url.split('?')[0]);
 export const api=axios.create({
   baseURL,timeout:20000,headers:{'Content-Type':'application/json'},
 });
 
 api.interceptors.request.use(config=>{
   const tenant=getTenantSlug();
-  if(tenant)config.headers.set('x-tenant',tenant);
+  if(tenant&&!config.headers.has('x-tenant'))config.headers.set('x-tenant',tenant);
   const token=localStorage.getItem('@Bebfy:token');
-  if(token&&!config.headers.has('Authorization')){
+  if(token&&!publicAuth(String(config.url||''))&&!config.headers.has('Authorization')){
     config.headers.set('Authorization',`Bearer ${token}`);
   }
   return config;
@@ -49,10 +51,7 @@ api.interceptors.response.use(response=>response,error=>{
     localStorage.removeItem('@Bebfy:token');
     localStorage.removeItem('@Bebfy:user');
     localStorage.removeItem('@Bebfy:empresa');
-    const pathname=window.location.pathname;
-    const destination=pathname.toLowerCase().startsWith('/saas/')
-      ? saasLoginPath : tenantPath('',tenantFromPath(pathname));
-    if(pathname!==destination)window.location.replace(destination);
+    window.dispatchEvent(new CustomEvent(TENANT_SESSION_EVENT,{detail:'Sessão expirada ou encerrada em outro acesso. Entre novamente.'}));
   }
   return Promise.reject(error);
 });

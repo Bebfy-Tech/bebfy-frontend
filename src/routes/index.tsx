@@ -44,7 +44,7 @@ export const AppRoutes = () => (
       <Route path="/" element={<LandingPage />} />
       <Route path="/acessar" element={<StoreLookup />} />
       <Route path="/SaaS/admin" element={<SaasAccess />} />
-      <Route path="/SaaS/primeiro-acesso" element={<FirstAccess />} />
+      <Route path="/SaaS/primeiro-acesso" element={<Navigate to="/SaaS/admin" replace />} />
       <Route element={<PrivateRoute saas />}>
         <Route path="/SaaS/painel" element={<SaasConsole />} />
       </Route>

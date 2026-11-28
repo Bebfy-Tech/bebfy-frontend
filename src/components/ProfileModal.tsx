@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import {validNewPassword,newPasswordHint} from '../services/authFeedback';
 import { useAuth } from '../contexts/AuthContext';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { saasLoginPath, tenantPath } from '../services/tenantUrls';
@@ -32,7 +33,7 @@ export function ProfileModal({ mode, open, onClose }: {mode:Mode;open:boolean;on
 
   useEffect(()=>{
     if(!open)return;
-    setError('');setMessage('');setSenhaAtual('');setNovaSenha('');setConfirmar('');
+    setMostrar(false);setError('');setMessage('');setSenhaAtual('');setNovaSenha('');setConfirmar('');
     if(mode==='saas') {
       setNome(saasUser?.nome||'');setEmail(saasUser?.email||'');setTelefone('');setPerfil(null);
       return;
@@ -64,6 +65,7 @@ export function ProfileModal({ mode, open, onClose }: {mode:Mode;open:boolean;on
   };
   const alterarSenha=async(e:React.FormEvent)=>{
     e.preventDefault();if(busy)return;
+    if(!validNewPassword(novaSenha)){setError(newPasswordHint);return;}
     if(novaSenha!==confirmar){setError('A confirmação da senha não corresponde.');return;}
     if(novaSenha===senhaAtual){setError('A nova senha precisa ser diferente da atual.');return;}
 
@@ -83,10 +85,10 @@ export function ProfileModal({ mode, open, onClose }: {mode:Mode;open:boolean;on
   const displayCode=mode==='saas'?saasUser?.codigo:tenantUser?.codigo;
   const role=mode==='saas'?saasUser?.cargo:tenantUser?.cargo;
   return <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-labelledby="bebfy-profile-title">
-    <div className="max-h-[96dvh] w-full max-w-[700px] overflow-y-auto rounded-3xl border border-[#46565a] bg-[#20292d] p-6 text-white shadow-[0_30px_90px_rgba(0,0,0,.48)] sm:p-8">
+    <div className="max-h-[96dvh] w-full max-w-[620px] overflow-y-auto rounded-xl border border-[#343d46] bg-[#17191e] p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,.48)] sm:p-8">
       <div className="flex items-start justify-between gap-3">
         <div><p className="flex items-center gap-2 text-[11px] font-extrabold tracking-widest text-emerald-300"><UserRound size={16}/> MINHA CONTA</p><h2 id="bebfy-profile-title" className="mt-2 text-2xl font-extrabold">Meu perfil e configurações</h2><p className="mt-2 text-sm text-slate-400">Consulte seu acesso e atualize suas informações pessoais.</p></div>
-        <button type="button" onClick={onClose} aria-label="Fechar perfil" className="rounded-lg p-2 text-slate-300 hover:bg-white/10"><X size={21}/></button>
+        <button type="button" disabled={busy} onClick={()=>{setSenhaAtual('');setNovaSenha('');setConfirmar('');setMostrar(false);onClose();}} aria-label="Fechar perfil" className="rounded-lg p-2 text-slate-300 hover:bg-white/10"><X size={21}/></button>
       </div>
       {loading&&<p role="status" className="mt-5 text-sm text-slate-300">Carregando perfil...</p>}
       {error&&<p role="alert" className="mt-5 rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200">{error}</p>}
@@ -108,7 +110,7 @@ export function ProfileModal({ mode, open, onClose }: {mode:Mode;open:boolean;on
       </form>
       <form onSubmit={e=>void alterarSenha(e)} className="mt-8 space-y-4">
         <h3 className="flex items-center gap-2 border-b border-white/10 pb-3 text-base font-extrabold"><LockKeyhole size={18} className="text-emerald-200"/> Alterar senha</h3>
-        <p className="text-xs leading-5 text-slate-400">A troca de senha exige a senha atual e encerrará esta sessão por segurança.</p>
+        <p className="text-xs leading-5 text-slate-400">A troca de senha exige a senha atual e encerrará esta sessão por segurança. {newPasswordHint}</p>
         <label className="block text-xs font-bold text-slate-300">Senha atual<input type={mostrar?'text':'password'} required autoComplete="current-password" className={input} value={senhaAtual} onChange={e=>setSenhaAtual(e.target.value)}/></label>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-xs font-bold text-slate-300">Nova senha<input type={mostrar?'text':'password'} required autoComplete="new-password" className={input} value={novaSenha} onChange={e=>setNovaSenha(e.target.value)}/></label>

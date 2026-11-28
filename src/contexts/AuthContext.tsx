@@ -1,6 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState, useRef } from 'react';
 import type { TenantModules } from '../services/moduleAccess';
-import { api, getTenantSlug } from '../services/api';
+import { api, getTenantSlug, TENANT_SESSION_EVENT } from '../services/api';
 import type {
   AuthResponse, LoginCredentials, LoginResponse, Usuario, Empresa,
   ValidarGerenteDto, ValidarGerenteResponse, TrocaSenhaPrimeiroAcesso,
@@ -12,6 +12,7 @@ interface AuthContextData {
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
+  notice:string;
   modules: TenantModules;
   modulesStatus: 'loading' | 'ready' | 'error';
   refreshModules: () => Promise<void>;
@@ -27,29 +28,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notice,setNotice]=useState('');
+  const generation=useRef(0);
   const [modules, setModules] = useState<TenantModules>({});
   const [modulesStatus, setModulesStatus] = useState<'loading'|'ready'|'error'>('loading');
   const refreshModules = useCallback(async () => {
-    if (!localStorage.getItem('@Bebfy:token')) return;
+    const requested=localStorage.getItem('@Bebfy:token');
+    const tenant=getTenantSlug();
+    if(!requested||!tenant)return;
     try {
       const response = await api.get<{modulos:TenantModules}>('/auth/modulos');
+      if(requested!==localStorage.getItem('@Bebfy:token')||tenant!==getTenantSlug())return;
       setModules(response.data.modulos || {});
       setModulesStatus('ready');
     } catch {
       // On a failed initial request do not assume paid modules are available.
-      setModulesStatus(previous => previous === 'ready' ? previous : 'error');
+      if(requested===localStorage.getItem('@Bebfy:token')&&tenant===getTenantSlug())setModulesStatus(previous => previous === 'ready' ? previous : 'error');
     }
   }, []);
 
-  const limpar = () => {
+  const limpar = useCallback((reason='') => {
+    generation.current++;
+    setNotice(reason);setLoading(false);
     localStorage.removeItem('@Bebfy:token');
     localStorage.removeItem('@Bebfy:user');
     localStorage.removeItem('@Bebfy:empresa');
     localStorage.removeItem('@Bebfy:tenantOverride');
     setToken(null); setUser(null); setEmpresa(null); setModules({}); setModulesStatus('loading');
-  };
+  },[]);
 
   const guardar = (resposta: AuthResponse) => {
+    generation.current++;setNotice('');setLoading(false);setModules({});setModulesStatus('loading');
     localStorage.setItem('@Bebfy:token', resposta.access_token);
     localStorage.setItem('@Bebfy:user', JSON.stringify(resposta.usuario));
     localStorage.setItem('@Bebfy:empresa', JSON.stringify(resposta.empresa));
@@ -59,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    const seq=generation.current;
     const storedToken = localStorage.getItem('@Bebfy:token');
     const storedUser = localStorage.getItem('@Bebfy:user');
     const storedEmpresa = localStorage.getItem('@Bebfy:empresa');
@@ -80,15 +90,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Do not trust persisted JWT before server validates its current active session ID.
     void api.get('/auth/perfil')
       .then(() => {
+        if(seq!==generation.current||storedToken!==localStorage.getItem('@Bebfy:token'))return;
         try {
           setToken(storedToken);
           setUser(JSON.parse(storedUser) as Usuario);
           setEmpresa(JSON.parse(storedEmpresa) as Empresa);
         } catch { limpar(); }
       })
-      .catch(() => limpar())
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {if(seq===generation.current&&storedToken===localStorage.getItem('@Bebfy:token'))limpar('Não foi possível restaurar a sessão. Entre novamente.');})
+      .finally(() => {if(seq===generation.current)setLoading(false);});
+  }, [limpar]);
+
+  useEffect(()=>{
+    const invalid=(e:Event)=>limpar((e as CustomEvent<string>).detail);
+    const storage=(e:StorageEvent)=>{if(e.key!=='@Bebfy:token'&&e.key!==null)return;generation.current++;setToken(null);setUser(null);setEmpresa(null);setModules({});setModulesStatus('loading');setNotice('A sessão foi alterada em outra aba. Entre novamente.');setLoading(false);};
+    window.addEventListener(TENANT_SESSION_EVENT,invalid);window.addEventListener('storage',storage);
+    return()=>{window.removeEventListener(TENANT_SESSION_EVENT,invalid);window.removeEventListener('storage',storage);};
+  },[limpar]);
 
   useEffect(() => {
     if (!token) return;
@@ -133,7 +151,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!token) return;
-    const checar = () => { void api.get('/auth/perfil').catch(() => limpar()); };
+    const checar=()=>{
+      const current=getTenantSlug();
+      if(document.hidden||!current||current!==empresa?.subdominio||localStorage.getItem('@Bebfy:token')!==token)return;
+      void api.get('/auth/perfil').then(()=>{}).catch((err:unknown)=>{
+        const status=(err as {response?:{status?:number}}).response?.status;
+        if(localStorage.getItem('@Bebfy:token')===token&&getTenantSlug()===current&&(status===401||status===404))limpar(status===404?'Acesso da distribuidora indisponível. Entre novamente para verificar a situação.':'Sessão expirada ou encerrada. Entre novamente.');
+      });
+    };
     // Ensures a displaced terminal is returned to login even when idle.
     const intervalo = window.setInterval(checar, 15000);
     const aoVoltar = () => { if (!document.hidden) checar(); };
@@ -142,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.clearInterval(intervalo);
       document.removeEventListener('visibilitychange', aoVoltar);
     };
-  }, [token]);
+  }, [token,empresa?.subdominio,limpar]);
 
   const logout = () => {
     const sessao = localStorage.getItem('@Bebfy:token');
@@ -163,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{
       user, empresa, token, isAuthenticated: !!token,
-      loading, modules, modulesStatus, refreshModules, login, finalizarPrimeiroAcesso, logout, validarGerente,
+      loading, notice, modules, modulesStatus, refreshModules, login, finalizarPrimeiroAcesso, logout, validarGerente,
     }}>
       {children}
     </AuthContext.Provider>

@@ -27,7 +27,7 @@ export const Login: React.FC = () => {
   const [carregando, setCarregando] = useState(false);
   const [conflitoSessao, setConflitoSessao] = useState(false);
 
-  const { login } = useAuth();
+  const { login,notice } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const slug = tenantFromPath();
@@ -44,7 +44,7 @@ export const Login: React.FC = () => {
       if ('trocaSenhaObrigatoria' in resultado) {
         navigate(tenantPath('primeiro-acesso'), {
           replace: true,
-          state: { tokenTroca: resultado.tokenTroca, retorno: 'pdv' },
+          state: { tokenTroca: resultado.tokenTroca, tenant:slug },
         });
       } else {
         let destination='dashboard';
@@ -64,7 +64,7 @@ export const Login: React.FC = () => {
       } else {
         setConflitoSessao(false);
         const status=error.response?.status;const msg=error.response?.data?.error?.message||error.response?.data?.message;
-        setErro(status===429?'Muitas tentativas. Aguarde um minuto antes de tentar novamente.':status===404?'Distribuidora indisponível ou endereço incorreto. Confira o identificador.':!status||status>=500?'Não foi possível comunicar com o servidor. Tente novamente.':Array.isArray(msg)?msg.join(' · '):msg||'Não foi possível entrar. Verifique suas credenciais.');
+        setErro(status===429?'Muitas tentativas. Aguarde um minuto antes de tentar novamente.':status===404?(typeof msg==='string'?msg:'Distribuidora indisponível ou endereço incorreto. Confira o identificador.'):!status||status>=500?'Não foi possível comunicar com o servidor. Tente novamente.':Array.isArray(msg)?msg.join(' · '):msg||'Não foi possível entrar. Verifique suas credenciais.');
       }
     } finally {
       setCarregando(false);
@@ -133,6 +133,7 @@ export const Login: React.FC = () => {
             <p className={`mt-2 text-sm leading-6 ${theme === 'dark' ? 'text-emerald-50/65' : 'text-[#688076]'}`}>Informe suas credenciais para continuar.</p>
           </div>
 
+          {notice&&!erro&&<p role="status" className="mb-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm">{notice}</p>}
           {erro && <div role="alert" className="mb-5 flex items-start gap-3 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-200">
             <AlertCircle size={19} className="mt-0.5 shrink-0 text-rose-400"/><span>{erro}</span>
           </div>}
