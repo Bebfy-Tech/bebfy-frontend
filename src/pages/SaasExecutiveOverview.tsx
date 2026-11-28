@@ -10,6 +10,7 @@ const statuses={ATIVA:'Ativa',EM_TESTE:'Em teste',SUSPENSA:'Suspensa',CANCELADA:
 type Props={empresas:EmpresaSaas[]|null;canCompanies:boolean;canFinance:boolean;canSupport:boolean;onFinance:()=>void;onSupport:()=>void;onMonitor:()=>void;onCompanies:()=>void;onOpenCompany:(id:number)=>void;onCreate:()=>void;onExport:()=>void};
 export function SaasExecutiveOverview(p:Props){
  const [finance,setFinance]=useState<SaasFinanceiroResumo|null>(null),[tickets,setTickets]=useState<SaasChamado[]|null>(null),[monitor,setMonitor]=useState<SaasTenantMonitor[]|null>(null);
+ const [revision,setRevision]=useState(0),[updated,setUpdated]=useState<Date|null>(null);
  const [errors,setErrors]=useState<string[]>([]),[loading,setLoading]=useState(true),[months,setMonths]=useState(6),[query,setQuery]=useState('');
  useEffect(()=>{
   let active=true;setLoading(true);setErrors([]);setFinance(null);setTickets(null);setMonitor(null);
@@ -17,9 +18,9 @@ export function SaasExecutiveOverview(p:Props){
   if(p.canFinance)tasks.push(saasApi.financeiro().then(v=>{if(active)setFinance(v);}).catch(()=>{if(active)setErrors(e=>[...e,'Financeiro']);}));
   if(p.canSupport)tasks.push(saasApi.chamadosSuporte().then(v=>{if(active)setTickets(v);}).catch(()=>{if(active)setErrors(e=>[...e,'Suporte']);}));
   if(p.canCompanies)tasks.push(saasApi.monitoramento().then(v=>{if(active)setMonitor(v);}).catch(()=>{if(active)setErrors(e=>[...e,'Monitoramento']);}));
-  void Promise.all(tasks).finally(()=>{if(active)setLoading(false);});
+  void Promise.all(tasks).finally(()=>{if(active){setLoading(false);setUpdated(new Date());}});
   return()=>{active=false;};
- },[p.canCompanies,p.canFinance,p.canSupport]);
+ },[p.canCompanies,p.canFinance,p.canSupport,revision]);
  const companies=p.canCompanies?p.empresas:null;
  const now=new Date(),current=monthKey(now),in7=new Date(now.getTime()+7*86400000),in3=new Date(now.getTime()+3*86400000);
  const active=companies?.filter(e=>e.status==='ATIVA')??[];
@@ -41,7 +42,7 @@ export function SaasExecutiveOverview(p:Props){
  const alerts=[...(p.canFinance?[{title:'Mensalidades vencendo',value:finance?fmt(soon.length):'—',sub:'Próximos 7 dias',Icon:CalendarClock,tone:'amber',action:p.onFinance},{title:'Liberações expirando',value:finance?fmt(grace.length):'—',sub:'Próximos 3 dias',Icon:Clock3,tone:'amber',action:p.onFinance}]:[]),...(p.canSupport?[{title:'Chamados com Dev',value:tickets?fmt(dev.length):'—',sub:'Ordens abertas com desenvolvimento',Icon:Code2,tone:'green',action:p.onSupport}]:[]),...(p.canCompanies?[{title:'Sem atividade recente',value:monitor?fmt(inactive.length):'—',sub:'30 dias ou sem registro',Icon:Activity,tone:'neutral',action:p.onMonitor}]:[])];
  const states=companies?Object.entries(statuses).map(([key,label])=>({key,label,value:companies.filter(e=>e.status===key).length})):[];
  return <div className="sd-page">
- <div className="sd-heading"><div><h2>Visão geral da plataforma</h2><p>Distribuidoras, financeiro, suporte e operação em um só lugar.</p></div>{p.canCompanies&&<div className="sd-actions"><button className="sd-secondary" disabled={!companies} onClick={p.onExport}><Download size={16}/> Exportar CSV</button><button className="sd-primary" onClick={p.onCreate}><Plus size={17}/> Nova distribuidora</button></div>}</div>
+ <div className="sd-heading"><div><h2>Visão geral da plataforma</h2><p>Distribuidoras, financeiro, suporte e operação em um só lugar.</p><p>{loading?'Consultando indicadores…':updated?'Última consulta: '+updated.toLocaleString('pt-BR'):''} <button type="button" className="sd-secondary" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Atualizar indicadores</button></p></div>{p.canCompanies&&<div className="sd-actions"><button className="sd-secondary" disabled={!companies} onClick={p.onExport}><Download size={16}/> Exportar CSV</button><button className="sd-primary" onClick={p.onCreate}><Plus size={17}/> Nova distribuidora</button></div>}</div>
  {(errors.length>0||p.canCompanies&&!companies)&&<p className="sd-warning" role="alert"><AlertTriangle size={16}/> Dados indisponíveis: {[...errors,...(p.canCompanies&&!companies?['Distribuidoras']:[])].join(', ')}. Indicadores sem dados são exibidos como —.</p>}
  {loading&&<p className="sd-muted" role="status">Atualizando indicadores…</p>}
  <div className="sd-kpis">{kpis.map(k=><button key={k.label} className="sd-panel sd-kpi" onClick={k.action}><span className={'sd-icon '+k.tone}><k.Icon size={23}/></span><div><small>{k.label}</small><strong>{k.value}</strong><span>{k.sub}</span></div></button>)}</div>
