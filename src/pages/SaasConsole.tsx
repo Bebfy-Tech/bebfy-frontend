@@ -318,7 +318,7 @@ export function SaasConsole() {
 
           {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
           {section==='financeiro'&&<SaasFinanceiro onOpenCompany={id=>void openCompany(id)} initialCompanyId={supportCompanyId}/>}
-          {section==='suporte'&&<SaasSuporte empresas={empresas} initialCompanyId={supportCompanyId} onOpenCompany={id=>void openCompany(id)}/>}
+          {section==='suporte'&&<SaasSuporte empresas={empresas} initialCompanyId={supportCompanyId} onOpenCompany={id=>void openCompany(id)} canOpenCompany={user?.cargo==="SUPER_ADMIN"||!!user?.permissoes.includes("EMPRESAS")}/>}
           {section==='monitoramento'&&<SaasMonitoramento onOpenCompany={id=>void openCompany(id)}/>}
           {section==='auditoria'&&<SaasAuditoria/>}
           {section==='visao'&&<SaasExecutiveOverview
