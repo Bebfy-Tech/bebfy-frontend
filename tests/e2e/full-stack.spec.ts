@@ -85,6 +85,8 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await customerForm.getByLabel('Modalidade de crédito').selectOption('LIMITADO');
   await customerForm.getByLabel('Limite de crédito (R$)').fill('250,00');
   await customerForm.getByRole('button', { name: 'Salvar cliente' }).click();
+  await expect(a.getByRole('heading', {name: 'Cliente QA Playwright', exact: true})).toBeVisible();
+  await a.getByRole('button', {name: 'Voltar aos clientes',exact: true}).click();
   await expect(a.locator('table').getByText('Cliente QA Playwright')).toBeVisible();
 
   // Exercise backend/frontend suppliers contract including previously missing
