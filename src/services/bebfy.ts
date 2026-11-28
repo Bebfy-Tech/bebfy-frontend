@@ -107,6 +107,7 @@ export interface Venda {
     produtoId: number;
     produto?:Produto|null;
     unidadesEstoque?:number|null;
+    lotesBaixados?:Array<{id:string;loteId:number;numeroLote:string|null;dataVencimento:string|null;quantidade:number}>;
     quantidade: number;
     precoUnitario: string | number;
     precoTotal: string | number;
