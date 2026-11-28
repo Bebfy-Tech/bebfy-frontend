@@ -19,7 +19,7 @@ function access(r:SaasTenantMonitor,now:number){
   if(r.liberacaoFinanceiraAte===undefined)return 'Inadimplente';
   return r.liberacaoFinanceiraAte&&new Date(r.liberacaoFinanceiraAte).getTime()>now?'Cortesia vigente':'Bloqueado financeiramente';
 }
-const when=(d:string)=>new Date(d).toLocaleString('pt-BR');
+const when=(d:string)=>new Date(d).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
 const age=(d:string,now:number)=>{const days=Math.floor(Math.max(0,now-new Date(d).getTime())/DAY);return days===0?'Há menos de 24 horas':days===1?'Há 1 dia':'Há '+days+' dias';};
 const csvCell=(v:unknown)=>{const raw=String(v??'');return '"'+(/^[\s]*[=+\-@]/.test(raw)?"'"+raw:raw).replace(/"/g,'""')+'"';};
 export function SaasMonitoramento({onOpenCompany}:{onOpenCompany:(id:number)=>void}) {
@@ -78,14 +78,15 @@ export function SaasMonitoramento({onOpenCompany}:{onOpenCompany:(id:number)=>vo
   const selectBand=(value:string)=>{reset();setFilter(value);};
   const selectRisk=(value:string)=>{reset();setRisk(value);};
   const exportCsv=()=>{
+    if(!available||loading)return;
     const records=[['Distribuidora','Domínio','Status','Plano','Última atividade','Faixa de atividade','Contas habilitadas','Usuários com atividade em 7 dias','Produtos','Clientes','Vendas registradas (total)','Vendas concluídas (7 dias)','Acesso financeiro/administrativo'],...filtered.map(r=>[r.nomeFantasia,r.slug,statusLabels[r.status],r.plano?.nome??'',r.ultimoAcesso?when(r.ultimoAcesso):'',labels[band(r,now)],r.usuariosAtivos,r.usuariosRecentes,r._count.produtos,r._count.clientes??'',r._count.vendas,r.vendasConcluidas7d??'',access(r,now)])];
     const url=URL.createObjectURL(new Blob(['\uFEFF'+records.map(row=>row.map(csvCell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
     const a=document.createElement('a');a.href=url;a.download='bebfy-monitoramento.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
   return <div className="sc-page smon-page">
-    <div className="sd-heading"><div><h2>Monitoramento das distribuidoras</h2><p>Atividade autenticada e adoção operacional dos clientes.</p></div><div className="sd-actions"><label className="smon-auto"><input type="checkbox" checked={auto} onChange={e=>setAuto(e.target.checked)}/> Atualização a cada 60 s</label><button disabled={loading} onClick={()=>void load()} className="sd-secondary"><RefreshCcw size={16}/> {loading?'Consultando…':'Atualizar'}</button></div></div>
+    <div className="sd-heading"><div><h2>Monitoramento das distribuidoras</h2><p>Atividade autenticada e adoção operacional dos clientes. Não representa disponibilidade do servidor nem usuários online em tempo real.</p></div><div className="sd-actions"><label className="smon-auto"><input type="checkbox" checked={auto} onChange={e=>setAuto(e.target.checked)}/> Atualização a cada 60 s</label><button disabled={loading} onClick={()=>void load()} className="sd-secondary"><RefreshCcw size={16}/> {loading?'Consultando…':'Atualizar'}</button></div></div>
     {error&&<p role="alert" className="sd-warning"><AlertCircle size={16}/> {error}</p>}
-    <p className="sd-muted">Última consulta: {snapshot?when(new Date(snapshot).toISOString()):'—'} · {available?'Dados consultados':'Sem confirmação atual'}</p>
+    <p className="sd-muted">Última consulta: {snapshot?when(new Date(snapshot).toISOString()):'—'} · {available?'Dados consultados (horário de Brasília)':'Sem confirmação atual — indicadores indisponíveis'}</p>
     <div className="sd-kpis">{([{label:'Distribuidoras cadastradas',value:rows.length,icon:Building2,action:reset},{label:'Atividade nos últimos 7 dias',value:counts.RECENTE,icon:Activity,action:()=>selectBand('RECENTE')},{label:'Mais de 30 dias sem atividade',value:counts.INATIVO,icon:Clock3,action:()=>selectBand('INATIVO')},{label:'Sem atividade registrada',value:counts.SEM_USO,icon:Users,action:()=>selectBand('SEM_USO')}] as const).map(({label,value,icon:Icon,action})=><button key={label} disabled={!available} onClick={action} className="sd-panel sd-kpi text-left"><span className="sd-icon"><Icon size={22}/></span><div><small>{label}</small><strong>{available?value:'—'}</strong><span>Empresas cadastradas</span></div></button>)}</div>
     <div className="smon-overview">
       <section className="sc-panel"><h3>Panorama de atividade</h3><div className="smon-bands">{(Object.keys(labels) as ActivityBand[]).map(key=><button key={key} disabled={!available} onClick={()=>selectBand(key)}><div><span>{labels[key]}</span><strong>{available?counts[key]:'—'}</strong></div><div className="smon-track"><span className={'smon-fill '+key.toLowerCase()} style={{width:(available&&rows.length?counts[key]/rows.length*100:0)+'%'}}/></div></button>)}</div></section>

@@ -5,7 +5,7 @@ import type {Documento,Impressao,Perfil} from '../services/impressao';
 import {mensagemErro,Notice} from '../components/ui';
 import './impressao-config.css';
 
-export function ImpressaoConfig({editavel,empresa,onDirty,onBusy,onSaved}:{editavel:boolean;empresa:string;onDirty:(v:boolean)=>void;onBusy:(v:boolean)=>void;onSaved:()=>void}){
+export function ImpressaoConfig({editavel,empresa,onDirty,onBusy,onSaved}:{editavel:boolean;empresa:string;onDirty:(v:boolean)=>void;onBusy:(v:boolean)=>void;onSaved:(revisao:string|null)=>void}){
  const [dados,setDados]=useState<Impressao|null>(null),[draft,setDraft]=useState<Impressao|null>(null),[tipo,setTipo]=useState<Documento>('venda'),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[erro,setErro]=useState(''),[ok,setOk]=useState('');
  const seq=useRef(0),lock=useRef(false),preview=useRef<HTMLDivElement>(null);
  const dirty=Boolean(dados&&draft&&JSON.stringify(dados)!==JSON.stringify(draft));
@@ -24,7 +24,7 @@ export function ImpressaoConfig({editavel,empresa,onDirty,onBusy,onSaved}:{edita
   if(!draft||!dirty||disabled||lock.current)return;
   for(const [k,v] of Object.entries(draft.perfis)){const e=validarPerfil(v);if(e){setTipo(k as Documento);setErro(documentos[k as Documento]+': '+e);return;}}
   lock.current=true;setBusy(true);setErro('');setOk('');
-  try{const res=await impressaoApi.salvar(draft);setDados(res);setDraft(res);setOk('Perfis de impressão salvos.');onSaved();}
+  try{const res=await impressaoApi.salvar(draft);setDados(res);setDraft(res);setOk('Perfis de impressão salvos.');onSaved(res.revisao);}
   catch(e){setErro(mensagemErro(e));}finally{lock.current=false;setBusy(false);}
  }
  if(loading)return <section className="cf-panel">Carregando perfis de impressão...</section>;

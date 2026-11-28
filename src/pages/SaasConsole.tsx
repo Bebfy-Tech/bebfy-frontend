@@ -248,7 +248,8 @@ export function SaasConsole() {
       const alterouModulos=JSON.stringify([...(original?.modulosPadrao||[])].sort())!==JSON.stringify([...dados.modulosPadrao].sort());
       if(alterouPreco||alterouModulos){
         const total=original?.resumo?.total;
-        const aviso=['Este plano '+(total===undefined?'pode ter empresas vinculadas.': 'possui '+total+' empresa(s) vinculada(s).'),alterouPreco?'O novo preço será utilizado nas próximas mensalidades geradas; cobranças anteriores serão preservadas.':'',alterouModulos?'A alteração dos módulos padrão afeta os acessos herdados do plano, preservando as exceções manuais.':'','Confirma salvar as alterações?'].filter(Boolean).join('\n\n');
+        const added=dados.modulosPadrao.filter(m=>!original?.modulosPadrao?.includes(m));const removed=(original?.modulosPadrao??[]).filter(m=>!dados.modulosPadrao.includes(m));const names=(keys:typeof dados.modulosPadrao)=>keys.map(k=>MODULOS.find(m=>m.key===k)?.nome??k).join(', ')||'Nenhum';
+        const aviso=['Este plano '+(total===undefined?'pode ter empresas vinculadas.': 'possui '+total+' empresa(s) vinculada(s).'),alterouPreco?'Mensalidade: '+(original?money(Number(original.precoMensal)):'Indisponível')+' → '+money(dados.precoMensal)+'. O novo preço será utilizado nas próximas mensalidades geradas; cobranças anteriores serão preservadas.':'',alterouModulos?'Módulos adicionados: '+names(added)+'\nMódulos removidos: '+names(removed)+'\nA alteração afeta os acessos herdados do plano, preservando as exceções manuais.':'','Confirma salvar as alterações?'].filter(Boolean).join('\n\n');
         if(!window.confirm(aviso))return;
       }
     }
