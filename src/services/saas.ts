@@ -44,6 +44,7 @@ export interface EmpresaSaas {
   slug: string;
   subdominio: string | null;
   status: StatusEmpresa;
+  testeAte?: string | null;
   inadimplente: boolean;
   liberacaoFinanceiraAte: string | null;
   historicoLiberacoes?: Array<{ id: string; operadorId: string; dias: number; motivo: string; liberadoAte: string; criadoEm: string }>;
@@ -220,6 +221,7 @@ export const saasApi = {
     saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/inadimplencia`, { inadimplente }).then(r => r.data),
   liberarTemporariamente: (id: number, dias: number, motivo: string) =>
     saasClient.post<EmpresaSaas>(`/saas/admin/empresas/${id}/liberar-acesso`, { dias, motivo }).then(r => r.data),
+  prorrogarTeste: (id:number,dias:number,motivo:string) => saasClient.post<EmpresaSaas>(`/saas/admin/empresas/${id}/teste`,{dias,motivo}).then(r=>r.data),
   alterarStatus: (id: number, status: StatusEmpresa) =>
     saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status }).then(r => r.data),
   alterarPlano: (id: number, planoId: number) =>
