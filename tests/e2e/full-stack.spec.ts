@@ -96,7 +96,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await a.getByRole('button', { name: 'Novo fornecedor' }).click();
   const supplierForm = a.getByRole('dialog');
   await supplierForm.getByLabel('Razão social').fill('Distribuidora Fornecedor QA');
-  await supplierForm.getByLabel('CNPJ',{exact:true}).fill('00000000000199');
+  await supplierForm.getByLabel('CNPJ',{exact:true}).fill('98765432000198');
   await supplierForm.getByLabel('Inscrição estadual').fill('IE-TESTE-001');
   await supplierForm.getByLabel('Endereço completo').fill('Rua QA, 123');
   await supplierForm.getByRole('button', { name: 'Salvar fornecedor' }).click();
