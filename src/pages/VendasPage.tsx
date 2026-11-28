@@ -1,3 +1,4 @@
+import {imprimirDocumento} from '../services/impressao';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Banknote, BarChart3, CalendarDays, ChevronLeft, ChevronRight, CircleX, Eye, Printer, Plus, RefreshCcw, Search, ShoppingCart } from 'lucide-react';
@@ -33,12 +34,12 @@ function StatusPill({status}:{status:string}){
 }
 function Receipt({dados}:{dados:ComprovanteNaoFiscal}){
  return <article className="print-area vs-receipt">
-  <header><h2>{dados.loja.nome}</h2><strong>{dados.titulo}</strong>{dados.loja.endereco&&<p>{dados.loja.endereco}</p>}{dados.loja.telefone&&<p>{dados.loja.telefone}</p>}</header>
-  <div className="vs-receipt-meta">Venda #{dados.venda.numero} · {dateTime(dados.venda.realizadaEm)}<p>Operador: {dados.venda.operador}</p>{dados.venda.cliente&&<p>Cliente: {dados.venda.cliente}</p>}<p>Situação: {STATUS[dados.venda.status]??dados.venda.status}</p></div>
+  <header><h2>{dados.loja.nome}</h2><strong>{dados.titulo}</strong>{dados.loja.endereco&&<p data-print-option="endereco">{dados.loja.endereco}</p>}{dados.loja.telefone&&<p data-print-option="endereco">{dados.loja.telefone}</p>}</header>
+  <div className="vs-receipt-meta">Venda #{dados.venda.numero} · {dateTime(dados.venda.realizadaEm)}<p data-print-option="operador">Operador: {dados.venda.operador}</p>{dados.venda.cliente&&<p>Cliente: {dados.venda.cliente}</p>}<p>Situação: {STATUS[dados.venda.status]??dados.venda.status}</p></div>
   {dados.itens.map((i,k)=><div className="vs-receipt-line" key={k}><span>{i.quantidade}× {i.descricao}</span><span>{dinheiro(i.total)}</span></div>)}
   <div className="vs-receipt-meta"><div className="vs-receipt-line"><span>Subtotal</span><span>{dinheiro(dados.valores.subtotal)}</span></div><div className="vs-receipt-line"><span>Desconto</span><span>{dinheiro(dados.valores.desconto)}</span></div>{dados.valores.taxaEntrega>0&&<div className="vs-receipt-line"><span>Entrega</span><span>{dinheiro(dados.valores.taxaEntrega)}</span></div>}<div className="vs-receipt-line"><strong>Total</strong><strong>{dinheiro(dados.valores.total)}</strong></div></div>
   {dados.pagamentos.map((p,i)=><p key={i}>{labelPagamento(p.forma)}: {dinheiro(p.valor)}{Number(p.troco)>0?' · Troco: '+dinheiro(p.troco):''}</p>)}
-  {dados.loja.mensagem&&<p style={{whiteSpace:"pre-wrap",textAlign:"center"}}>{dados.loja.mensagem}</p>}
+  {dados.loja.mensagem&&<p data-print-option="rodape" style={{whiteSpace:"pre-wrap",textAlign:"center"}}>{dados.loja.mensagem}</p>}
   <p className="vs-receipt-warning">{dados.aviso}</p>
  </article>;
 }
@@ -102,6 +103,6 @@ export function VendasPage(){
     <div className="vs-modal-footer">{canCancel&&detalhe.status==='CONCLUIDA'&&detalhe.caixa?.status!=='FECHADO'&&<button type="button" className="vs-danger" disabled={busy} onClick={()=>void pedirCancelamento(detalhe)}><CircleX size={17}/> Cancelar venda</button>}<button type="button" className="vs-secondary" disabled={busy} onClick={()=>setDetalhe(null)}>Fechar</button><button type="button" className="vs-primary" disabled={busy} onClick={()=>void recibo(detalhe)}><Printer size={17}/> Comprovante</button></div>
   </div></Modal>}
   {cancelar&&<Modal busy={busy} title={'Cancelar venda #'+cancelar.codigoVenda+'?'} onClose={()=>{if(!busy)setCancelar(null);}}><div className="vs-modal"><Notice message={erro} onClose={()=>setErro('')}/><p>O cancelamento preserva o histórico e estorna o estoque e o fiado, quando aplicável. Não realiza devolução automática de pagamentos externos.</p><div className="vs-cancel-value">{dinheiro(cancelar.valorTotal)}</div><div className="vs-modal-footer"><button type="button" className="vs-secondary" disabled={busy} onClick={()=>setCancelar(null)}>Não cancelar</button><button type="button" className="vs-danger" disabled={busy} onClick={()=>void cancelarVenda()}>{busy?'Cancelando...':'Confirmar cancelamento'}</button></div></div></Modal>}
-  {comprovante&&<Modal title="Comprovante comercial não fiscal" onClose={()=>setComprovante(null)}><div className="vs-modal"><Receipt dados={comprovante}/><div className="vs-modal-footer"><button type="button" className="vs-secondary" onClick={()=>setComprovante(null)}>Fechar</button><button type="button" className="vs-primary" onClick={()=>window.print()}><Printer size={17}/> Imprimir</button></div></div></Modal>}
+  {comprovante&&<Modal title="Comprovante comercial não fiscal" onClose={()=>setComprovante(null)}><div className="vs-modal"><Receipt dados={comprovante}/><div className="vs-modal-footer"><button type="button" className="vs-secondary" onClick={()=>setComprovante(null)}>Fechar</button><button type="button" className="vs-primary" onClick={()=>void imprimirDocumento('venda','.vs-receipt')}><Printer size={17}/> Imprimir</button></div></div></Modal>}
  </div>;
 }

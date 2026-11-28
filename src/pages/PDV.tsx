@@ -1,3 +1,4 @@
+import {imprimirDocumento} from '../services/impressao';
 import { pagamentosOperacionais, parcelasDisponiveis, formaInicial } from '../services/pagamentosOperacionais';
 import type { FormaOperacional } from '../services/pagamentosOperacionais';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -29,13 +30,13 @@ function Comprovante({dados}:{dados:ComprovanteNaoFiscal}){
   return <article className="print-area mx-auto max-w-sm space-y-3 bg-white p-6 font-mono text-xs text-black print:max-w-none print:p-0">
     <h2 className="text-center text-base font-extrabold">{dados.titulo}</h2>
     <p className="text-center font-semibold">{dados.loja.nome}</p>
-    {dados.loja.endereco&&<p className="text-center">{dados.loja.endereco}</p>}
-    {dados.loja.telefone&&<p className="text-center">{dados.loja.telefone}</p>}
-    <div className="border-y border-dashed border-black py-2"><p>Venda #{dados.venda.numero} · {new Date(dados.venda.realizadaEm).toLocaleString('pt-BR')}</p><p>Operador: {dados.venda.operador}</p>{dados.venda.cliente&&<p>Cliente: {dados.venda.cliente}</p>}</div>
+    {dados.loja.endereco&&<p className="text-center" data-print-option="endereco">{dados.loja.endereco}</p>}
+    {dados.loja.telefone&&<p className="text-center" data-print-option="endereco">{dados.loja.telefone}</p>}
+    <div className="border-y border-dashed border-black py-2"><p>Venda #{dados.venda.numero} · {new Date(dados.venda.realizadaEm).toLocaleString('pt-BR')}</p><p data-print-option="operador">Operador: {dados.venda.operador}</p>{dados.venda.cliente&&<p>Cliente: {dados.venda.cliente}</p>}</div>
     {dados.itens.map((i,k)=><div key={k} className="flex justify-between gap-2"><span>{i.quantidade}× {i.descricao}</span><span>{dinheiro(i.total)}</span></div>)}
     <div className="space-y-1 border-t border-dashed border-black pt-2"><div className="flex justify-between"><span>Subtotal</span><span>{dinheiro(dados.valores.subtotal)}</span></div><div className="flex justify-between"><span>Desconto</span><span>{dinheiro(dados.valores.desconto)}</span></div>{dados.valores.taxaEntrega>0&&<div className="flex justify-between"><span>Entrega</span><span>{dinheiro(dados.valores.taxaEntrega)}</span></div>}<div className="flex justify-between text-sm font-extrabold"><span>Total</span><span>{dinheiro(dados.valores.total)}</span></div></div>
     {dados.pagamentos.map((p,i)=><p key={i}>{p.forma}: {dinheiro(p.valor)}{p.troco>0?` · Troco: ${dinheiro(p.troco)}`:''}</p>)}
-    {dados.loja.mensagem&&<p className="text-center whitespace-pre-wrap">{dados.loja.mensagem}</p>}
+    {dados.loja.mensagem&&<p className="text-center whitespace-pre-wrap" data-print-option="rodape">{dados.loja.mensagem}</p>}
     <p className="border-t border-dashed border-black pt-3 text-center font-black uppercase">{dados.aviso}</p>
   </article>;
 }
@@ -267,7 +268,7 @@ export function PDV(){
       <div className="bf-sale-success"><CheckCircle2 size={42} color="#49cfa0"/><h3>Venda #{vendaConcluida.numero} concluída</h3><strong>{dinheiro(vendaConcluida.total)}</strong><p>Comprovante comercial sem valor fiscal.</p></div>
       {receiptError&&<Notice message={receiptError}/>}
       <div className="grid gap-2">
-        {comprovante?<button type="button" onClick={()=>window.print()} className={btn}><Printer size={18}/> Imprimir comprovante não fiscal</button>:<button type="button" disabled={receiptLoading} className={secondary} onClick={()=>void retryReceipt()}>{receiptLoading?'Carregando comprovante…':'Tentar carregar comprovante novamente'}</button>}
+        {comprovante?<button type="button" onClick={()=>void imprimirDocumento('venda','.print-area')} className={btn}><Printer size={18}/> Imprimir comprovante não fiscal</button>:<button type="button" disabled={receiptLoading} className={secondary} onClick={()=>void retryReceipt()}>{receiptLoading?'Carregando comprovante…':'Tentar carregar comprovante novamente'}</button>}
         <button type="button" disabled={receiptLoading} className={secondary} onClick={novaVenda}>Iniciar nova venda</button>
       </div>
       {comprovante&&<div className="bf-receipt-print"><Comprovante dados={comprovante}/></div>}
