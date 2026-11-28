@@ -1,3 +1,4 @@
+import { Notificacoes } from './Experiencia';
 import { useEffect, useRef, useState } from 'react';
 import './tenant-workspace.css';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -105,7 +106,7 @@ export function AppShell(){
     </div>
   </aside>
   <div className="bf-workarea">
-    <header className="bf-topbar bf-shell-header"><div className="bf-topbar-title"><button ref={mobileButton} type="button" className="bf-mobile-open" aria-label="Abrir navegação" aria-controls="bf-tenant-sidebar" aria-expanded={open} onClick={()=>setOpen(true)}><Menu size={21}/></button><span className="bf-shell-context">Distribuidora</span><ChevronRight className="bf-shell-context" size={13}/><strong>{activeItem?.label||'Bebfy'}</strong></div><div className="bf-topbar-right"><button type="button" onClick={showProfile} aria-label="Meu perfil" title="Meu perfil"><UserRound size={17}/><span>Minha conta</span></button></div></header>
+    <header className="bf-topbar bf-shell-header"><div className="bf-topbar-title"><button ref={mobileButton} type="button" className="bf-mobile-open" aria-label="Abrir navegação" aria-controls="bf-tenant-sidebar" aria-expanded={open} onClick={()=>setOpen(true)}><Menu size={21}/></button><span className="bf-shell-context">Distribuidora</span><ChevronRight className="bf-shell-context" size={13}/><strong>{activeItem?.label||'Bebfy'}</strong></div><div className="bf-topbar-right"><Notificacoes/><button type="button" onClick={showProfile} aria-label="Meu perfil" title="Meu perfil"><UserRound size={17}/><span>Minha conta</span></button></div></header>
     <main className="bf-content" id="bf-main-content"><Outlet/></main>
   </div>
   <ProfileModal mode="tenant" open={profileOpen} onClose={()=>setProfileOpen(false)}/>

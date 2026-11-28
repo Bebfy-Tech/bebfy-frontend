@@ -1,3 +1,4 @@
+import { ChecklistInicial } from '../components/Experiencia';
 import { hasModule, routeModules } from '../services/moduleAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { useMemo, useState } from 'react';
@@ -28,7 +29,7 @@ export function AjudaPage(){
   const {modules}=useAuth();
   const [query,setQuery]=useState('');
   const [modulo,setModulo]=useState('');
-  const guiasVisiveis=guias.filter(g=>hasModule(modules,routeModules[g.to]));
+  const guiasVisiveis=guias.filter(g=>hasModule(modules,routeModules['/'+g.to]));
   const guiasFiltrados=guiasVisiveis.filter(g=>(!modulo||g.to===modulo)&&[g.modulo,g.q,g.a].join(' ').toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
   const matches=useMemo(()=>help.filter(h=>[h.q,h.a].join(' ').toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))),[query]);
   return <main className="space-y-6">
@@ -38,10 +39,11 @@ export function AjudaPage(){
       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">Sem termos complicados. Siga os passos abaixo ou pesquise sua dúvida. Se você não encontrar uma opção, talvez seu perfil não tenha permissão para utilizá-la.</p>
       <label className="relative mt-6 block max-w-xl"><Search className="absolute left-4 top-3.5 text-slate-400" size={18}/><input aria-label="Pesquisar ajuda" className={`${input} pl-11`} placeholder="Ex.: vender fiado, abrir caixa, importar XML" value={query} onChange={e=>setQuery(e.target.value)}/></label>
     </header>
+    <ChecklistInicial/>
     <section aria-label="Primeiros passos">
       <h2 className="mb-4 text-xl font-extrabold text-white">Comece por aqui</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        {steps.filter(s=>hasModule(modules,routeModules[s.to])).map(({n,title,desc,to,icon:Icon})=><Link to={tenantPath(to)} key={n} className={`${card} group flex items-start gap-4 p-5 transition hover:border-blue-500/40 hover:bg-[#1c1e24]`}>
+        {steps.filter(s=>hasModule(modules,routeModules['/'+s.to])).map(({n,title,desc,to,icon:Icon})=><Link to={tenantPath(to)} key={n} className={`${card} group flex items-start gap-4 p-5 transition hover:border-blue-500/40 hover:bg-[#1c1e24]`}>
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-300"><Icon size={23}/></div>
           <div className="min-w-0 flex-1"><span className="text-xs font-black tracking-widest text-emerald-300">PASSO {n}</span><h3 className="mt-1 text-base font-extrabold text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p><span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-300">Abrir tela <ArrowRight size={15}/></span></div>
         </Link>)}
