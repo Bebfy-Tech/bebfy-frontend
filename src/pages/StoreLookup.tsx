@@ -9,13 +9,16 @@ export function StoreLookup() {
   const [slug, setSlug] = useState('');
   const [erro, setErro] = useState('');
   const navigate = useNavigate();
-  const normalized = slug.trim().toLowerCase();
+  // Accept an identifier or a complete Bebfy link, never a foreign domain.
+  const normalized=(()=>{const value=slug.trim().toLowerCase();if(!value.includes('/')&&!value.includes('.'))return value;
+    try{const u=new URL(/^https?:\/\//.test(value)?value:'https://'+value);if(!['bebfy.com.br','www.bebfy.com.br'].includes(u.hostname)||u.port||u.username||u.password||u.search||u.hash||!['http:','https:'].includes(u.protocol))return '';
+    const parts=u.pathname.split('/').filter(Boolean);return parts.length===1?parts[0]:'';}catch{return '';}})();
   const preview = validSlug(normalized) ? normalized : 'sua-distribuidora';
 
   const entrar = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validSlug(normalized)) {
-      setErro('Informe um identificador válido, usando letras, números e hífens.');
+      setErro('Informe um identificador válido ou o endereço de acesso do Bebfy.');
       return;
     }
     navigate(tenantPath('', normalized));
@@ -61,14 +64,14 @@ export function StoreLookup() {
               <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-emerald-100">ÁREA DO CLIENTE</span>
             </div>
             <h2 id="lookup-heading" className="mt-5 text-2xl font-extrabold tracking-tight sm:text-[28px]">Encontre sua distribuidora</h2>
-            <p className="mt-3 text-sm leading-6 text-emerald-50/70">Digite o nome curto que identifica sua loja para abrir o login correspondente.</p>
+            <p className="mt-3 text-sm leading-6 text-emerald-50/70">Digite o identificador da loja ou cole seu endereço completo de acesso.</p>
             <form onSubmit={entrar} className="mt-5" noValidate>
               <label htmlFor="identificador-loja" className="block text-sm font-bold">Identificador da distribuidora</label>
               <div className="mt-3 flex min-h-14 overflow-hidden rounded-xl border border-emerald-100/25 bg-[#111f25] transition-colors focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-300/20">
                 <span className="flex shrink-0 items-center border-r border-emerald-100/15 px-3 text-xs font-semibold text-emerald-100/65 sm:px-4 sm:text-sm">bebfy.com.br/</span>
-                <input id="identificador-loja" autoFocus required maxLength={63} spellCheck={false} autoCapitalize="none" autoComplete="off" value={slug}
+                <input id="identificador-loja" autoFocus required maxLength={100} spellCheck={false} autoCapitalize="none" autoComplete="off" value={slug}
                   onChange={e => { setSlug(e.target.value); setErro(''); }}
-                  placeholder="minha-distribuidora" aria-invalid={Boolean(erro)} aria-describedby="lookup-example lookup-error"
+                  placeholder="minha-distribuidora" aria-invalid={Boolean(erro)} aria-describedby={erro?"lookup-example lookup-error":"lookup-example"}
                   className="min-w-0 flex-1 bg-transparent px-3 py-4 text-sm font-semibold text-white outline-none placeholder:font-normal placeholder:text-emerald-50/30" />
               </div>
               <p id="lookup-example" className="mt-3 break-words text-xs text-emerald-50/65">Endereço de acesso: <span className="font-semibold text-emerald-200">bebfy.com.br/{preview}</span></p>

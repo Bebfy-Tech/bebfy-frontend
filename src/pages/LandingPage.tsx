@@ -25,7 +25,8 @@ const questions = [
   ['Posso controlar funcionários e permissões?','Sim. O Bebfy oferece gestão de funcionários com permissões por perfil.'],
   ['O Bebfy emite notas fiscais?','Nesta fase, não há emissão de NF-e nem NFC-e. É possível importar arquivos XML de NF-e manualmente.'],
   ['O sistema confirma pagamentos automaticamente?','Não. Pix e cartão são registrados manualmente, sem integração automática com bancos.'],
-  ['Como entro na minha distribuidora?','Clique em Já sou cliente, informe o endereço da sua distribuidora e depois entre com seu código e senha.'],
+  ['Os recursos são iguais em todos os planos?','Os módulos disponíveis dependem do plano contratado e das permissões de acesso da sua equipe.'],
+  ['Como entro na minha distribuidora?','Clique em Acessar sistema ou Já sou cliente, informe o endereço da sua distribuidora e depois entre com seu código e senha.'],
 ];
 const navigation = [['#funcionalidades','Funcionalidades'],['#demonstracao','Demonstração'],['#como-funciona','Como funciona'],['#duvidas','Dúvidas']];
 function Reveal({children,className=''}:{children:ReactNode,className?:string}) { return <div className={`lv-reveal ${className}`}>{children}</div>; }
@@ -44,11 +45,23 @@ function DashboardPreview() {
     <span className="lv-demo-disclaimer">Dados ilustrativos</span>
   </div>;
 }
+function ModulePreview({preview}:{preview:Preview}){
+ if(preview==='dashboard')return <DashboardPreview/>;
+ const pdv=preview==='pdv';
+ return <div className="lv-preview-screen lv-module-preview" aria-label={pdv?'Prévia ilustrativa do PDV':'Prévia ilustrativa do estoque'}>
+ <div className="lv-preview-header"><strong>{pdv?'Frente de caixa':'Posição de estoque'}</strong><span>{pdv?'Caixa 01':'Consulta'}</span></div>
+ {pdv?<><div className="lv-demo-mock-search"><Package size={16}/> Buscar produto ou código de barras</div>
+ <div className="lv-demo-mock-table"><div><small>Produto</small><small>Qtd.</small><small>Subtotal</small></div><div><span>Cerveja 350 ml</span><span>2 un.</span><strong>R$ 9,80</strong></div></div>
+ <div className="lv-demo-mock-total"><span>Total da venda</span><strong>R$ 9,80</strong></div><div className="lv-demo-mock-action">Finalizar venda</div></>:<>
+ <div className="lv-preview-stats"><div><small>Produtos</small><strong>1.284</strong></div><div><small>Estoque baixo</small><strong>12</strong></div><div><small>Lotes a vencer</small><strong>3</strong></div></div>
+ <div className="lv-demo-mock-table"><div><small>Produto</small><small>Saldo</small><small>Situação</small></div><div><span>Cerveja 350 ml</span><span>240 un.</span><strong>Regular</strong></div><div><span>Refrigerante 2 L</span><span>6 un.</span><strong>Baixo</strong></div><div><span>Água mineral 500 ml</span><span>80 un.</span><strong>Regular</strong></div></div></>}
+ <span className="lv-demo-disclaimer">Dados ilustrativos · Não é uma operação real</span></div>;
+}
 export function LandingPage() {
   const [menuOpen,setMenuOpen]=useState(false);
   const [preview,setPreview]=useState<Preview>('dashboard');
   const active=previews[preview];
-  useEffect(()=>{const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('lv-revealed');observer.unobserve(e.target);}}),{threshold:.08});document.querySelectorAll('.lv-reveal').forEach(el=>observer.observe(el));return()=>observer.disconnect()},[]);
+  useEffect(()=>{if(!('IntersectionObserver' in window)){document.querySelectorAll('.lv-reveal').forEach(el=>el.classList.add('lv-revealed'));return;}const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('lv-revealed');observer.unobserve(e.target);}}),{threshold:.08});document.querySelectorAll('.lv-reveal').forEach(el=>observer.observe(el));return()=>observer.disconnect()},[]);
   return <div className="lv-landing">
     <header className="lv-navbar-wrap">
       <div className="lv-navbar">
@@ -85,8 +98,8 @@ export function LandingPage() {
       </div></section>
       <section id="demonstracao" className="lv-section lv-demo-section"><div className="lv-gridlines" aria-hidden="true"/><div className="lv-container lv-demo-inner">
         <Reveal className="lv-centered"><p className="lv-section-kicker">CONHEÇA POR DENTRO</p><h2>Uma plataforma para quem está na operação.</h2></Reveal>
-        <div className="lv-preview-tabs" role="tablist" aria-label="Prévia de módulos">{(Object.keys(previews) as Preview[]).map(key=>{const Icon=previews[key].icon;return <button type="button" role="tab" aria-selected={preview===key} key={key} className={preview===key?'is-selected':''} onClick={()=>setPreview(key)}><Icon size={17}/>{previews[key].label}</button>})}</div>
-        <div className="lv-demo-grid"><div key={preview} className="lv-demo-description"><h3>{active.title}</h3><p>{active.description}</p><div className="lv-demo-rows">{active.rows.map(([label,value])=><div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></div><DashboardPreview/></div>
+        <div className="lv-preview-tabs" role="group" aria-label="Prévia de módulos">{(Object.keys(previews) as Preview[]).map(key=>{const Icon=previews[key].icon;return <button type="button" aria-pressed={preview===key} key={key} className={preview===key?'is-selected':''} onClick={()=>setPreview(key)}><Icon size={17}/>{previews[key].label}</button>})}</div>
+        <div className="lv-demo-grid"><div key={preview} className="lv-demo-description"><h3>{active.title}</h3><p>{active.description}</p><div className="lv-demo-rows">{active.rows.map(([label,value])=><div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></div><ModulePreview preview={preview}/></div>
       </div></section>
       <section id="como-funciona" className="lv-section lv-process-section"><div className="lv-container"><Reveal><h2>Em poucos passos, sua operação organizada.</h2></Reveal><div className="lv-steps">{[[Building2,'Configure sua distribuidora','Organize os dados, a equipe e os acessos.'],[Boxes,'Cadastre e controle','Gerencie produtos, preços e estoque.'],[BarChart3,'Venda com clareza','Registre vendas e acompanhe indicadores.']].map(([Icon,title,description],i)=>{const IconComponent=Icon as typeof Boxes;return <Reveal key={title as string}><article><span className="lv-step-number">0{i+1}</span><IconComponent size={31}/><h3>{title as string}</h3><p>{description as string}</p></article></Reveal>})}</div></div></section>
       <section id="duvidas" className="lv-section lv-faq-section"><div className="lv-container lv-faq-grid"><Reveal><p className="lv-section-kicker">DÚVIDAS FREQUENTES</p><h2>O essencial, sem complicação.</h2><p>Veja como o Bebfy atende a rotina do mercado de bebidas.</p></Reveal><div className="lv-faq-list">{questions.map(([question,answer])=><details key={question}><summary>{question}<ChevronDown size={20}/></summary><p>{answer}</p></details>)}</div></div></section>

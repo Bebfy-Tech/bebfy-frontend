@@ -5,11 +5,11 @@ import { BarChart3, Boxes, Package, ScanLine, ShoppingCart, Wallet } from 'lucid
 export default function HeroScene() {
   const [pointer, setPointer] = useState({x:0,y:0});
   const [count,setCount]=useState(1);
-  useEffect(()=>{const timer=window.setInterval(()=>setCount(n=>n%4+1),2400);return()=>window.clearInterval(timer)},[]);
+  useEffect(()=>{const media=window.matchMedia('(prefers-reduced-motion: reduce)');const timer=window.setInterval(()=>{if(!document.hidden&&!media.matches)setCount(n=>n%4+1);},2400);return()=>window.clearInterval(timer)},[]);
   const items=[['Cerveja lata 350 ml','R$ 4,90'],['Refrigerante 2 L','R$ 9,50'],['Água mineral 500 ml','R$ 2,50'],['Engradado 24 un.','R$ 89,90']];
   const total=items.slice(0,count).reduce((n,[,v])=>n+Number(v.replace('R$ ','').replace(',','.')),0);
   const tilt={transform:`rotateY(${pointer.x*7}deg) rotateX(${pointer.y*-6}deg)`};
-  return <div className="lv-scene" onPointerMove={e=>{const box=e.currentTarget.getBoundingClientRect();setPointer({x:(e.clientX-box.left)/box.width-.5,y:(e.clientY-box.top)/box.height-.5})}} onPointerLeave={()=>setPointer({x:0,y:0})}>
+  return <div className="lv-scene" onPointerMove={e=>{if(e.pointerType!=='mouse'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const box=e.currentTarget.getBoundingClientRect();setPointer({x:(e.clientX-box.left)/box.width-.5,y:(e.clientY-box.top)/box.height-.5})}} onPointerLeave={()=>setPointer({x:0,y:0})}>
     <div className="lv-scene-glow"/>
     <img className="lv-floating lv-crate lv-original-asset" src="/lovable-landing-assets/crate.webp" width="174" height="147" alt="" aria-hidden="true" decoding="async" />
     <img className="lv-floating lv-boxes lv-original-asset" src="/lovable-landing-assets/boxes.webp" width="127" height="174" alt="" aria-hidden="true" decoding="async" />

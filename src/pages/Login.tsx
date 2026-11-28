@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
 import { tenantFromPath, tenantPath } from '../services/tenantUrls';
 import { BebfyBrand } from '../components/BebfyBrand';
 import { useTheme } from '../contexts/ThemeContext';
@@ -37,7 +38,7 @@ export const Login: React.FC = () => {
     setCarregando(true);
     try {
       const resultado = await login({
-        login: loginInput.trim(), senha: senhaInput, assumirSessao,
+        login: loginInput.trim().replace(/[.\-]/g,''), senha: senhaInput, assumirSessao,
       });
       setConflitoSessao(false);
       if ('trocaSenhaObrigatoria' in resultado) {
@@ -46,19 +47,24 @@ export const Login: React.FC = () => {
           state: { tokenTroca: resultado.tokenTroca, retorno: 'pdv' },
         });
       } else {
-        navigate(tenantPath(gestores.includes(resultado.usuario.cargo) ? 'dashboard' : 'pdv'), { replace: true });
+        let destination='dashboard';
+        if(!gestores.includes(resultado.usuario.cargo)){
+          try{const r=await api.get<{modulos:{CAIXA_PDV?:boolean;ENTREGAS_DELIVERY?:boolean}}>('/auth/modulos');if(resultado.usuario.cargo==='ENTREGADOR'&&r.data.modulos.CAIXA_PDV&&r.data.modulos.ENTREGAS_DELIVERY)destination='delivery';else if(resultado.usuario.cargo==='OPERADOR_CAIXA'&&r.data.modulos.CAIXA_PDV)destination='pdv';}catch{/* Dashboard is the default navigation target. */}
+        }
+        navigate(tenantPath(destination), { replace: true });
       }
     } catch (err: unknown) {
       const error = err as {
-        response?: { data?: { codigo?: string; error?: { codigo?: string; message?: string }; message?: string }; status?: number };
+        response?: { data?: { codigo?: string; error?: { codigo?: string; message?: string }; message?: string|string[] }; status?: number };
         message?: string;
       };
       if (error.response?.status === 409 &&
         (error.response?.data?.error?.codigo ?? error.response?.data?.codigo) === 'SESSAO_ATIVA') {
         setConflitoSessao(true);
       } else {
-        setErro(error.response?.data?.error?.message || error.response?.data?.message ||
-          error.message || 'Não foi possível conectar ao servidor.');
+        setConflitoSessao(false);
+        const status=error.response?.status;const msg=error.response?.data?.error?.message||error.response?.data?.message;
+        setErro(status===429?'Muitas tentativas. Aguarde um minuto antes de tentar novamente.':status===404?'Distribuidora indisponível ou endereço incorreto. Confira o identificador.':!status||status>=500?'Não foi possível comunicar com o servidor. Tente novamente.':Array.isArray(msg)?msg.join(' · '):msg||'Não foi possível entrar. Verifique suas credenciais.');
       }
     } finally {
       setCarregando(false);
@@ -67,8 +73,8 @@ export const Login: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginInput.trim() || !senhaInput) {
-      setErro('Informe o código do funcionário e a senha.');
+    if (!/^\d{1,11}$/.test(loginInput.trim().replace(/[.\-]/g,'')) || !senhaInput) {
+      setErro('Informe o código numérico ou CPF e a senha.');
       return;
     }
     void realizarLogin(false);
@@ -132,10 +138,10 @@ export const Login: React.FC = () => {
           </div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="bebfy-codigo" className="mb-2 block text-[13px] font-bold">Código do funcionário</label>
+              <label htmlFor="bebfy-codigo" className="mb-2 block text-[13px] font-bold">Código do funcionário ou CPF</label>
               <div className={`flex min-h-14 items-center gap-3 rounded-xl border px-4 transition-all focus-within:border-[#39b987] focus-within:ring-[3px] focus-within:ring-emerald-300/15 ${theme === 'dark' ? 'border-white/15 bg-[#102b2a] text-emerald-100/55' : 'border-[#d2dfd5] bg-white text-[#789085]'}`}>
                 <UserRound size={19} className="shrink-0"/>
-                <input id="bebfy-codigo" autoFocus required autoComplete="username" inputMode="text" value={loginInput} onChange={e => {setLoginInput(e.target.value);setErro(null);}}
+                <input id="bebfy-codigo" autoFocus required autoComplete="username" inputMode="numeric" maxLength={14} disabled={carregando} value={loginInput} onChange={e => {setLoginInput(e.target.value);setErro(null);}}
                   placeholder="Ex.: 1" className={`min-w-0 w-full flex-1 bg-transparent py-4 text-sm font-semibold outline-none placeholder:font-normal ${theme === 'dark' ? 'text-white placeholder:text-emerald-100/35' : 'text-[#163b31] placeholder:text-[#93a69d]'}`}/>
               </div>
             </div>
@@ -143,7 +149,7 @@ export const Login: React.FC = () => {
               <label htmlFor="bebfy-senha" className="mb-2 block text-[13px] font-bold">Senha de acesso</label>
               <div className={`flex min-h-14 items-center gap-3 rounded-xl border px-4 transition-all focus-within:border-[#39b987] focus-within:ring-[3px] focus-within:ring-emerald-300/15 ${theme === 'dark' ? 'border-white/15 bg-[#102b2a] text-emerald-100/55' : 'border-[#d2dfd5] bg-white text-[#789085]'}`}>
                 <LockKeyhole size={19} className="shrink-0"/>
-                <input id="bebfy-senha" type={mostrarSenha ? 'text' : 'password'} required autoComplete="current-password" value={senhaInput} onChange={e => {setSenhaInput(e.target.value);setErro(null);}}
+                <input id="bebfy-senha" type={mostrarSenha ? 'text' : 'password'} required autoComplete="current-password" disabled={carregando} value={senhaInput} onChange={e => {setSenhaInput(e.target.value);setErro(null);}}
                   placeholder="Digite sua senha" className={`min-w-0 w-full flex-1 bg-transparent py-4 text-sm font-semibold outline-none placeholder:font-normal ${theme === 'dark' ? 'text-white placeholder:text-emerald-100/35' : 'text-[#163b31] placeholder:text-[#93a69d]'}`}/>
                 <button type="button" onClick={()=>setMostrarSenha(!mostrarSenha)} aria-label={mostrarSenha?'Ocultar senha':'Mostrar senha'} aria-pressed={mostrarSenha}
                   className={`shrink-0 rounded-lg p-1.5 transition-colors ${theme === 'dark' ? 'hover:text-white' : 'hover:text-[#0e755a]'}`}>
@@ -156,7 +162,7 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          <p className={`mt-5 text-center text-xs leading-5 ${theme === 'dark' ? 'text-emerald-50/55' : 'text-[#6f8278]'}`}><Link to={tenantPath('recuperar-senha')} className="font-extrabold text-emerald-300 hover:underline">Recuperar acesso por e-mail</Link></p>
+          <p className={`mt-5 text-center text-xs leading-5 ${theme === 'dark' ? 'text-emerald-50/55' : 'text-[#6f8278]'}`}><Link to={tenantPath('recuperar-senha')} className={'font-extrabold hover:underline '+(theme==='dark'?'text-emerald-300':'text-[#17684f]')}>Esqueci minha senha</Link></p>
           <Link to="/acessar" className={`mt-4 flex items-center justify-center gap-2 text-xs font-bold transition-colors ${theme === 'dark' ? 'text-emerald-200 hover:text-white' : 'text-[#17684f] hover:text-[#0d4937]'}`}><ArrowLeft size={16}/> Trocar de distribuidora</Link>
         </div>
 
@@ -170,12 +176,12 @@ export const Login: React.FC = () => {
       <div className="w-full max-w-md rounded-3xl border border-emerald-200/20 bg-[#0d302b] p-7 text-white shadow-2xl">
         <div className="flex items-center justify-between">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-300/10 text-amber-200"><AlertCircle size={25}/></span>
-          <button type="button" onClick={()=>setConflitoSessao(false)} disabled={carregando} aria-label="Fechar aviso" className="rounded-lg p-2 text-emerald-100/65 hover:bg-white/10"><X size={20}/></button>
+          <button type="button" onClick={()=>{setConflitoSessao(false);setSenhaInput('');}} disabled={carregando} aria-label="Fechar aviso" className="rounded-lg p-2 text-emerald-100/65 hover:bg-white/10"><X size={20}/></button>
         </div>
         <h2 id="login-conflito-titulo" className="mt-5 text-xl font-extrabold">Este usuário já está conectado</h2>
         <p className="mt-3 text-sm leading-6 text-emerald-50/75">Já existe uma sessão utilizando este acesso. Se continuar, a sessão anterior será encerrada.</p>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-          <button type="button" onClick={()=>setConflitoSessao(false)} disabled={carregando} className="min-h-12 flex-1 rounded-xl border border-emerald-100/25 px-4 font-bold text-emerald-100 hover:bg-white/5 disabled:opacity-50">Cancelar</button>
+          <button type="button" onClick={()=>{setConflitoSessao(false);setSenhaInput('');}} disabled={carregando} className="min-h-12 flex-1 rounded-xl border border-emerald-100/25 px-4 font-bold text-emerald-100 hover:bg-white/5 disabled:opacity-50">Cancelar</button>
           <button type="button" onClick={()=>void realizarLogin(true)} disabled={carregando} className="min-h-12 flex-1 rounded-xl bg-[#4adaab] px-4 font-extrabold text-[#06372b] hover:bg-[#73ebbf] disabled:opacity-50">{carregando ? 'Entrando...' : 'Continuar e desconectar'}</button>
         </div>
       </div>

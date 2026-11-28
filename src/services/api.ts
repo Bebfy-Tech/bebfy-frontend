@@ -41,9 +41,11 @@ api.interceptors.request.use(config=>{
 api.interceptors.response.use(response=>response,error=>{
   const url=String(error.config?.url||'');
   const isCredentialCheck=[
-    '/auth/login','/auth/primeiro-acesso/alterar-senha','/auth/validar-gerente',
+    '/auth/login','/auth/primeiro-acesso/alterar-senha','/auth/validar-gerente','/auth/recuperar-senha/solicitar','/auth/recuperar-senha/confirmar',
   ].some(endpoint=>url.includes(endpoint));
-  if(error.response?.status===401&&!isCredentialCheck){
+  const token=localStorage.getItem('@Bebfy:token');
+  const sent=error.config?.headers?.get?.('Authorization');
+  if(error.response?.status===401&&!isCredentialCheck&&token&&sent==='Bearer '+token){
     localStorage.removeItem('@Bebfy:token');
     localStorage.removeItem('@Bebfy:user');
     localStorage.removeItem('@Bebfy:empresa');

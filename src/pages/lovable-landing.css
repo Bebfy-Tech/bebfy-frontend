@@ -154,3 +154,6 @@
   .lv-scene img.lv-boxes { width: 113px; height: 155px; right: -2%; bottom: -2%; }
   .lv-scene img.lv-scanner { width: 107px; height: 160px; left: 0; bottom: 2%; }
 }
+
+/* 22.1: demonstrações coerentes e acessibilidade */
+.lv-demo-mock-search{margin:18px 0 12px;padding:10px;display:flex;gap:8px;align-items:center;border:1px solid #a7fae12c;border-radius:8px;color:#a7c3b7;font-size:12px}.lv-demo-mock-table{margin:14px 0;font-size:12px}.lv-demo-mock-table>div{display:grid;grid-template-columns:minmax(0,1.6fr) .7fr 1fr;gap:8px;padding:10px 4px;border-bottom:1px solid #a7fae12c}.lv-demo-mock-table small{color:#a7c3b7}.lv-demo-mock-table strong{color:#6de8b8}.lv-demo-mock-total{display:flex;justify-content:space-between;align-items:center;margin:12px 0}.lv-demo-mock-total strong{font-size:24px;color:#6de8b8}.lv-demo-mock-action{padding:11px;background:#6de8b8;color:#082a25;font-weight:800;text-align:center;border-radius:8px;margin-bottom:15px}.lv-module-preview .lv-demo-disclaimer{margin-top:12px;letter-spacing:.04em}.lv-landing :is(a,button,summary):focus-visible{outline:2px solid #6de8b8;outline-offset:4px}@media(max-width:520px){.lv-module-preview{padding:16px}.lv-demo-mock-table{font-size:11px}}
