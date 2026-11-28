@@ -92,7 +92,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   // Exercise backend/frontend suppliers contract including previously missing
   // inscrição estadual and address columns; check edit round-trip.
   await a.goto('/'+SLUG+'/fornecedores');
-  await expect(a.getByRole('heading', { name: 'Fornecedores' })).toBeVisible();
+  await expect(a.getByRole('heading', { name: 'Fornecedores', exact: true })).toBeVisible();
   await a.getByRole('button', { name: 'Novo fornecedor' }).click();
   const supplierForm = a.getByRole('dialog');
   await supplierForm.getByLabel('Razão social').fill('Distribuidora Fornecedor QA');
@@ -100,7 +100,9 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await supplierForm.getByLabel('Inscrição estadual').fill('IE-TESTE-001');
   await supplierForm.getByLabel('Endereço completo').fill('Rua QA, 123');
   await supplierForm.getByRole('button', { name: 'Salvar fornecedor' }).click();
-  await expect(a.locator('table').getByText('Distribuidora Fornecedor QA')).toBeVisible();
+  await expect(a.getByRole('heading', {name: 'Distribuidora Fornecedor QA',exact: true})).toBeVisible();
+  await a.getByRole('button', {name: 'Fornecedores / Ficha',exact: true}).click();
+  await expect(a.locator('table') .getByText('Distribuidora Fornecedor QA')).toBeVisible();
 
   const suppliersResponse = await request.get(API+'/fornecedores', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
@@ -139,7 +141,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
     await a.reload();
     await expect(a.getByRole('complementary',{name:'Menu da distribuidora'})
       .getByRole('link',{name:/Fornecedores/})).toHaveCount(0);
-    await expect(a.getByRole('heading',{name:'Fornecedores'})).toHaveCount(0);
+    await expect(a.getByRole('heading',{name:'Fornecedores', exact: true})).toHaveCount(0);
     await a.goto('/'+SLUG+'/fornecedores');
     await expect(a.getByRole('heading',{name:'Módulo não disponível'})).toBeVisible();
     const denied = await request.get(API+'/fornecedores',{
@@ -153,7 +155,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
     expect(restored.status()).toBe(200);
   }
   await a.reload();
-  await expect(a.getByRole('heading',{name:'Fornecedores'})).toBeVisible();
+  await expect(a.getByRole('heading',{name:'Fornecedores', exact:true })).toBeVisible();
   await expect(a.getByRole('complementary',{name:'Menu da distribuidora'})
     .getByRole('link',{name:/Fornecedores/})).toBeVisible();
 
