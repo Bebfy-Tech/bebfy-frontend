@@ -251,7 +251,7 @@ export function PDV(){
        <footer className="pdv3-sale-footer"><div className="pdv3-total"><span>TOTAL A RECEBER</span><strong>{dinheiro(total)}</strong></div><button type="button" className="pdv3-primary pdv3-receive" onClick={()=>void abrirRecebimento()} disabled={busy||!carrinho.length||total<=0}><CreditCard size={20}/> Receber venda</button></footer>
       </section>
     </div>}
-    {recebimento&&<Modal title="Recebimento da venda" onClose={()=>{if(!busy)setRecebimento(false);}}>
+    {recebimento&&<Modal title="Recebimento da venda" busy={busy} onClose={()=>{if(!busy)setRecebimento(false);}}>
       <div className="bf-receipt-total"><small>Total a receber</small><strong>{dinheiro(total)}</strong></div>{fiadoAtivo&&<p className="pdv3-note">{escolhido?rotuloCredito(escolhido)+(modalidade(escolhido)==='LIMITADO'?' · Disponível: '+dinheiro(creditoDisponivel(escolhido)):''):'Selecione um cliente para utilizar fiado.'}</p>}{valorFiado>0&&erroCredito(escolhido,valorFiado)&&<Notice message={erroCredito(escolhido,valorFiado)!}/>}
       {pagamentos.length===1&&<div className="pdv3-payment-options">{disponiveis.map(f=>{const Icon=f.formaPagamento==='DINHEIRO'?Banknote:f.formaPagamento==='PIX'?QrCode:f.formaPagamento==='FIADO'?HandCoins:CreditCard;return <button type="button" key={f.id} aria-pressed={pagamentos[0].id===f.id} disabled={busy} onClick={()=>setPagamentos([novoPagamento(f,String(total))])}><Icon size={22}/>{f.nome}</button>;})}</div>}
       <Notice message={erro}/>
@@ -263,7 +263,7 @@ export function PDV(){
       <button className={`${btn} mt-4 w-full`} onClick={()=>void finalizar()} disabled={busy||!pagamentosValidos||diferenca>0.009}>{busy?'Registrando venda...':'Confirmar venda'}</button>
       <p className="mt-3 text-center text-xs text-slate-400">Pix e cartão são informados pelo operador; confirme o recebimento antes de finalizar.</p>
     </Modal>}
-    {vendaConcluida&&<Modal title="Venda realizada" onClose={novaVenda}>
+    {vendaConcluida&&<Modal title="Venda realizada" busy={receiptLoading} onClose={novaVenda}>
       <div className="bf-sale-success"><CheckCircle2 size={42} color="#49cfa0"/><h3>Venda #{vendaConcluida.numero} concluída</h3><strong>{dinheiro(vendaConcluida.total)}</strong><p>Comprovante comercial sem valor fiscal.</p></div>
       {receiptError&&<Notice message={receiptError}/>}
       <div className="grid gap-2">

@@ -79,3 +79,16 @@
 @media(max-width:1250px) and (min-width:1024px){.pdv3-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:8px;}.pdv3-table td,.pdv3-table th{padding-left:5px;padding-right:5px;}.pdv3-add{flex-wrap:wrap;}.pdv3-panel-title small{display:none;}.pdv3-product .pdv3-photo{width:30px;}.pdv3-sale{padding:0 8px 8px;}}
 @media(max-width:1023px){.pdv3-grid{grid-template-columns:1fr;}.pdv3-catalog-scroll{max-height:48dvh;}.pdv3-cart-scroll{max-height:35dvh;}.pdv3-sale-bottom{max-height:none;overflow:visible;}.pdv3-header{gap:7px;}}
 @media(max-width:520px){.pdv3-grid{gap:8px;}.pdv3-heading{min-width:180px;}.pdv3-header .pdv3-secondary{font-size:11px;}.pdv3-table{font-size:11px;}.pdv3-table td,.pdv3-table th{padding-left:4px;padding-right:4px;}.pdv3-add{flex-wrap:wrap;}.pdv3-product .pdv3-photo{width:27px;}.pdv3-panel-title{padding:9px;}.pdv3-panel-title small{display:none;}.pdv3-cart-table{min-width:295px;}}
+
+/* Compact detail refinement: prevent a second focus frame and keep totals visible. */
+@media screen {
+.bebfy-workspace .pdv3-field :is(input,select):is(:focus,:focus-visible){border-color:#32dca0!important;outline:none!important;box-shadow:0 0 0 2px #32dca018!important;}
+.pdv3-search input{padding:10px 0;line-height:1.45;}
+.pdv3-search>svg{flex:none;}
+.pdv3-search input::placeholder{color:#a7b5c0;opacity:1;}
+.pdv3-pages{gap:6px;flex-wrap:wrap;}
+.pdv3-total strong{min-width:0;white-space:normal;overflow-wrap:anywhere;text-align:right;font-variant-numeric:tabular-nums;}
+.pdv3-qty button:not(:disabled):hover,.pdv3-remove:not(:disabled):hover{background:#ffffff12;border-radius:4px;}
+.pdv3-sale-bottom{scrollbar-width:thin;scrollbar-color:#414b55 transparent;}
+@media(max-width:520px){.pdv3-heading{flex:1 1 150px;min-width:0}.pdv3-search input{font-size:14px}.pdv3-view button{min-height:32px}.pdv3-qty button{width:29px;height:32px}}
+}

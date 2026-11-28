@@ -409,3 +409,17 @@
 @media(max-width:600px){.bf-shell-v22 .bf-action{min-height:40px}.bf-shell-v22 .bf-input:not([type=checkbox]):not([type=radio]){min-height:40px}.bf-shell-v22 .bf-shared-dialog{padding:14px}.bf-shell-v22 .bf-shared-dialog .bf-dialog-heading{top:-14px}.bf-shell-v22 .bf-page-title h1{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.bf-shell-v22 .bf-sidebar,.bf-shell-v22 .bf-menu-link,.bf-shell-v22 .bf-action{transition:none!important}}
 }
+
+/* 22.4 — composite searches: focus belongs to the outer control, not the
+   transparent inner input. Preserve keyboard focus on all other controls. */
+@media screen {
+.bebfy-workspace.bf-workspace.bf-shell-v22 :is(.pdv3-search,.vs-search,.cx-search,.cl-search,.es-search,.fd-search,.fu-search,.bp-search,.bf-nav-search):focus-within{
+ border-color:#32dca0!important;box-shadow:0 0 0 2px #32dca018;
+}
+.bebfy-workspace.bf-workspace.bf-shell-v22 :is(.pdv3-search,.vs-search,.cx-search,.cl-search,.es-search,.fd-search,.fu-search,.bp-search,.bf-nav-search) input:is(:focus,:focus-visible){
+ outline:none!important;outline-offset:0!important;border:0!important;box-shadow:none!important;
+}
+.bebfy-workspace.bf-workspace.bf-shell-v22 .bf-input:not([type=checkbox]):not([type=radio]):is(:focus,:focus-visible){
+ border-color:#32dca0!important;outline:none!important;box-shadow:0 0 0 2px #32dca018!important;
+}
+}
