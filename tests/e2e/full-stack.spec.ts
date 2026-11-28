@@ -14,8 +14,10 @@ async function entrar(page: import('@playwright/test').Page, senha: string) {
 
 test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS', async ({ browser, request }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'A jornada de ativação ocorre uma única vez no banco temporário.');
+  test.setTimeout(240_000);
   const contextA = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const a = await contextA.newPage();
+  a.setDefaultTimeout(15_000);
 
   await a.goto('/');
   await expect(a.locator('body')).toContainText(/Bebfy|bebfy/i);
@@ -63,32 +65,41 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
 
   await a.goto('/'+SLUG+'/produtos');
   await expect(a.getByRole('heading', { name: 'Produtos' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
-  await a.locator('#cadastro-nome').fill('Cerveja Teste Playwright 350ml');
-  await a.locator('#cadastro-precoVendaVarejo').fill('12.50');
-  await a.locator('#cadastro-estoqueAtual').fill('30');
-  await a.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await a.getByRole('button', { name: 'Novo produto', exact: true }).click();
+  await a.locator('#produto-nome').fill('Cerveja Teste Playwright 350ml');
+  await a.getByLabel('Unidade de estoque').selectOption({label:'UN — Unidade'});
+  await a.getByRole('button', {name:'Comercial',exact:true}).click();
+  await a.locator('#produto-precoVendaVarejo').fill('12,50');
+  await a.getByRole('button', {name:'Estoque',exact:true}).click();
+  await a.locator('#produto-estoqueAtual').fill('30');
+  await a.getByRole('button', {name:'Salvar produto'}).click();
+  await expect(a.getByText('Produto salvo com sucesso.')).toBeVisible();
+  await a.getByRole('button', {name:'Produtos / Ficha do produto'}).click();
   await expect(a.locator('table').getByText('Cerveja Teste Playwright 350ml')).toBeVisible();
 
   await a.goto('/'+SLUG+'/clientes');
   await expect(a.getByRole('heading', { name: 'Clientes' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
-  await a.locator('#cadastro-nome').fill('Cliente QA Playwright');
-  await a.locator('#cadastro-limiteCredito').fill('250');
-  await a.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await a.getByRole('button', { name: 'Novo cliente' }).click();
+  const customerForm = a.getByRole('dialog');
+  await customerForm.getByLabel(/Nome \/ razão social/).fill('Cliente QA Playwright');
+  await customerForm.getByLabel('Modalidade de crédito').selectOption('LIMITADO');
+  await customerForm.getByLabel('Limite de crédito (R$)').fill('250,00');
+  await customerForm.getByRole('button', { name: 'Salvar cliente' }).click();
   await expect(a.locator('table').getByText('Cliente QA Playwright')).toBeVisible();
 
   // Exercise backend/frontend suppliers contract including previously missing
   // inscrição estadual and address columns; check edit round-trip.
   await a.goto('/'+SLUG+'/fornecedores');
   await expect(a.getByRole('heading', { name: 'Fornecedores' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
-  await a.locator('#cadastro-razaoSocial').fill('Distribuidora Fornecedor QA');
-  await a.locator('#cadastro-cnpj').fill('00000000000199');
-  await a.locator('#cadastro-inscricaoEstadual').fill('IE-TESTE-001');
-  await a.locator('#cadastro-endereco').fill('Rua QA, 123');
-  await a.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await a.getByRole('button', { name: 'Novo fornecedor' }).click();
+  const supplierForm = a.getByRole('dialog');
+  await supplierForm.getByLabel('Razão social').fill('Distribuidora Fornecedor QA');
+  await supplierForm.getByLabel('CNPJ',{exact:true}).fill('00000000000199');
+  await supplierForm.getByLabel('Inscrição estadual').fill('IE-TESTE-001');
+  await supplierForm.getByLabel('Endereço completo').fill('Rua QA, 123');
+  await supplierForm.getByRole('button', { name: 'Salvar fornecedor' }).click();
   await expect(a.locator('table').getByText('Distribuidora Fornecedor QA')).toBeVisible();
+
   const suppliersResponse = await request.get(API+'/fornecedores', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
   });
@@ -172,15 +183,15 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   }>).find(x=>x.nome==='Cerveja Teste Playwright 350ml');
   expect(stockBefore).toBeDefined();
   await a.goto('/'+SLUG+'/estoque');
-  await expect(a.getByRole('heading', { name: 'Movimentações de estoque' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  await expect(a.getByRole('heading', { name: 'Gestão de Estoque e Inventário' })).toBeVisible();
+  await a.getByRole('button', { name: 'Ajuste de estoque', exact:true }).click();
   const movement = a.getByRole('dialog');
   await movement.locator('select').first().selectOption(String(stockBefore!.id));
   await movement.locator('select').nth(1).selectOption('AJUSTE_ENTRADA');
   await movement.locator('input[type="number"]').fill('3');
-  await movement.getByPlaceholder('Ex.: inventário da loja').fill('Ajuste QA integração');
-  await movement.getByRole('button', { name: 'Registrar' }).click();
-  await expect(a.getByRole('status')).toContainText('Movimentação lançada');
+  await movement.getByLabel('Motivo',{exact:true}).fill('Ajuste QA integração');
+  await movement.getByRole('button', { name: 'Registrar movimentação' }).click();
+  await expect(a.getByRole('status')).toContainText('Movimentação registrada e saldo atualizado.');
   const stockAfterResponse = await request.get(API+'/produtos', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
   });
@@ -197,13 +208,16 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
     .some(x=>x.produtoId===stockBefore!.id&&x.quantidade===3)).toBe(true);
 
   await a.goto('/'+SLUG+'/funcionarios');
-  await expect(a.getByRole('heading', { name: 'Funcionários' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
-  await a.locator('#cadastro-nome').fill('Operador Cadastro QA');
-  await a.locator('#cadastro-cpf').fill('77799911122');
-  await a.locator('#cadastro-cargo').selectOption('OPERADOR_CAIXA');
-  await a.getByRole('button', { name: 'Salvar cadastro' }).click();
+  await expect(a.getByRole('heading', { name: 'Funcionários e permissões' })).toBeVisible();
+  await a.getByRole('button', { name: 'Novo funcionário' }).click();
+  const employeeForm=a.getByRole('dialog');
+  await employeeForm.getByLabel(/Nome completo/).fill('Operador Cadastro QA');
+  await employeeForm.getByLabel(/CPF/).fill('77799911122');
+  await employeeForm.getByLabel(/Cargo/).selectOption('OPERADOR_CAIXA');
+  await employeeForm.getByLabel('Configurar acesso logo após salvar').uncheck();
+  await employeeForm.getByRole('button', { name: 'Salvar funcionário' }).click();
   await expect(a.locator('table').getByText('Operador Cadastro QA')).toBeVisible();
+
   const employees = await request.get(API+'/funcionarios', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
   });
@@ -216,25 +230,33 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   // The users endpoint must not expose password hashes.
   expect(await employees.text()).not.toMatch(/"senha"\s*:/);
 
-  // Complete real counter sales through the React checkout (cash and fiado).
+  // Complete real counter sales through the current two-step checkout.
   await a.goto('/'+SLUG+'/pdv');
-  await expect(a.getByRole('heading', { name: 'PDV Bebfy' })).toBeVisible();
-  await a.locator('input[type="number"]').first().fill('20');
+  await expect(a.getByRole('heading', { name: 'Frente de Caixa' })).toBeVisible();
+  await a.getByLabel('Saldo inicial (R$)').fill('20,00');
   await a.getByRole('button', { name: 'Abrir meu caixa' }).click();
-  await expect(a.getByPlaceholder('Buscar produto ou bipar código (F2)')).toBeVisible();
-  await a.getByPlaceholder('Buscar produto ou bipar código (F2)').fill('Cerveja Teste Playwright 350ml');
-  await a.getByRole('button', { name: 'Unidade' }).click();
-  await a.getByLabel('Valor 1').fill('12.50');
-  await a.getByRole('button', { name: /Finalizar venda/ }).click();
-  await expect(a.getByRole('status')).toContainText(/Venda #.*registrada com sucesso/);
-  await expect(a.getByText('COMPROVANTE NÃO FISCAL').first()).toBeVisible();
+  const search = a.getByLabel('Buscar produto ou código de barras');
+  await search.fill('Cerveja Teste Playwright 350ml');
+  await a.getByRole('button', { name: 'Adicionar unidade de Cerveja Teste Playwright 350ml' }).click();
+  await a.getByRole('button', { name: 'Receber venda' }).click();
+  const pay = a.getByRole('dialog', {name:'Recebimento da venda'});
+  await pay.getByRole('button', {name:'Dinheiro',exact:true}).click();
+  await pay.getByRole('button', { name: 'Confirmar venda' }).click();
+  await expect(a.getByText(/Venda #.*registrada com sucesso/)).toBeVisible();
+  await expect(a.getByRole('dialog',{name:'Venda realizada'}).getByText(/COMPROVANTE NÃO FISCAL/i).first()).toBeVisible();
+  await a.getByRole('button',{name:'Iniciar nova venda'}).click();
 
-  await a.getByRole('button', { name: 'Unidade' }).click();
-  await a.locator('select').first().selectOption({ index: 1 });
-  await a.getByLabel('Forma 1').selectOption('FIADO');
-  await a.getByLabel('Valor 1').fill('12.50');
-  await a.getByRole('button', { name: /Finalizar venda/ }).click();
-  await expect(a.getByRole('status')).toContainText(/Venda #.*registrada com sucesso/);
+  await search.fill('Cerveja Teste Playwright 350ml');
+  await a.getByRole('button', { name: 'Adicionar unidade de Cerveja Teste Playwright 350ml' }).click();
+  const customerOptions = a.getByLabel(/Cliente \(obrigatório para fiado\)/);
+  const qaOption = customerOptions.locator('option').filter({hasText:'Cliente QA Playwright'});
+  await expect(qaOption).toHaveCount(1);
+  await customerOptions.selectOption(await qaOption.getAttribute('value') as string);
+  await a.getByRole('button', {name:'Receber venda'}).click();
+  await pay.getByRole('button', {name:'Fiado',exact:true}).click();
+  await pay.getByRole('button', {name:'Confirmar venda'}).click();
+  await expect(a.getByText(/Venda #.*registrada com sucesso/)).toBeVisible();
+  await a.getByRole('button',{name:'Iniciar nova venda'}).click();
 
   const clients = await request.get(API + '/clientes', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer ' + tokenAnterior },
@@ -246,58 +268,67 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   expect(Number(clienteQa!.saldoDevedor)).toBe(12.5);
 
   await a.goto('/'+SLUG+'/fiados');
-  await expect(a.getByRole('heading', { name: 'Fiados e recebimentos' })).toBeVisible();
-  await a.getByRole('button', { name: 'Registrar recebimento' }).click();
-  await a.getByRole('dialog').locator('select').first().selectOption(clienteQa!.id);
-  await a.getByRole('dialog').locator('input[type="number"]').fill('12.50');
-  await a.getByRole('dialog').getByRole('button', { name: 'Confirmar' }).click();
-  await expect(a.getByRole('status')).toContainText('Pagamento registrado');
+  await expect(a.getByRole('heading', { name: /Fiados e recebimentos/i })).toBeVisible();
+  await a.getByRole('button', { name: 'Receber pagamento',exact:true }).click();
+  const receive=a.getByRole('dialog',{name:'Receber pagamento de fiado'});
+  await receive.getByLabel('Cliente',{exact:true}).selectOption(clienteQa!.id);
+  await receive.getByRole('button',{name:'Quitar total'}).click();
+  await receive.getByRole('button',{name:'Dinheiro',exact:true}).click();
+  await receive.getByRole('button', { name: 'Confirmar recebimento' }).click();
+  await expect(a.getByText('Recebimento registrado.',{exact:true})).toBeVisible();
+  const afterCredit = await request.get(API+'/clientes',{headers:{'x-tenant':SLUG,Authorization:'Bearer '+tokenAnterior}});
+  expect(afterCredit.status()).toBe(200);
+  expect(Number((await afterCredit.json() as Array<{id:string;saldoDevedor:number|string}>).find(c=>c.id===clienteQa!.id)?.saldoDevedor)).toBe(0);
 
-  // Delivery API returns a summary envelope: verify that React reads
-  // response.vendas and can settle the exact queued sale.
-  const caixasResponse = await request.get(API+'/caixa', {
-    headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
-  });
-  expect(caixasResponse.status()).toBe(200);
-  const aberto = (await caixasResponse.json() as Array<{
-    id:string;operadorId:string;status:string
-  }>).find(c=>c.status==='ABERTO');
-  expect(aberto).toBeDefined();
-  const headers = {
-    'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior,
-    'Content-Type':'application/json',
-  };
-  const vendaDelivery = await request.post(API+'/vendas', {
-    headers,
-    data: {
-      caixaId:aberto!.id,funcionarioId:aberto!.operadorId,
-      tipoEntrega:'DELIVERY',enderecoEntrega:'Rua teste 123',
-      taxaEntrega:3,
-      itens:[{produtoId:stockBefore!.id,quantidade:1,precoUnitario:12.5}],
-      pagamentos:[{formaPagamento:'PIX',valor:15.5}],
-    },
-  });
-  expect(vendaDelivery.status()).toBe(201);
-  const deliveryId=(await vendaDelivery.json() as {id:string}).id;
+  // Delivery now requires an assigned employee, delivery lifecycle and explicit settlement.
+  const headers = {'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior};
+  const driverResponse=await request.post(API+'/funcionarios',{headers,data:{nome:'Entregador QA Browser',cpf:'55566677788',cargo:'ENTREGADOR',descontoMaximo:0}});
+  expect(driverResponse.status()).toBe(201);
+  const driver=(await driverResponse.json() as {id:string}).id;
+  await a.goto('/'+SLUG+'/pdv');
+  await expect(a.getByRole('heading',{name:'Frente de Caixa'})).toBeVisible();
+  await a.getByLabel('Buscar produto ou código de barras').fill('Cerveja Teste Playwright 350ml');
+  await a.getByRole('button',{name:'Adicionar unidade de Cerveja Teste Playwright 350ml'}).click();
+  await a.getByLabel('Tipo de entrega').selectOption('DELIVERY');
+  await a.getByLabel('Taxa de entrega').fill('3,00');
+  await a.getByLabel('Endereço',{exact:true}).fill('Rua teste 123');
+  await a.getByRole('button',{name:'Receber venda'}).click();
+  await a.getByRole('dialog',{name:'Recebimento da venda'}).getByRole('button',{name:'PIX',exact:true}).click();
+  await a.getByRole('button',{name:'Confirmar venda'}).click();
+  await expect(a.getByText(/Venda #.*registrada com sucesso/)).toBeVisible();
+  await a.getByRole('button',{name:'Iniciar nova venda'}).click();
   await a.goto('/'+SLUG+'/delivery');
-  await expect(a.getByRole('heading', { name:'Entregas e acertos' })).toBeVisible();
-  await expect(a.getByText('1', {exact:true}).first()).toBeVisible();
-  await a.getByLabel(/Selecionar venda/).first().check();
-  await a.getByRole('button',{name:/Confirmar 1 acerto/}).click();
-  await expect(a.getByRole('status')).toContainText('Acerto das entregas confirmado');
-  const pending = await request.get(API+'/vendas/pendentes-acerto-delivery', {headers});
-  expect(pending.status()).toBe(200);
-  const pendingBody=await pending.json() as {vendas:Array<{id:string}>};
-  expect(pendingBody.vendas.some(v=>v.id===deliveryId)).toBe(false);
+  await expect(a.getByRole('heading', {name:'Entregas e Delivery'})).toBeVisible();
+  const deliveryRow=a.getByRole('row').filter({hasText:'Rua teste 123'});
+  await deliveryRow.getByRole('button',{name:'Separando',exact:true}).click();
+  await a.getByRole('button',{name:'Confirmar situação'}).click();
+  await deliveryRow.getByRole('button',{name:'Em rota',exact:true}).click();
+  await a.getByRole('dialog').getByLabel('Entregador').selectOption(driver);
+  await a.getByRole('button',{name:'Confirmar situação'}).click();
+  await deliveryRow.getByRole('button',{name:'Entregue',exact:true}).click();
+  await a.getByRole('button',{name:'Confirmar situação'}).click();
+  await a.getByRole('button',{name:'Acertos financeiros'}).click();
+  await deliveryRow.getByRole('button',{name:'Acertar',exact:true}).click();
+  const settlement=a.getByRole('dialog',{name:'Conferência de acerto'});
+  await settlement.getByLabel('Dinheiro físico conferido (R$)').fill('0,00');
+  await settlement.getByLabel(/Conferi dinheiro/).check();
+  await settlement.getByRole('button',{name:'Confirmar acerto'}).click();
+  await expect(a.getByText('Acerto confirmado.',{exact:true})).toBeVisible();
+  const deliveries = await request.get(API+'/vendas/delivery',{headers});
+  expect(deliveries.status()).toBe(200);
+  expect((await deliveries.json() as {vendas:Array<{enderecoEntrega:string;statusAcerto:string}>}).vendas.find(v=>v.enderecoEntrega==='Rua teste 123')?.statusAcerto).toBe('CONCLUIDO');
 
   await a.goto('/'+SLUG+'/financeiro');
-  await expect(a.getByRole('heading', { name: 'Financeiro' })).toBeVisible();
-  await a.getByRole('button', { name: 'Nova conta' }).click();
+  await expect(a.getByRole('heading', { name: 'Gestão Financeira' })).toBeVisible();
+  await a.getByRole('button',{name:'Contas a pagar',exact:true}).click();
+  await a.getByRole('button', { name: 'Novo lançamento' }).click();
   const fin = a.getByRole('dialog');
-  await fin.getByPlaceholder('Ex.: aluguel do galpão').fill('Conta financeira QA Playwright');
-  await fin.locator('input[type="number"]').fill('89.90');
-  await fin.locator('input[type="date"]').fill('2027-03-01');
-  await fin.getByRole('button', { name: 'Cadastrar conta' }).click();
+  await fin.getByLabel('Descrição',{exact:true}).fill('Conta financeira QA Playwright');
+  await fin.getByLabel('Classificação').selectOption({index:1});
+  await fin.getByLabel('Valor total').fill('89,90');
+  await fin.getByLabel('Primeiro vencimento').fill('2027-03-01');
+  await fin.getByRole('button', { name: 'Confirmar',exact:true }).click();
+  await expect(a.getByText('Operação registrada com sucesso.',{exact:true})).toBeVisible();
   await expect(a.locator('table').getByText('Conta financeira QA Playwright')).toBeVisible();
 
   // A second session cannot silently evict the first.
@@ -349,7 +380,7 @@ test('interface em celular: login, navegação, consulta de produtos e PDV', asy
   await expect(page.getByRole('heading', { name: 'Produtos' })).toBeVisible();
   await page.getByRole('button', { name: 'Abrir navegação' }).click();
   await page.getByRole('link', { name: /Frente de caixa/i }).click();
-  await expect(page.getByRole('heading', { name: 'PDV Bebfy' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Frente de Caixa' })).toBeVisible();
   // UI must remain usable on narrow screens without the entire page overflowing.
   const width = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(width.scroll).toBeLessThanOrEqual(width.viewport + 4);
