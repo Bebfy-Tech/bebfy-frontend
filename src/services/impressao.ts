@@ -4,7 +4,7 @@ export const documentos={venda:'Comprovante de venda não fiscal',fiado:'Comprov
 export type Documento=keyof typeof documentos;
 export type Perfil={papel:'58'|'80'|'A4'|'A5'|'PERSONALIZADO';largura:number;altura:number|null;orientacao:'RETRATO'|'PAISAGEM';superior:number;inferior:number;esquerda:number;direita:number;fonte:'Arial'|'monospace';tamanho:number;endereco:boolean;operador:boolean;rodape:boolean};
 export type Impressao={perfis:Record<Documento,Perfil>;revisao:string|null};
-export const pendentes:Documento[]=['caixa','compra','inventario'];
+export const pendentes:Documento[]=[];
 export const impressaoApi={consultar:()=>api.get<Impressao>('/configuracoes/impressao').then(r=>r.data),salvar:(body:Impressao)=>api.patch<Impressao>('/configuracoes/impressao',body).then(r=>r.data)};
 export function padrao(d:Documento):Perfil{
  const t=['venda','fiado','entrega','caixa'].includes(d);
