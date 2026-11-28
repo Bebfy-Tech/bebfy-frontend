@@ -11,6 +11,7 @@ export const PrivateRoute: React.FC<{saas?: boolean}> = ({saas=false}) => {
   const saasSession=useSaasAuth();
   if(saas) {
     if(saasSession.loading) return <div className="grid min-h-screen place-items-center bg-[#091e24] text-white">Verificando acesso administrativo…</div>;
+    if(saasSession.sessionUnavailable)return <main className="grid min-h-screen place-items-center bg-[#0d0e11] text-white p-6"><section className="max-w-md space-y-4"><h1 className="text-xl font-bold">Não foi possível verificar a sessão</h1><p className="text-slate-400">Verifique a conexão e tente novamente.</p><button className="rounded-md bg-emerald-300 text-[#092d20] p-3" onClick={()=>void saasSession.refreshSession()}>Tentar novamente</button><button className="ml-3 p-3" onClick={saasSession.logout}>Sair</button></section></main>;
     return saasSession.user ? <Outlet /> : <Navigate to={saasLoginPath} replace />;
   }
   const {tenant}=useParams();

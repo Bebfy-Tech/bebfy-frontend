@@ -11,7 +11,7 @@ import { SaasPlans } from './SaasPlans';
 import { SaasExecutiveOverview } from './SaasExecutiveOverview';
 import { SaasMonitoramento } from './SaasMonitoramento';
 import { SaasAuditoria } from './SaasAuditoria';
-import { ProfileModal } from '../components/ProfileModal';
+import { SaasProfile } from './SaasProfile';
 import './saas-premium.css';
 import { BebfyBrand } from '../components/BebfyBrand';
 import { MODULOS, saasApi, PENDENTES, DISPONIVEIS, PLANOS_PADRAO, moduloLiberado } from '../services/saas';
@@ -477,6 +477,6 @@ export function SaasConsole() {
         <p className="text-xs leading-relaxed text-slate-400">A empresa será criada no status “Em teste”, com um proprietário inicial e código de operador 1. Oriente o responsável a trocar sua senha após o primeiro acesso.</p>
         <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setCreating(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold">Cancelar</button><button disabled={busy||!planos.length||slugCheck.status!=='available'} type="submit" className="flex items-center gap-2 rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Criar distribuidora'} <Check size={17}/></button></div>
       </form></div></div>}
-    <ProfileModal mode="saas" open={profileOpen} onClose={()=>setProfileOpen(false)} />
+    <SaasProfile open={profileOpen} onClose={()=>setProfileOpen(false)} />
   </main>;
 }
