@@ -158,8 +158,10 @@ export interface SaasAuditEvent {
 export interface SaasTenantMonitor {
   id:number;nomeFantasia:string;slug:string;status:StatusEmpresa;
   inadimplente:boolean;criadoEm:string;
-  _count:{funcionarios:number;produtos:number;vendas:number};
+  liberacaoFinanceiraAte?:string|null;plano?:{nome:string}|null;
+  _count:{funcionarios:number;produtos:number;vendas:number;clientes?:number};
   usuariosAtivos:number;usuariosRecentes:number;ultimoAcesso:string|null;
+  vendasConcluidas7d?:number;consultadoEm?:string;
 }
 export interface EnderecoDisponivel { subdominio:string; disponivel:boolean; sugestoes:string[]; }
 export const saasApi = {
