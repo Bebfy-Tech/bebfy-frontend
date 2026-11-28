@@ -1,53 +1,54 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Download, LockKeyhole, RefreshCcw, Search, ShieldCheck } from 'lucide-react';
-import { saasApi } from '../services/saas';
-import type { SaasAuditEvent } from '../services/saas';
-import { saasAuthApi } from '../services/saasAuth';
-import type { SaasFuncionario } from '../services/saasAuth';
-
-const method:{[key:string]:string}={POST:'Criação',PATCH:'Alteração',PUT:'Atualização',DELETE:'Exclusão'};
-export function SaasAuditoria() {
-  const [events,setEvents]=useState<SaasAuditEvent[]>([]);
-  const [operators,setOperators]=useState<SaasFuncionario[]>([]);
-  const [search,setSearch]=useState('');
-  const [action,setAction]=useState('TODAS');
-  const [loading,setLoading]=useState(true);
-  const [error,setError]=useState('');
-  const load=async()=>{
-    setLoading(true);
-    try {
-      const [items,users]=await Promise.all([saasApi.auditoria(),saasAuthApi.funcionarios()]);
-      setEvents(items);setOperators(users);setError('');
-    }catch{setError('Não foi possível carregar os registros de auditoria.');}
-    finally{setLoading(false);}
-  };
-  useEffect(()=>{void load();},[]);
-  const filtered=useMemo(()=>events.filter(e=>{
-    const operator=operators.find(u=>u.id===e.operadorId);
-    const text=[operator?.nome||'',e.rota,e.metodo,e.recursoId||''].join(' ').toLowerCase();
-    return text.includes(search.toLowerCase())&&(action==='TODAS'||e.metodo===action);
-  }),[events,operators,search,action]);
-  const download=()=>{
-    const rows=[['Data','Operador','Operação','Rota','Campos','Recurso'],
-      ...filtered.map(e=>[new Date(e.criadoEm).toLocaleString('pt-BR'),operators.find(u=>u.id===e.operadorId)?.nome||e.operadorId,
-        method[e.metodo]||e.metodo,e.rota,e.campos.join(', '),e.recursoId||''])];
-    const quote=(s:string)=>'"'+String(s).replace(/"/g,'""')+'"';
-    const blob=new Blob(['\uFEFF'+rows.map(r=>r.map(quote).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='bebfy-auditoria.csv';a.click();URL.revokeObjectURL(url);
-  };
-  return <div className="space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold tracking-widest text-emerald-300">BEBFY / CONTROLE ADMINISTRATIVO</p><h2 className="mt-2 text-2xl font-extrabold">Auditoria da plataforma</h2><p className="mt-1 text-sm text-slate-400">Histórico das alterações realizadas no SaaS Admin, sem exibir valores de senhas ou tokens.</p></div><button type="button" onClick={()=>void load()} className="flex items-center gap-2 rounded-xl border border-white/15 px-4 py-3 text-sm"><RefreshCcw size={17}/> Atualizar</button></div>
-    {error&&<p role="alert" className="rounded-xl bg-rose-500/10 p-4 text-sm text-rose-200">{error}</p>}
-    <div className="grid gap-3 sm:grid-cols-3">{[
-      {name:'Eventos registrados',count:events.length,icon:ClipboardList},
-      {name:'Alterações',count:events.filter(e=>e.metodo==='PATCH').length,icon:ShieldCheck},
-      {name:'Operadores envolvidos',count:new Set(events.map(e=>e.operadorId)).size,icon:LockKeyhole},
-    ].map(({name,count,icon:Icon})=><div key={name} className="rounded-2xl border border-white/10 bg-[#202a2e] p-5"><Icon size={18} className="text-emerald-300"/><p className="mt-3 text-xs text-slate-400">{name}</p><strong className="mt-1 block text-2xl">{loading?'—':count}</strong></div>)}</div>
-    <section className="rounded-2xl border border-white/10 bg-[#202a2e] p-5">
-      <div className="flex flex-wrap gap-3"><div className="relative min-w-[200px] flex-1"><Search size={16} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar operador, operação ou recurso" className="min-h-11 w-full rounded-xl border border-white/15 bg-[#192528] px-3 pl-10 text-sm outline-none focus:border-emerald-300"/></div><select value={action} onChange={e=>setAction(e.target.value)} className="min-h-11 rounded-xl border border-white/15 bg-[#192528] px-3 text-sm"><option value="TODAS">Todas as ações</option><option value="POST">Criações</option><option value="PATCH">Alterações</option><option value="PUT">Atualizações</option><option value="DELETE">Exclusões</option></select><button type="button" onClick={download} className="flex items-center gap-2 rounded-xl border border-white/15 px-4 text-xs font-bold"><Download size={16}/> CSV</button></div>
-      <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[740px] text-left"><thead className="text-xs text-slate-400"><tr><th className="p-3">DATA</th><th className="p-3">OPERADOR</th><th className="p-3">AÇÃO</th><th className="p-3">ROTA / RECURSO</th><th className="p-3">CAMPOS ALTERADOS</th></tr></thead><tbody>{filtered.map(e=><tr key={e.id} className="border-t border-white/10 text-xs"><td className="p-3 text-slate-300">{new Date(e.criadoEm).toLocaleString('pt-BR')}</td><td className="p-3 font-semibold">{operators.find(u=>u.id===e.operadorId)?.nome||e.operadorId.slice(0,8)}</td><td className="p-3 text-emerald-200">{method[e.metodo]||e.metodo}</td><td className="max-w-[280px] break-words p-3">{e.rota}<span className="block text-slate-400">{e.recursoId||''}</span></td><td className="p-3 text-slate-400">{e.campos.length?e.campos.join(', '):'Sem campos de corpo'}</td></tr>)}</tbody></table>
-      {loading&&<p className="mt-4 text-xs text-slate-400">Consultando auditoria...</p>}{!loading&&!filtered.length&&<p className="mt-4 text-sm text-slate-400">Nenhum evento encontrado.</p>}
-      </div><p className="mt-5 text-xs text-slate-400">Exibe os registros mais recentes. Operações anteriores à implantação da auditoria não são reconstruídas retroativamente.</p>
-    </section>
-  </div>;
+import {useEffect,useRef,useState} from 'react';
+import {ClipboardList,Download,LockKeyhole,RefreshCcw,Search,ShieldCheck,Users,X} from 'lucide-react';
+import {saasApi} from '../services/saas';
+import type {SaasAuditPage,SaasAuditQuery} from '../services/saas';
+import {saasAuthApi} from '../services/saasAuth';
+import type {SaasFuncionario} from '../services/saasAuth';
+const methods:Record<string,string>={POST:'POST · Ação',PATCH:'PATCH · Alteração',PUT:'PUT · Atualização',DELETE:'DELETE · Exclusão'};
+const time=(s:string)=>new Date(s).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
+const csv=(v:unknown)=>{const raw=String(v??'');return '"'+(/^[\s]*[=+\-@]/.test(raw)?"'"+raw:raw).replace(/"/g,'""')+'"';};
+const initial={busca:'',operador:'',metodo:'TODOS',inicio:'',fim:'',ordem:'RECENTES'};
+type Filters=typeof initial;
+type Event=SaasAuditPage['itens'][number];
+function dayStart(value:string,next=false){
+ const date=new Date(value+'T03:00:00.000Z');
+ if(next)date.setUTCDate(date.getUTCDate()+1);
+ return date.toISOString();
+}
+const routeLabel=(r:string)=>r.includes('/funcionarios')?'Operadores':r.includes('/suporte/')?'Suporte':r.includes('/financeiro')||/cobrancas|inadimplencia|liberar-acesso/.test(r)?'Financeiro':r.includes('/modulos')?'Módulos':r.includes('/planos')||r.endsWith('/plano')?'Planos':r.includes('/empresas')?'Distribuidoras':r.includes('/perfil')?'Meu perfil':'Plataforma';
+export function SaasAuditoria(){
+ const [filters,setFilters]=useState<Filters>(initial),[applied,setApplied]=useState<Filters>(initial);
+ const [page,setPage]=useState(1),[limit,setLimit]=useState(20),[reload,setReload]=useState(0);
+ const [data,setData]=useState<SaasAuditPage|null>(null),[operators,setOperators]=useState<SaasFuncionario[]>([]),[operatorError,setOperatorError]=useState(false);
+ const [loading,setLoading]=useState(true),[error,setError]=useState(''),[selected,setSelected]=useState<Event|null>(null),[filterError,setFilterError]=useState('');
+ const request=useRef(0);
+ useEffect(()=>{let active=true;setOperatorError(false);void saasAuthApi.funcionarios().then(v=>{if(active)setOperators(v);}).catch(()=>{if(active)setOperatorError(true);});return()=>{active=false;};},[reload]);
+ useEffect(()=>{
+  const seq=++request.current;setLoading(true);setError('');setSelected(null);
+  const params:SaasAuditQuery={busca:applied.busca.trim(),operador:applied.operador||undefined,metodo:applied.metodo,
+   inicio:applied.inicio?dayStart(applied.inicio):undefined,fim:applied.fim?dayStart(applied.fim,true):undefined,pagina:page,limite:limit,ordem:applied.ordem};
+  void saasApi.auditoriaPaginada(params).then(result=>{if(seq===request.current)setData(result);}).catch(()=>{if(seq===request.current){setData(null);setError('Não foi possível consultar a auditoria. Tente atualizar.');}}).finally(()=>{if(seq===request.current)setLoading(false);});
+  return()=>{request.current++;};
+ },[applied,page,limit,reload]);
+ const change=(v:Partial<Filters>)=>setFilters(p=>({...p,...v}));
+ const apply=(e:React.FormEvent)=>{e.preventDefault();if(filters.inicio&&filters.fim&&filters.inicio>filters.fim){setFilterError('A data final não pode ser anterior à inicial.');return;}setFilterError('');setPage(1);setApplied({...filters});};
+ const clear=()=>{setFilters(initial);setApplied({...initial});setFilterError('');setPage(1);};
+ const total=data?.total??0,actual=data?.pagina??1,max=Math.max(1,Math.ceil(total/(data?.limite??limit)));
+ const exportPage=()=>{
+  if(!data||loading||error)return;
+  const rows=[['Data (Brasília)','ID evento','Operador','ID operador','Método HTTP','Área','Rota','Campos informados','Recurso'],...data.itens.map(e=>[time(e.criadoEm),e.id,e.operador?.nome??'Operador não localizado',e.operadorId,e.metodo,routeLabel(e.rota),e.rota,e.campos.join(', '),e.recursoId??''])];
+  const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(row=>row.map(csv).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='bebfy-auditoria-pagina-'+actual+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ return <div className="sc-page sau-page">
+  <div className="sd-heading"><div><h2>Auditoria da plataforma</h2><p>Rastreabilidade das operações administrativas concluídas.</p></div><button className="sd-secondary" disabled={loading} onClick={()=>setReload(v=>v+1)}><RefreshCcw size={16}/> Atualizar</button></div>
+  {error&&<p className="sd-warning" role="alert">{error}</p>}{operatorError&&<p className="sd-warning">A lista de operadores está indisponível. A consulta dos eventos continua disponível.</p>}
+  <div className="sd-kpis">{([{label:'Eventos registrados',value:total,icon:ClipboardList},{label:'Ações POST',value:data?.resumo.porMetodo.POST??0,icon:ShieldCheck},{label:'Alterações PATCH / PUT',value:(data?.resumo.porMetodo.PATCH??0)+(data?.resumo.porMetodo.PUT??0),icon:LockKeyhole},{label:'Operadores envolvidos',value:data?.resumo.operadores??0,icon:Users}] as const).map(({label,value,icon:Icon})=><div className="sd-panel sd-kpi" key={label}><span className="sd-icon"><Icon size={22}/></span><div><small>{label}</small><strong>{loading||!data?'—':value}</strong><span>Conforme filtros aplicados</span></div></div>)}</div>
+  <section className="sc-panel sau-info"><ShieldCheck size={20}/><div><h3>Registro administrativo de metadados</h3><p className="sd-muted">Registra operações de escrita concluídas, sem valores de formulários, senhas ou tokens. Os campos indicam o que foi enviado, não necessariamente o que mudou. Não representa registro de tentativas de login, falhas ou visualizações.</p></div></section>
+  <form className="sc-panel" onSubmit={apply}><div className="sc-filters"><label className="sd-search sc-query"><Search size={16}/><input aria-label="Buscar evento" maxLength={120} placeholder="Rota, recurso, campo ou ID" value={filters.busca} onChange={e=>change({busca:e.target.value})}/></label><label>Operador<select value={filters.operador} onChange={e=>change({operador:e.target.value})}><option value="">Todos</option>{operators.map(o=><option value={o.id} key={o.id}>#{o.codigo} · {o.nome}</option>)}{filters.operador&&!operators.some(o=>o.id===filters.operador)&&<option value={filters.operador}>{filters.operador}</option>}</select></label><label>Método<select value={filters.metodo} onChange={e=>change({metodo:e.target.value})}><option value="TODOS">Todos</option>{Object.entries(methods).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><label>De (Brasília)<input type="date" value={filters.inicio} onChange={e=>change({inicio:e.target.value})}/></label><label>Até (Brasília)<input type="date" value={filters.fim} onChange={e=>change({fim:e.target.value})}/></label><label>Ordenação<select value={filters.ordem} onChange={e=>change({ordem:e.target.value})}><option value="RECENTES">Mais recentes</option><option value="ANTIGOS">Mais antigos</option></select></label><div className="sd-actions"><button type="submit" className="sd-primary" disabled={loading}>Aplicar</button><button type="button" className="sd-secondary" onClick={clear}>Limpar</button></div></div>{filterError&&<p role="alert" className="sd-warning">{filterError}</p>}</form>
+  <section className="sc-panel sc-list"><div className="sd-panel-head"><h3>Histórico de operações · {loading||!data?'—':total}</h3><button className="sd-secondary" disabled={loading||!data||!data.itens.length} onClick={exportPage}><Download size={16}/> CSV da página</button></div>
+   <div className="sc-table-scroll"><table className="sc-table sau-table"><thead><tr><th>Data e hora</th><th>Operador</th><th>Operação / área</th><th>Rota / recurso</th><th>Campos informados</th><th>Detalhes</th></tr></thead><tbody>{!loading&&data?.itens.map(e=><tr key={e.id}><td>{time(e.criadoEm)}</td><td><strong>{e.operador?.nome??'Operador não localizado'}</strong><small>{e.operador?'Código '+e.operador.codigo:e.operadorId.slice(0,8)}</small></td><td><span className="sau-method">{e.metodo}</span><small>{routeLabel(e.rota)}</small></td><td className="sau-route">{e.rota}<small>{e.recursoId??'Sem ID de recurso'}</small></td><td>{e.campos.length?e.campos.slice(0,3).join(', ')+(e.campos.length>3?' +'+(e.campos.length-3):''):'Sem campos registrados'}</td><td><button className="sd-link" onClick={()=>setSelected(e)}>Ver evento</button></td></tr>)}</tbody></table>{loading?<p className="sd-empty">Consultando auditoria…</p>:!data?<p className="sd-empty">Consulta indisponível.</p>:!data.itens.length?<p className="sd-empty">Nenhum evento encontrado.</p>:null}</div>
+   <footer className="sc-pagination"><label>Por página <select value={limit} onChange={e=>{setLimit(Number(e.target.value));setPage(1);}}>{[10,20,50,100].map(n=><option key={n}>{n}</option>)}</select></label><span>Página {actual} de {max}</span><div className="sd-actions"><button className="sd-secondary" disabled={loading||actual<=1} onClick={()=>setPage(actual-1)}>Anterior</button><button className="sd-secondary" disabled={loading||actual>=max} onClick={()=>setPage(actual+1)}>Próxima</button></div></footer></section>
+  <p className="sd-muted">A paginação consulta todo o histórico existente. Exportação limitada à página atual. Registros anteriores à implantação não podem ser reconstruídos. A auditoria é registrada após a operação; falhas no armazenamento da auditoria podem deixar lacunas.</p>
+  {selected&&<div role="dialog" aria-modal="true" aria-label="Detalhes do evento" className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-3"><section className="sc-panel sau-dialog"><div className="sd-panel-head"><h3>Detalhes do evento</h3><button className="sd-secondary" aria-label="Fechar" onClick={()=>setSelected(null)}><X size={17}/></button></div><dl className="sc-dl"><dt>Identificador</dt><dd>{selected.id}</dd><dt>Data e hora (Brasília)</dt><dd>{time(selected.criadoEm)}</dd><dt>Operador</dt><dd>{selected.operador?.nome??'Operador não localizado'}</dd><dt>ID operador</dt><dd>{selected.operadorId}</dd><dt>Método</dt><dd>{methods[selected.metodo]??selected.metodo}</dd><dt>Área</dt><dd>{routeLabel(selected.rota)}</dd><dt>Rota</dt><dd>{selected.rota}</dd><dt>Recurso</dt><dd>{selected.recursoId??'—'}</dd><dt>Campos informados</dt><dd>{selected.campos.join(', ')||'Nenhum'}</dd></dl><p className="sd-muted">O nome do operador corresponde ao cadastro atual, quando disponível. Não são exibidos valores anteriores ou posteriores.</p><button className="sd-secondary" onClick={()=>setSelected(null)}>Fechar</button></section></div>}
+ </div>;
 }

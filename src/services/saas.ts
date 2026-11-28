@@ -164,7 +164,13 @@ export interface SaasTenantMonitor {
   vendasConcluidas7d?:number;consultadoEm?:string;
 }
 export interface EnderecoDisponivel { subdominio:string; disponivel:boolean; sugestoes:string[]; }
+export interface SaasAuditPage {
+ itens:Array<SaasAuditEvent & {operador:{id:string;nome:string;codigo:number}|null}>;
+ total:number;pagina:number;limite:number;resumo:{operadores:number;porMetodo:Record<string,number>};
+}
+export interface SaasAuditQuery {busca?:string;operador?:string;metodo?:string;inicio?:string;fim?:string;pagina:number;limite:number;ordem:string}
 export const saasApi = {
+  auditoriaPaginada: (params:SaasAuditQuery)=>saasClient.get<SaasAuditPage>('/saas/admin/auditoria/paginada',{params}).then(r=>r.data),
   verificarEndereco: (subdominio:string) => saasClient.get<EnderecoDisponivel>('/saas/admin/empresas/verificar-endereco',{params:{subdominio}}).then(r=>r.data),
   auditoria: () => saasClient.get<SaasAuditEvent[]>('/saas/admin/auditoria').then(r=>r.data),
   monitoramento: () => saasClient.get<SaasTenantMonitor[]>('/saas/admin/monitoramento').then(r=>r.data),
