@@ -65,6 +65,8 @@ export interface EmpresaSaas {
     endereco: string | null;
   } | null;
 }
+export type SaasEmpresaLista=Omit<EmpresaSaas,'funcionarios'>&{funcionarios?:Array<{id:string;nome:string;usuario?:{email:string;ativo:boolean}|null}>};
+export interface SaasEmpresasPagina {itens:SaasEmpresaLista[];total:number;pagina:number;limite:number;}
 export interface CriarEmpresaSaas {
   nome: string;
   documento: string;
@@ -193,6 +195,7 @@ export const saasApi = {
   marcarPagamento: (id:number,cobrancaId:string,pago:boolean) => saasClient.patch<SaasCobranca>('/saas/admin/empresas/'+id+'/cobrancas/'+cobrancaId+'/pagamento',{pago}).then(r=>r.data),
   descricoesModulos: () => saasClient.get<SaasModuloDescricao[]>('/saas/admin/modulos').then(r=>r.data),
   personalizarModulo: (modulo: NomeModulo, dados: {nome:string;descricao:string}) => saasClient.patch<SaasModuloDescricao>('/saas/admin/modulos/'+modulo,dados).then(r=>r.data),
+  empresasPaginadas: (params:{busca:string;status:string;plano:string;financeiro:string;pagina:string;limite:string;ordem:string}) => saasClient.get<SaasEmpresasPagina>('/saas/admin/empresas/paginadas',{params}).then(r=>r.data),
   empresas: () => saasClient.get<EmpresaSaas[]>('/saas/admin/empresas').then(r => r.data),
   empresa: (id: number) => saasClient.get<EmpresaSaas>(`/saas/admin/empresas/${id}`).then(r => r.data),
   planos: () => saasClient.get<PlanoSaas[]>('/saas/admin/planos').then(r => r.data),

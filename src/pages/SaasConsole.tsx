@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, Filter, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, Boxes, Building2, Check, CircleAlert, CreditCard, LayoutDashboard, LockKeyhole, LogOut, Menu, Plus, RefreshCcw, Search, Settings2, ShieldCheck, Users, Wallet, Truck, ShoppingCart, Package, FileText, Route, HandCoins, X } from 'lucide-react';
 import { useSaasAuth } from '../contexts/SaasAuthContext';
 import { SaasFuncionarios } from './SaasFuncionarios';
 import { SaasFinanceiro } from './SaasFinanceiro';
 import { SaasSuporte } from './SaasSuporte';
+import { SaasCompanies, SaasCompanyHistory } from './SaasCompanies';
 import { SaasExecutiveOverview } from './SaasExecutiveOverview';
 import { SaasMonitoramento } from './SaasMonitoramento';
 import { SaasAuditoria } from './SaasAuditoria';
@@ -63,8 +64,7 @@ export function SaasConsole() {
   const [empresasDisponiveis,setEmpresasDisponiveis]=useState(false);
   const [planos,setPlanos] = useState<PlanoSaas[]>([]);
   const [selected,setSelected] = useState<EmpresaSaas|null>(null);
-  const [filter,setFilter] = useState('');
-  const [filterStatus,setFilterStatus] = useState<'TODAS'|StatusEmpresa>('TODAS');
+  const [companyTab,setCompanyTab]=useState<'resumo'|'financeiro'|'modulos'|'acessos'|'historico'>('resumo');
   const [mobileMenu,setMobileMenu] = useState(false);
   const [profileOpen,setProfileOpen] = useState(false);
   const [supportCompanyId,setSupportCompanyId] = useState<number|null>(null);
@@ -127,11 +127,6 @@ export function SaasConsole() {
 
   useEffect(()=>{void refresh();},[refresh]);
 
-  const filtered=useMemo(()=>empresas.filter(e=>{
-    const q=filter.toLocaleLowerCase('pt-BR');
-    return (filterStatus==='TODAS'||e.status===filterStatus) && [e.nomeFantasia,e.slug,e.subdominio||'',e.cnpj||'',String(e.id)].some(p=>p.toLocaleLowerCase('pt-BR').includes(q));
-  }),[empresas,filter,filterStatus]);
-
   function openModulo(modulo:NomeModulo) {
     const item=MODULOS.find(m=>m.key===modulo);
     const custom=modDescriptions.find(m=>m.modulo===modulo);
@@ -181,8 +176,9 @@ export function SaasConsole() {
   }
 
   async function openCompany(id:number) {
+    if(busy||!(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('EMPRESAS')))return;
     setBusy(true);setAlert('');
-    try {const [empresa,cob]=await Promise.all([saasApi.empresa(id),saasApi.cobrancas(id)]);setSelected(empresa);setCobrancas(cob);setSection('empresas');setMobileMenu(false);}catch(e){setAlert(errorMessage(e));}
+    try {const [empresa,cob]=await Promise.all([saasApi.empresa(id),saasApi.cobrancas(id)]);setSelected(empresa);setCobrancas(cob);setCompanyTab('resumo');setSection('empresas');setMobileMenu(false);}catch(e){setAlert(errorMessage(e));}
     finally{setBusy(false);}
   }
   async function addCobranca(e:React.FormEvent) {
@@ -353,27 +349,24 @@ export function SaasConsole() {
               onCreate={()=>{nav('empresas');setCreating(true);}} onExport={exportarResumo}
             />}
 
-          {section==='empresas'&&!selected&&<>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Gerenciar distribuidoras</h2><p className="mt-1 text-sm text-slate-400">Cadastre lojas, altere planos e configure recursos individuais.</p></div><button onClick={()=>setCreating(true)} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Adicionar empresa</button></div>
-            <div className={`${card} p-4`}><div className="flex flex-wrap items-center gap-3"><div className="relative min-w-[220px] flex-1"><Search className="absolute left-3 top-3 text-slate-500" size={18}/><input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Pesquisar nome, CNPJ, slug ou ID..." className={`${input} pl-10`}/></div><div className="relative"><Filter size={15} className="pointer-events-none absolute left-3 top-3.5 text-slate-500"/><select value={filterStatus} onChange={e=>setFilterStatus(e.target.value as typeof filterStatus)} className={`${input} min-w-[160px] pl-9`}><option value="TODAS">Todos os status</option>{(Object.keys(statusText) as StatusEmpresa[]).map(st=><option key={st} value={st}>{statusText[st]}</option>)}</select></div></div></div>
-            <section className={`${card} overflow-x-auto`}><table className="min-w-[690px] w-full text-left"><thead className="bg-[#131c2c] text-xs text-slate-400"><tr><th className="px-5 py-4">EMPRESA</th><th className="px-5 py-4">STATUS</th><th className="px-5 py-4">PLANO</th><th className="px-5 py-4">PRODUTOS</th><th className="px-5 py-4">CRIADA EM</th><th className="px-5 py-4">AÇÃO</th></tr></thead><tbody className="divide-y divide-white/[.06]">{filtered.map(e=><tr key={e.id} className="cursor-pointer hover:bg-white/[.04]" role="button" tabIndex={0} onClick={()=>void openCompany(e.id)} onKeyDown={event=>{if(event.key==='Enter')void openCompany(e.id);}} aria-label={"Abrir distribuidora "+e.nomeFantasia}><td className="px-5 py-4"><strong className="block text-sm">{e.nomeFantasia}</strong><small className="text-slate-500">{e.slug} · #{e.id}</small>{e.inadimplente&&<span className="mt-1 block text-xs font-bold text-amber-300">{e.liberacaoFinanceiraAte&&new Date(e.liberacaoFinanceiraAte).getTime()>Date.now()?`Inadimplente · cortesia até ${new Date(e.liberacaoFinanceiraAte).toLocaleDateString('pt-BR')}`:'Inadimplente · acesso bloqueado'}</span>}</td><td className="px-5 py-4"><StatusBadge value={e.status}/></td><td className="px-5 py-4 text-sm text-slate-300">{e.plano?.nome||'Sem plano'}</td><td className="px-5 py-4 text-sm">{e._count.produtos}</td><td className="px-5 py-4 text-xs text-slate-400">{new Date(e.criadoEm).toLocaleDateString('pt-BR')}</td><td className="px-5 py-4"><button onClick={event=>{event.stopPropagation();void openCompany(e.id);}} className="flex items-center gap-1 text-sm font-bold text-emerald-300">Gerenciar <ArrowRight size={15}/></button></td></tr>)}{!filtered.length&&<tr><td colSpan={6} className="p-12 text-center text-sm text-slate-500">Nenhuma distribuidora encontrada.</td></tr>}</tbody></table></section>
-          </>}
+          {section==='empresas'&&!selected&&<SaasCompanies empresas={empresas} planos={planos} busy={busy} onCreate={()=>setCreating(true)} onOpen={id=>void openCompany(id)} onExport={exportarResumo}/>}
 
-          {section==='empresas'&&selected&&<>
-            <button onClick={()=>setSelected(null)} className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white"><ArrowLeft size={17}/> Voltar às empresas</button>
+          {section==='empresas'&&selected&&<div className="sc-detail">
+            <button disabled={busy} onClick={()=>setSelected(null)} className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white"><ArrowLeft size={17}/> Voltar às empresas</button>
             <div className={`${card} p-6`}><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-4"><span className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-400/10 text-emerald-300"><Building2 size={26}/></span><div><h2 className="text-xl font-extrabold">{selected.nomeFantasia}</h2><p className="mt-1 text-xs text-slate-400">#{selected.id} · {selected.subdominio||selected.slug} · {selected.cnpj||'Documento não cadastrado'}</p></div></div><div className="flex flex-wrap items-center gap-3"><StatusBadge value={selected.status}/><button type="button" onClick={openCompanyEditor} className="rounded-xl border border-emerald-300/25 px-4 py-2.5 text-xs font-bold text-emerald-200 hover:bg-white/5"><Settings2 size={15} className="mr-1 inline"/> Editar cadastro</button></div></div>
               <div className="mt-6 grid gap-4 border-t border-white/10 pt-6 text-sm sm:grid-cols-3"><div><span className="text-slate-500">Funcionários</span><strong className="mt-1 block text-xl">{selected._count.funcionarios}</strong></div><div><span className="text-slate-500">Produtos</span><strong className="mt-1 block text-xl">{selected._count.produtos}</strong></div><div><span className="text-slate-500">Vendas</span><strong className="mt-1 block text-xl">{selected._count.vendas}</strong></div></div>
             </div>
-            <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-[#101d24] p-4">
-              <span className="mr-2 self-center text-xs font-bold text-emerald-200">CENTRAL 360º</span>
-              <button type="button" onClick={()=>{setSupportCompanyId(selected.id);setSection('financeiro');setSelected(null);}} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Financeiro e boletos</button>
-              <button type="button" onClick={()=>{setSupportCompanyId(selected.id);setSection('suporte');setSelected(null);}} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Ordens de serviço e suporte</button>
-              <button type="button" onClick={openCompanyEditor} className="rounded-xl border border-white/15 px-4 py-2.5 text-xs font-bold text-slate-100 hover:bg-white/5">Dados e responsável</button>
-            </div>
+            <nav className="sc-tabs" aria-label="Ficha da distribuidora">{([{id:'resumo',label:'Resumo'},{id:'financeiro',label:'Financeiro'},{id:'modulos',label:'Módulos'},{id:'acessos',label:'Acessos'},{id:'historico',label:'Histórico'}] as const).map(t=><button type="button" disabled={busy} key={t.id} aria-pressed={companyTab===t.id} onClick={()=>setCompanyTab(t.id)}>{t.label}</button>)}</nav>
+            {companyTab==='resumo'&&<>
+            <div className="sc-detail-grid"><section className="sc-panel"><h3>Dados comerciais</h3><dl className="sc-dl"><dt>Razão social</dt><dd>{selected.razaoSocial||'Não informada'}</dd><dt>Documento</dt><dd>{selected.cnpj||'Não informado'}</dd><dt>Telefone</dt><dd>{selected.config?.telefone||'Não informado'}</dd><dt>Endereço</dt><dd>{selected.config?.endereco||'Não informado'}</dd><dt>Cadastro</dt><dd>{new Date(selected.criadoEm).toLocaleDateString('pt-BR')}</dd><dt>Responsável</dt><dd>{selected.funcionarios?.[0]?.nome||'Não localizado'}</dd></dl></section><section className="sc-panel"><h3>Assinatura e operação</h3><dl className="sc-dl"><dt>Plano</dt><dd>{selected.plano?.nome||'Sem plano'}</dd><dt>Mensalidade do plano</dt><dd>{selected.plano?money(Number(selected.plano.precoMensal)):'—'}</dd><dt>Clientes cadastrados</dt><dd>{selected._count.clientes??'—'}</dd><dt>Módulos ativos</dt><dd>{DISPONIVEIS.filter(m=>moduloLiberado(selected,m.key)).length} / {DISPONIVEIS.length}</dd><dt>Situação financeira</dt><dd>{selected.inadimplente?'Inadimplente':'Regular'}</dd><dt>Endereço de acesso</dt><dd><a className="text-emerald-300 break-all" href={'/'+encodeURIComponent(selected.subdominio||selected.slug)} target="_blank" rel="noopener noreferrer">bebfy.com.br/{selected.subdominio||selected.slug}</a></dd></dl></section></div>
+            <div className="sc-actions"><button className="sd-secondary" disabled={busy} onClick={()=>setCompanyTab('financeiro')}>Controle financeiro</button>{(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('SUPORTE'))&&<button className="sd-secondary" disabled={busy} onClick={()=>{setSupportCompanyId(selected.id);setSection('suporte');setSelected(null);}}>Ordens de serviço e suporte</button>}<button className="sd-secondary" disabled={busy} onClick={openCompanyEditor}>Editar dados e responsável</button></div>
             <div className="grid gap-5 xl:grid-cols-2">
               <section className={`${card} p-6`}><h3 className="mb-1 font-extrabold">Situação da conta</h3><p className="mb-6 text-xs text-slate-500">Atualiza imediatamente o estado da distribuidora.</p><label className={label}>Status atual</label><select value={selected.status} onChange={e=>{const status=e.target.value as StatusEmpresa;if(status==='SUSPENSA'||status==='CANCELADA'){if(!window.confirm('A empresa perderá acesso ao sistema. Confirmar alteração?'))return;}void updateCompany(()=>saasApi.alterarStatus(selected.id,status),'Status atualizado com sucesso.');}} disabled={busy} className={input}>{(Object.keys(statusText) as StatusEmpresa[]).map(st=><option key={st} value={st}>{statusText[st]}</option>)}</select><p className="mt-4 text-xs text-amber-300">Suspender ou cancelar bloqueia o acesso dos usuários desta empresa.</p></section>
-              <section className={`${card} p-6`}><h3 className="mb-1 font-extrabold">Plano de assinatura</h3><p className="mb-6 text-xs text-slate-500">Vincula a empresa a um plano existente no backend.</p><label className={label}>Plano atual</label><select value={selected.planoId??''} onChange={e=>{const planoId=Number(e.target.value);if(planoId&&planoId!==selected.planoId&&window.confirm('Trocar o plano e redefinir as liberações manuais de módulos?'))void updateCompany(()=>saasApi.alterarPlano(selected.id,planoId),'Plano atualizado com sucesso.');}} disabled={busy||!planos.length} className={input}><option value="">Sem plano</option>{planos.map(p=><option key={p.id} value={p.id}>{p.nome} — {money(Number(p.precoMensal))}/mês</option>)}</select><p className="mt-4 text-xs text-slate-400">A cobrança financeira recorrente não é executada por esta tela.</p></section>
+              <section className={`${card} p-6`}><h3 className="mb-1 font-extrabold">Plano de assinatura</h3><p className="mb-6 text-xs text-slate-500">Vincula a empresa a um plano existente no backend.</p><label className={label}>Plano atual</label><select value={selected.planoId??''} onChange={e=>{const planoId=Number(e.target.value);if(planoId&&planoId!==selected.planoId&&window.confirm('Trocar o plano e redefinir as liberações manuais de módulos?'))void updateCompany(()=>saasApi.alterarPlano(selected.id,planoId),'Plano atualizado com sucesso.');}} disabled={busy||!planos.length||!(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('PLANOS'))} className={input}><option value="">Sem plano</option>{planos.map(p=><option key={p.id} value={p.id}>{p.nome} — {money(Number(p.precoMensal))}/mês</option>)}</select><p className="mt-4 text-xs text-slate-400">A cobrança financeira recorrente não é executada por esta tela.</p></section>
             </div>
+            </>}
+            {companyTab==='financeiro'&&<>
+            <div className="sc-actions"><button className="sd-primary" disabled={busy} onClick={()=>{setSupportCompanyId(selected.id);setSection('financeiro');setSelected(null);}}>Abrir central financeira <ArrowRight size={16}/></button></div>
             <section className={`${card} border border-blue-400/20 p-6`}>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div><h3 className="text-lg font-extrabold">Financeiro da assinatura · Acesso</h3><p className="mt-1 text-xs text-slate-400">Controle manual de inadimplência e prazo de cortesia. Boletos automáticos ainda não integrados.</p></div>
@@ -408,12 +401,15 @@ export function SaasConsole() {
                 </table>
               </div>
             </section>
-            <section className={`${card} p-6`}><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-extrabold">Módulos disponíveis</h3><p className="mt-1 text-xs text-slate-500">Ative ou desative as funcionalidades atribuídas a esta empresa.</p></div><span className="rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">{DISPONIVEIS.filter(m=>moduloLiberado(selected,m.key)).length} disponíveis</span></div>
+            </>}
+            {companyTab==='modulos'&&<section className={`${card} p-6`}><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-extrabold">Módulos disponíveis</h3><p className="mt-1 text-xs text-slate-500">Ative ou desative as funcionalidades atribuídas a esta empresa.</p></div><span className="rounded-full bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">{DISPONIVEIS.filter(m=>moduloLiberado(selected,m.key)).length} disponíveis</span></div>
               <div className="grid gap-3 md:grid-cols-2">{MODULOS.map(m=>{const configuracao=selected.modulosAtivos.find(x=>x.modulo===m.key);
-                const enabled=moduloLiberado(selected,m.key);return <div key={m.key} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-[#101829] p-4"><div className="min-w-0"><strong className="text-sm">{m.nome}</strong><p className="mt-1 text-xs text-slate-500">{m.descricao}</p><p className="mt-1 text-[10px] text-slate-400">{PENDENTES.includes(m.key)?'Em desenvolvimento':configuracao?'Exceção manual':selected.planoId?'Conforme plano':'Empresa sem plano (legado)'}</p></div><button type="button" role="switch" aria-checked={enabled} aria-label={`${enabled?'Desativar':'Ativar'} ${m.nome}`} disabled={busy||PENDENTES.includes(m.key)} onClick={()=>void updateCompany(()=>saasApi.alternarModulo(selected.id,m.key,!enabled),`Módulo ${m.nome} atualizado.`)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${enabled?'bg-emerald-400':'bg-slate-600'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled?'left-6':'left-1'}`}/></button></div>})}</div>
+                const enabled=moduloLiberado(selected,m.key);return <div key={m.key} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-[#101829] p-4"><div className="min-w-0"><strong className="text-sm">{m.nome}</strong><p className="mt-1 text-xs text-slate-500">{m.descricao}</p><p className="mt-1 text-[10px] text-slate-400">{PENDENTES.includes(m.key)?'Em desenvolvimento':configuracao?'Exceção manual':selected.planoId?'Conforme plano':'Empresa sem plano (legado)'}</p></div><button type="button" role="switch" aria-checked={enabled} aria-label={`${enabled?'Desativar':'Ativar'} ${m.nome}`} disabled={busy||PENDENTES.includes(m.key)||!(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('MODULOS'))} onClick={()=>void updateCompany(()=>saasApi.alternarModulo(selected.id,m.key,!enabled),`Módulo ${m.nome} atualizado.`)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${enabled?'bg-emerald-400':'bg-slate-600'}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled?'left-6':'left-1'}`}/></button></div>})}</div>
               <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-amber-200/80"><CircleAlert size={16} className="shrink-0"/> O plano define os módulos disponíveis. As exceções manuais têm prioridade e são redefinidas na troca de plano. Recursos em desenvolvimento não podem ser ativados.</p>
-            </section>
-          </>}
+            </section>}
+            {companyTab==='acessos'&&<section className="sc-panel"><h3>Responsável e credenciais</h3>{selected.funcionarios?.[0]?<><dl className="sc-dl"><dt>Proprietário</dt><dd>{selected.funcionarios[0].nome}</dd><dt>Código de acesso</dt><dd>{selected.funcionarios[0].codigo??'—'}</dd><dt>E-mail</dt><dd>{selected.funcionarios[0].usuario?.email||'Não cadastrado'}</dd><dt>Conta do usuário</dt><dd>{selected.funcionarios[0].usuario?.ativo?'Ativa':'Inativa ou não cadastrada'}</dd><dt>Situação da empresa</dt><dd>{statusText[selected.status]}</dd></dl><button className="sd-primary" disabled={busy} onClick={openCompanyEditor}>Editar responsável / senha temporária</button><p className="sd-muted">Não é possível visualizar a senha atual. A redefinição encerra a sessão anterior. O gerenciamento dos demais funcionários continua no painel da distribuidora.</p></>:<p className="sd-empty">Proprietário não localizado.</p>}</section>}
+            {companyTab==='historico'&&<SaasCompanyHistory empresa={selected}/>}
+          </div>}
 
           {section==='planos'&&<>
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Planos cadastrados</h2><p className="mt-1 text-sm text-slate-400">Crie e atualize planos e vincule-os às distribuidoras.</p></div><button onClick={()=>openPlanEditor()} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Novo plano</button></div>
