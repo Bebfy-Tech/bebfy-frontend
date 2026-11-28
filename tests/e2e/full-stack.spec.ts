@@ -55,7 +55,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
 
   await a.goto('/'+SLUG+'/categorias');
   await expect(a.getByRole('heading', { name: 'Categorias' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  await a.getByRole('button', { name: 'Nova categoria' }).click();
   await a.locator('#cadastro-nome').fill('Cervejas QA Browser');
   await a.locator('#cadastro-descricao').fill('Categoria exclusiva de homologação automatizada');
   await a.getByRole('button', { name: 'Salvar cadastro' }).click();
@@ -124,7 +124,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
     expect((await disabledModules.json() as {modulos:Record<string,boolean>}).modulos.COMPRAS_FORNECEDORES).toBe(false);
     // Even an already-authenticated user cannot open the disabled supplier page.
     await a.reload();
-    await expect(a.getByRole('navigation',{name:'Menu da distribuidora'})
+    await expect(a.getByRole('complementary',{name:'Menu da distribuidora'})
       .getByRole('link',{name:/Fornecedores/})).toHaveCount(0);
     await expect(a.getByRole('heading',{name:'Fornecedores'})).toHaveCount(0);
     await a.goto('/'+SLUG+'/fornecedores');
@@ -141,12 +141,12 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   }
   await a.reload();
   await expect(a.getByRole('heading',{name:'Fornecedores'})).toBeVisible();
-  await expect(a.getByRole('navigation',{name:'Menu da distribuidora'})
+  await expect(a.getByRole('complementary',{name:'Menu da distribuidora'})
     .getByRole('link',{name:/Fornecedores/})).toBeVisible();
 
   await a.goto('/'+SLUG+'/lotes');
   await expect(a.getByRole('heading', { name: 'Lotes e validade' })).toBeVisible();
-  await a.getByRole('button', { name: 'Novo cadastro' }).click();
+  await a.getByRole('button', { name: 'Novo lote' }).click();
   const lotForm = a.getByRole('dialog');
   await lotForm.locator('#cadastro-produtoId').selectOption({index:1});
   await lotForm.locator('#cadastro-numeroLote').fill('LOTE-QA-2026');
