@@ -61,8 +61,8 @@ export const AppRoutes = () => (
             <Route element={<ModuleRoute modulo="ENTREGAS_DELIVERY" />}><Route path="delivery" element={<DeliveryPage />} /></Route>
             <Route path="produtos" element={<ProdutosPage />} />
             <Route path="unidades-medida" element={<UnidadesPage />} />
-            <Route path="categorias" element={<CadastroPage resource="categorias" />} />
-            <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage resource="lotes" />} /></Route>
+            <Route path="categorias" element={<CadastroPage key="categorias" resource="categorias" />} />
+            <Route element={<ModuleRoute modulo="ESTOQUE_LOTES" />}><Route path="lotes" element={<CadastroPage key="lotes" resource="lotes" />} /></Route>
             <Route element={<ModuleRoute modulo="COMPRAS_FORNECEDORES" />}><Route path="fornecedores" element={<FornecedoresPage />} /></Route>
             <Route path="clientes" element={<ClientesPage />} />
             <Route path="funcionarios" element={<FuncionariosPage />} />
