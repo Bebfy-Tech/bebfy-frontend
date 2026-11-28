@@ -3,3 +3,6 @@
 
 /* Tenant audit tab */
 .bf-tenant-audit .bf-audit-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}.bf-audit-scroll{overflow:auto;max-height:420px}.bf-audit-scroll table{width:100%;border-collapse:collapse;font-size:12px;min-width:540px}.bf-audit-scroll th,.bf-audit-scroll td{text-align:left;padding:10px;border-bottom:1px solid #343d46;overflow-wrap:anywhere}.bf-audit-scroll th{position:sticky;top:0;background:#17191e}.bf-audit-scroll small{display:block;color:#aab7c3;max-width:220px}
+
+/* Exportação administrativa */
+.cf-export-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.cf-export-option{display:flex;gap:10px;text-align:left;align-items:flex-start;background:#20262d;border:1px solid #343d46;border-radius:8px;padding:12px;color:#eff3f6;min-width:0}.cf-export-option svg{flex:none;color:#72e5b3}.cf-export-option span{display:grid;gap:4px;min-width:0}.cf-export-option strong{font-size:13px}.cf-export-option small{font-size:11px;line-height:1.4;color:#aab7c3}.cf-export-option[aria-pressed=true]{border-color:#32dca0;background:#17382c}.cf-export-option:focus-visible{outline:2px solid #72e5b3;outline-offset:2px}@media(max-width:900px){.cf-export-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.cf-export-grid{grid-template-columns:1fr}}
