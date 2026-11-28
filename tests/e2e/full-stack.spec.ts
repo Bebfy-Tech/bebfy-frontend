@@ -78,7 +78,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await expect(a.locator('table').getByText('Cerveja Teste Playwright 350ml')).toBeVisible();
 
   await a.goto('/'+SLUG+'/clientes');
-  await expect(a.getByRole('heading', { name: 'Clientes' })).toBeVisible();
+  await expect(a.getByRole('heading', {name: 'Clientes',exact: true})).toBeVisible();
   await a.getByRole('button', { name: 'Novo cliente' }).click();
   const customerForm = a.getByRole('dialog');
   await customerForm.getByLabel(/Nome \/ razão social/).fill('Cliente QA Playwright');
