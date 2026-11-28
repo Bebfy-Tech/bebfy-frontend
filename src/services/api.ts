@@ -43,7 +43,7 @@ api.interceptors.request.use(config=>{
 
 api.interceptors.response.use(response=>response,error=>{
   const url=String(error.config?.url||'');
-  if(error.response?.status===403&&error.response?.data?.codigo==='TERMOS_PENDENTES')window.dispatchEvent(new Event(TERMOS_EVENT));
+  if(error.response?.status===403&&(error.response?.data?.codigo==='TERMOS_PENDENTES'||error.response?.data?.error?.codigo==='TERMOS_PENDENTES'))window.dispatchEvent(new Event(TERMOS_EVENT));
   const isCredentialCheck=[
     '/auth/login','/auth/primeiro-acesso/alterar-senha','/auth/validar-gerente','/auth/recuperar-senha/solicitar','/auth/recuperar-senha/confirmar',
   ].some(endpoint=>url.includes(endpoint));

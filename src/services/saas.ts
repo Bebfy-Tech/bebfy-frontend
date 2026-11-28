@@ -228,8 +228,8 @@ export const saasApi = {
   liberarTemporariamente: (id: number, dias: number, motivo: string) =>
     saasClient.post<EmpresaSaas>(`/saas/admin/empresas/${id}/liberar-acesso`, { dias, motivo }).then(r => r.data),
   prorrogarTeste: (id:number,dias:number,motivo:string) => saasClient.post<EmpresaSaas>(`/saas/admin/empresas/${id}/teste`,{dias,motivo}).then(r=>r.data),
-  alterarStatus: (id: number, status: StatusEmpresa) =>
-    saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status }).then(r => r.data),
+  alterarStatus: (id: number, status: StatusEmpresa, motivo?:string) =>
+    saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/status`, { status, ...(motivo?{motivo}:{}) }).then(r => r.data),
   alterarPlano: (id: number, planoId: number) =>
     saasClient.patch<EmpresaSaas>(`/saas/admin/empresas/${id}/plano`, { planoId }).then(r => r.data),
   alternarModulo: (id: number, modulo: NomeModulo, ativo: boolean) =>

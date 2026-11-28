@@ -1,4 +1,4 @@
-import {useEffect,useState,useCallback,type ReactNode} from 'react';
+import {useEffect,useState,useCallback,useRef,type ReactNode} from 'react';
 import {api,TERMOS_EVENT} from '../services/api';
 import {useAuth} from '../contexts/AuthContext';
 type Termo={id:number;titulo:string;conteudo:string;publicadoEm:string};
@@ -6,8 +6,9 @@ type Estado={termo:Termo|null;pendente:boolean};
 export function TermosGate({children}:{children:ReactNode}){
  const {user,empresa,token,logout}=useAuth();
  const [estado,setEstado]=useState<Estado|null>(null),[erro,setErro]=useState(false),[confirmado,setConfirmado]=useState(false),[busy,setBusy]=useState(false);
- const consultar=useCallback(async(bloquear=false)=>{if(bloquear)setEstado(null);try{const r=await api.get<Estado>('/auth/termos');if(localStorage.getItem('@Bebfy:token')===token){setEstado(anterior=>{if(anterior?.termo?.id!==r.data.termo?.id)setConfirmado(false);return r.data;});setErro(false);}}catch{if(localStorage.getItem('@Bebfy:token')===token)setErro(true);}},[token]);
- useEffect(()=>{setEstado(null);setConfirmado(false);void consultar(true);const timer=window.setInterval(()=>void consultar(),15000);const evento=()=>void consultar(true);window.addEventListener(TERMOS_EVENT,evento);return()=>{window.clearInterval(timer);window.removeEventListener(TERMOS_EVENT,evento);};},[consultar,user?.id,empresa?.id]);
+ const seq=useRef(0),versao=useRef<number|undefined>(undefined);
+ const consultar=useCallback(async(bloquear=false)=>{const n=++seq.current;if(bloquear)setEstado(null);try{const r=await api.get<Estado>('/auth/termos');if(n===seq.current&&localStorage.getItem('@Bebfy:token')===token){if(versao.current!==r.data.termo?.id)setConfirmado(false);versao.current=r.data.termo?.id;setEstado(r.data);setErro(false);}}catch{if(n===seq.current&&localStorage.getItem('@Bebfy:token')===token)setErro(true);}},[token]);
+ useEffect(()=>{setEstado(null);setConfirmado(false);void consultar(true);const timer=window.setInterval(()=>void consultar(),15000);const evento=()=>void consultar(true);window.addEventListener(TERMOS_EVENT,evento);return()=>{seq.current++;window.clearInterval(timer);window.removeEventListener(TERMOS_EVENT,evento);};},[consultar,user?.id,empresa?.id]);
  const aceitar=async()=>{if(!estado?.termo||!confirmado)return;setBusy(true);setErro(false);try{await api.post('/auth/termos/aceite',{versao:estado.termo.id,aceito:true});await consultar(true);}catch{setConfirmado(false);await consultar(true);setErro(true);}finally{setBusy(false);}};
  if(estado&&!estado.pendente&&!erro)return <>{children}</>;
  return <main className="grid min-h-screen place-items-center bg-[#0d0e11] p-5 text-white"><section className="w-full max-w-3xl space-y-5 rounded-2xl border border-slate-700 bg-[#171a21] p-6">
