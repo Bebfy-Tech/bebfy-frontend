@@ -102,7 +102,7 @@ test('fluxo integrado: primeira senha, CRUD, API, sessão única e gestão SaaS'
   await supplierForm.getByRole('button', { name: 'Salvar fornecedor' }).click();
   await expect(a.getByRole('heading', {name: 'Distribuidora Fornecedor QA',exact: true})).toBeVisible();
   await a.getByRole('button', {name: 'Fornecedores / Ficha',exact: true}).click();
-  await expect(a.locator('table') .getByText('Distribuidora Fornecedor QA')).toBeVisible();
+  await expect(a.getByRole('button', {name: 'Abrir Distribuidora Fornecedor QA', exact: true})).toBeVisible();
 
   const suppliersResponse = await request.get(API+'/fornecedores', {
     headers: { 'x-tenant': SLUG, Authorization: 'Bearer '+tokenAnterior },
