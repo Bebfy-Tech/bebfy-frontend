@@ -23,9 +23,13 @@ const help=[
   {q:'Como fechar o caixa?',a:'Em Controle de caixas, selecione Fechar caixa e informe o dinheiro contado na gaveta. Compare o valor físico com o valor calculado pelo sistema.'},
   {q:'O Bebfy emite nota fiscal?',a:'Não nesta fase. Os comprovantes do PDV são internos e não fiscais. A importação de XML de compra não equivale à emissão fiscal.'},
 ];
+const guias = [{"to":"produtos","modulo":"Produtos","q":"Como revisar preços e unidades?","a":"Abra Produtos, consulte a ficha do item e confira preço, unidade e histórico antes de alterar."},{"to":"estoque","modulo":"Estoque","q":"Como fazer uma contagem?","a":"Na área de estoque, abra o inventário, registre as quantidades físicas e revise divergências antes de confirmar."},{"to":"caixas","modulo":"Caixa","q":"Como registrar uma retirada?","a":"No controle de caixas, selecione o caixa aberto e registre a movimentação com valor e motivo."},{"to":"clientes","modulo":"Clientes","q":"Como consultar o crédito do cliente?","a":"Abra o cadastro do cliente e confira o limite de crédito e os valores pendentes antes de vender."},{"to":"financeiro","modulo":"Financeiro","q":"Como acompanhar contas?","a":"Na gestão financeira, consulte as contas a pagar e receber e registre as baixas após confirmar o pagamento."},{"to":"relatorios","modulo":"Relatórios","q":"Como consultar um relatório?","a":"Abra a central de relatórios, selecione um relatório autorizado e aplique os filtros disponíveis."},{"to":"funcionarios","modulo":"Funcionários","q":"Como controlar acessos?","a":"Abra Funcionários e revise as permissões do cadastro autorizado. Não compartilhe senhas."},{"to":"configuracoes","modulo":"Configurações","q":"Como ajustar a impressão?","a":"Em Configurações, abra os perfis de impressão e confira o formato do papel e as opções disponíveis."},{"to":"pdv","modulo":"PDV","q":"O que conferir antes de finalizar?","a":"Confira os itens, quantidades, descontos e pagamentos antes de confirmar a venda."}];
 export function AjudaPage(){
   const {modules}=useAuth();
   const [query,setQuery]=useState('');
+  const [modulo,setModulo]=useState('');
+  const guiasVisiveis=guias.filter(g=>hasModule(modules,routeModules[g.to]));
+  const guiasFiltrados=guiasVisiveis.filter(g=>(!modulo||g.to===modulo)&&[g.modulo,g.q,g.a].join(' ').toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
   const matches=useMemo(()=>help.filter(h=>[h.q,h.a].join(' ').toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))),[query]);
   return <main className="space-y-6">
     <header className="rounded-3xl border border-blue-500/20 bg-linear-to-r from-[#1e2026] to-[#17191e] p-6 sm:p-9">
@@ -42,6 +46,12 @@ export function AjudaPage(){
           <div className="min-w-0 flex-1"><span className="text-xs font-black tracking-widest text-emerald-300">PASSO {n}</span><h3 className="mt-1 text-base font-extrabold text-white">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p><span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-300">Abrir tela <ArrowRight size={15}/></span></div>
         </Link>)}
       </div>
+    </section>
+    <section className={`${card} p-5 sm:p-7`} aria-label="Guias por módulo">
+      <h2 className="text-xl font-extrabold">Guias por módulo</h2>
+      <label className="mt-4 block text-sm">Filtrar módulo<select className={`${input} mt-2`} value={modulo} onChange={e=>setModulo(e.target.value)}><option value="">Todos os módulos disponíveis</option>{guiasVisiveis.map(g=><option key={g.to} value={g.to}>{g.modulo}</option>)}</select></label>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">{guiasFiltrados.map(g=><details key={g.to} className="rounded-xl border border-[#30333b] p-4"><summary className="cursor-pointer text-sm font-bold">{g.modulo}: {g.q}</summary><p className="mt-3 text-sm leading-6 text-slate-400">{g.a}</p><Link className="mt-3 inline-flex text-sm text-blue-300" to={tenantPath(g.to)}>Abrir módulo</Link></details>)}</div>
+      {!guiasFiltrados.length&&<p className="mt-4 text-sm text-slate-400">Nenhum guia encontrado.</p>}
     </section>
     <section className="grid gap-5 lg:grid-cols-[1fr_260px]">
       <div className={`${card} p-5 sm:p-7`}>
