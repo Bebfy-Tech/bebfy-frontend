@@ -6,6 +6,7 @@ import { SaasFuncionarios } from './SaasFuncionarios';
 import { SaasFinanceiro } from './SaasFinanceiro';
 import { SaasSuporte } from './SaasSuporte';
 import { SaasCompanies, SaasCompanyHistory } from './SaasCompanies';
+import { SaasPlans } from './SaasPlans';
 import { SaasExecutiveOverview } from './SaasExecutiveOverview';
 import { SaasMonitoramento } from './SaasMonitoramento';
 import { SaasAuditoria } from './SaasAuditoria';
@@ -63,6 +64,7 @@ export function SaasConsole() {
   const [empresas,setEmpresas] = useState<EmpresaSaas[]>([]);
   const [empresasDisponiveis,setEmpresasDisponiveis]=useState(false);
   const [planos,setPlanos] = useState<PlanoSaas[]>([]);
+  const [planosDisponiveis,setPlanosDisponiveis]=useState(false);
   const [selected,setSelected] = useState<EmpresaSaas|null>(null);
   const [companyTab,setCompanyTab]=useState<'resumo'|'financeiro'|'modulos'|'acessos'|'historico'>('resumo');
   const [mobileMenu,setMobileMenu] = useState(false);
@@ -115,7 +117,8 @@ export function SaasConsole() {
       const [companies,allPlans]=await Promise.allSettled([saasApi.empresas(),saasApi.planos()]);
       setEmpresasDisponiveis(companies.status==='fulfilled');
       if(companies.status==='fulfilled')setEmpresas(companies.value);else setEmpresas([]);
-      if(allPlans.status==='fulfilled')setPlanos(allPlans.value);
+      setPlanosDisponiveis(allPlans.status==='fulfilled');
+      if(allPlans.status==='fulfilled')setPlanos(allPlans.value);else setPlanos([]);
       try {setModDescriptions(await saasApi.descricoesModulos());} catch { /* A role may have no MODULOS permission. */ }
       setForbidden(false); // Individual API permissions govern each section; a failed request is not proof of an invalid session.
     } catch (e) {
@@ -261,6 +264,7 @@ export function SaasConsole() {
     }catch(err){setAlert(errorMessage(err));}finally{setBusy(false);}
   }
   function openPlanEditor(plano?: PlanoSaas) {
+    if(busy||!(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('PLANOS')))return;
     setEditPlan(plano?.id ?? null);
     setPlanData(plano ? {
       nome: plano.nome, tipo: plano.tipo, precoMensal: Number(plano.precoMensal), modulosPadrao:(plano.modulosPadrao||[]).filter(m=>!PENDENTES.includes(m)),
@@ -270,15 +274,30 @@ export function SaasConsole() {
   }
   async function savePlan(e:React.FormEvent) {
     e.preventDefault();
-    if(busy)return;
-    setBusy(true);setAlert('');
+    if(busy||!(user?.cargo==='SUPER_ADMIN'||user?.permissoes.includes('PLANOS')))return;
+    const nome=planData.nome.trim();
+    if(nome.length<2||!Number.isFinite(planData.precoMensal)||planData.precoMensal<=0||planData.precoMensal>99999999.99){setAlert('Informe um nome válido e uma mensalidade positiva de até R$ 99.999.999,99.');return;}
+    const dados={...planData,nome,modulosPadrao:[...new Set(planData.modulosPadrao||[])].filter(m=>!PENDENTES.includes(m))};
+    if(editPlan!==null){
+      const original=planos.find(p=>p.id===editPlan);
+      const alterouPreco=Number(original?.precoMensal)!==dados.precoMensal;
+      const alterouModulos=JSON.stringify([...(original?.modulosPadrao||[])].sort())!==JSON.stringify([...dados.modulosPadrao].sort());
+      if(alterouPreco||alterouModulos){
+        const total=original?.resumo?.total;
+        const aviso=['Este plano '+(total===undefined?'pode ter empresas vinculadas.': 'possui '+total+' empresa(s) vinculada(s).'),alterouPreco?'O novo preço será utilizado nas próximas mensalidades geradas; cobranças anteriores serão preservadas.':'',alterouModulos?'A alteração dos módulos padrão afeta os acessos herdados do plano, preservando as exceções manuais.':'','Confirma salvar as alterações?'].filter(Boolean).join('\n\n');
+        if(!window.confirm(aviso))return;
+      }
+    }
+    setBusy(true);setAlert('');setOk('');
     try {
-      if(editPlan) await saasApi.editarPlano(editPlan,planData);
-      else await saasApi.criarPlano(planData);
-      setPlanos(await saasApi.planos());
-      setEmpresas(await saasApi.empresas());
+      if(editPlan!==null) await saasApi.editarPlano(editPlan,dados);
+      else await saasApi.criarPlano(dados);
       setPlanModal(false);
-      setOk(editPlan?'Plano atualizado.':'Novo plano cadastrado.');
+      setOk(editPlan!==null?'Plano atualizado.':'Novo plano cadastrado.');
+      const [p,c]=await Promise.allSettled([saasApi.planos(),saasApi.empresas()]);
+      setPlanosDisponiveis(p.status==='fulfilled');
+      if(p.status==='fulfilled')setPlanos(p.value);else{setPlanos([]);setAlert('Plano salvo, mas não foi possível atualizar o catálogo. Utilize Atualizar dados.');}
+      setEmpresasDisponiveis(c.status==='fulfilled');if(c.status==='fulfilled')setEmpresas(c.value);else setEmpresas([]);
     } catch(e) {setAlert(errorMessage(e));}
     finally {setBusy(false);}
   }
@@ -411,10 +430,7 @@ export function SaasConsole() {
             {companyTab==='historico'&&<SaasCompanyHistory empresa={selected}/>}
           </div>}
 
-          {section==='planos'&&<>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Planos cadastrados</h2><p className="mt-1 text-sm text-slate-400">Crie e atualize planos e vincule-os às distribuidoras.</p></div><button onClick={()=>openPlanEditor()} className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-extrabold text-[#062116]"><Plus size={18}/> Novo plano</button></div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{planos.map(p=><div key={p.id} className={`${card} p-6 transition hover:border-emerald-400/30`} onClick={()=>openPlanEditor(p)} onKeyDown={e=>{if(e.key==='Enter')openPlanEditor(p);}} tabIndex={0} role="button" aria-label={"Editar plano "+p.nome}><div className="flex items-center justify-between"><span className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300"><CreditCard size={23}/></span><span className="text-xs font-bold text-slate-500">ID #{p.id}</span></div><h3 className="mt-7 text-lg font-extrabold">{p.nome}</h3><p className="mt-1 text-xs text-slate-500">{p.tipo.replaceAll('_',' ')}</p><div className="mt-5 border-t border-white/10 pt-5"><strong className="text-3xl font-extrabold">{money(Number(p.precoMensal))}</strong><span className="ml-2 text-xs text-slate-400">/ mês</span></div><p className="mt-3 text-xs text-slate-400">{empresas.filter(e=>e.planoId===p.id).length} empresa(s) vinculada(s)</p><button onClick={e=>{e.stopPropagation();openPlanEditor(p);}} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 px-4 py-3 text-sm font-bold text-emerald-300 hover:bg-emerald-500/10"><Settings2 size={16}/> Editar plano</button></div>)}{!planos.length&&<div className={`${card} p-8 text-sm text-slate-400`}>Nenhum plano cadastrado. Crie o primeiro para cadastrar distribuidoras.</div>}</div>
-          </>}
+          {section==='planos'&&<SaasPlans planos={planos} available={planosDisponiveis} busy={busy} descriptions={modDescriptions} onCreate={()=>openPlanEditor()} onEdit={openPlanEditor} onRefresh={()=>void refresh()}/>}
 
           {section==='modulos'&&<>
             <div><h2 className="text-xl font-extrabold">Catálogo de módulos</h2><p className="mt-1 text-sm text-slate-400">Gerencie os recursos fixos da plataforma, seus textos comerciais e as liberações por empresa.</p></div>
@@ -509,18 +525,18 @@ export function SaasConsole() {
         <div className="flex flex-wrap justify-end gap-3 border-t border-white/10 pt-5"><button type="button" onClick={()=>setCompanyEdit(false)} className="rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold">Cancelar</button><button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#0b3329] disabled:opacity-50">{busy?'Salvando...':'Salvar alterações'}</button></div>
       </form>
     </div>}
-    {planModal&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Formulário de plano"><form onSubmit={e=>void savePlan(e)} className="max-h-[94dvh] w-full max-w-[710px] space-y-5 overflow-y-auto rounded-3xl border border-white/10 bg-[#0a0f1d] p-7 shadow-2xl">
-      <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Planos SaaS</p><h2 className="mt-1 text-2xl font-extrabold">{editPlan?'Editar plano':'Novo plano'}</h2></div><button type="button" onClick={()=>setPlanModal(false)} aria-label="Fechar"><X size={22}/></button></div>
+    {planModal&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Formulário de plano"><form onSubmit={e=>void savePlan(e)} className="sp-editor max-h-[94dvh] w-full max-w-[790px] space-y-3 overflow-y-auto rounded-xl border border-white/10 bg-[#0a0f1d] p-4 shadow-2xl sm:p-5">
+      <div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Planos SaaS</p><h2 className="mt-1 text-2xl font-extrabold">{editPlan?'Editar plano':'Novo plano'}</h2></div><button type="button" disabled={busy} onClick={()=>setPlanModal(false)} aria-label="Fechar"><X size={22}/></button></div>
       {alert&&<p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-200">{alert}</p>}
       <div><label htmlFor="plano-nome" className={label}>Nome do plano</label><input id="plano-nome" required minLength={2} maxLength={120} className={input} value={planData.nome} onChange={e=>setPlanData(p=>({...p,nome:e.target.value}))} placeholder="Bebfy Pro"/></div>
-      <div><label htmlFor="plano-tipo" className={label}>Tipo</label><select id="plano-tipo" className={input} value={planData.tipo} onChange={e=>{const tipo=e.target.value as PlanoEntrada['tipo'];setPlanData(p=>({...p,tipo,modulosPadrao:[...PLANOS_PADRAO[tipo]]}));}}><option value="VAREJO_BASICO">Basic · Distribuidora de bairro</option><option value="VAREJO_PRO">Pro</option><option value="ATACADO_FULL">Atacado · em evolução</option><option value="PERSONALIZADO">Personalizado</option></select></div>
+      <div><label htmlFor="plano-tipo" className={label}>Tipo</label><select id="plano-tipo" className={input} value={planData.tipo} onChange={e=>{const tipo=e.target.value as PlanoEntrada['tipo'];setPlanData(p=>({...p,tipo}));}}><option value="VAREJO_BASICO">Basic · Distribuidora de bairro</option><option value="VAREJO_PRO">Pro</option><option value="ATACADO_FULL">Atacado · em evolução</option><option value="PERSONALIZADO">Personalizado</option></select></div>
       <div><label htmlFor="plano-preco" className={label}>Mensalidade (R$)</label><input id="plano-preco" className={input} required inputMode="numeric" value={money(planData.precoMensal)} onChange={e=>setPlanData(p=>({...p,precoMensal:Number(moneyInput(e.target.value))/100}))} aria-describedby="plano-price-hint"/><p id="plano-price-hint" className="mt-1 text-xs text-slate-400">Digite os centavos. Exemplo: 7990 corresponde a R$ 79,90.</p></div>
-      <div className="space-y-3 rounded-xl border border-white/10 p-4">
-        <div><h3 className="text-sm font-extrabold">Módulos incluídos no plano</h3><p className="mt-1 text-xs text-slate-400">Os módulos selecionados são herdados pelas empresas do plano. Recursos de atacado em desenvolvimento não são comercializáveis.</p></div>
+      <div className="sp-module-editor space-y-3 rounded-xl border border-white/10 p-3">
+        <div className="sd-panel-head"><div><h3 className="text-sm font-extrabold">Módulos incluídos no plano</h3><p className="mt-1 text-xs text-slate-400">Os módulos selecionados são herdados pelas empresas do plano. Recursos de atacado em desenvolvimento não são comercializáveis.</p></div><button className="sd-secondary" type="button" disabled={busy} onClick={()=>setPlanData(p=>({...p,modulosPadrao:[...PLANOS_PADRAO[p.tipo]]}))}>Aplicar padrão do tipo</button></div>
         <div className="grid gap-2 sm:grid-cols-2">{MODULOS.map(m=><label key={m.key} className="flex cursor-pointer items-center gap-2 text-xs text-slate-200"><input type="checkbox" disabled={PENDENTES.includes(m.key)} checked={(planData.modulosPadrao||[]).includes(m.key)&&!PENDENTES.includes(m.key)} onChange={e=>setPlanData(p=>({...p,modulosPadrao:e.target.checked?[...(p.modulosPadrao||[]),m.key]:(p.modulosPadrao||[]).filter(k=>k!==m.key)}))}/>{m.nome}{PENDENTES.includes(m.key)?' · Em desenvolvimento':''}</label>)}</div>
       </div>
-      <p className="text-xs leading-relaxed text-slate-400">O cadastro altera o catálogo de planos. Cobranças automáticas não são processadas neste módulo.</p>
-      <div className="flex gap-3 justify-end"><button type="button" onClick={()=>setPlanModal(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold">Cancelar</button><button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Salvar plano'}</button></div>
+      <div className="sc-panel"><h3>Resumo da assinatura</h3><dl className="sc-dl"><dt>Mensalidade</dt><dd>{money(planData.precoMensal)}</dd><dt>Módulos selecionados</dt><dd>{(planData.modulosPadrao||[]).filter(m=>!PENDENTES.includes(m)).length} / {DISPONIVEIS.length}</dd>{editPlan!==null&&<><dt>Empresas vinculadas</dt><dd>{planos.find(p=>p.id===editPlan)?.resumo?.total??'—'}</dd><dt>Mensalidade atual</dt><dd>{money(Number(planos.find(p=>p.id===editPlan)?.precoMensal??0))}</dd></>}</dl><p className="sd-muted">O tipo é uma classificação comercial. Aplicar o padrão do tipo redefine a seleção de módulos. Cobranças anteriores são preservadas.</p></div>
+      <div className="flex gap-3 justify-end"><button type="button" disabled={busy} onClick={()=>setPlanModal(false)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold">Cancelar</button><button type="submit" disabled={busy} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-extrabold text-[#062116] disabled:opacity-50">{busy?'Salvando…':'Salvar plano'}</button></div>
     </form></div>}
     {creating&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Cadastrar distribuidora"><div className="max-h-[95vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0a0f1d] p-5 shadow-2xl sm:p-8"><div className="mb-6 flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-400">Novo cliente SaaS</p><h2 className="mt-1 text-2xl font-extrabold">Cadastrar distribuidora</h2></div><button onClick={()=>setCreating(false)} aria-label="Fechar" className="rounded-xl bg-white/5 p-2"><X size={21}/></button></div>
       {alert&&<p role="alert" className="mb-4 rounded-xl bg-rose-500/10 p-3 text-sm text-rose-200">{alert}</p>}

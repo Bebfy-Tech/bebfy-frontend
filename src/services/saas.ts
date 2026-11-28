@@ -27,6 +27,7 @@ export interface PlanoSaas {
   precoMensal: string | number;
   criadoEm: string;
   modulosPadrao?: NomeModulo[];
+  resumo?: {total:number;ativas:number;emTeste:number;suspensas:number;canceladas:number};
 }
 export interface ModuloEmpresa {
   id: number;
