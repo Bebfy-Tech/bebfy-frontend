@@ -24,6 +24,7 @@ export const getTenantSlug=():string=>{
   return '';
 };
 
+export const TERMOS_EVENT='bebfy:termos-pendentes';
 export const TENANT_SESSION_EVENT='bebfy:tenant-session-invalid';
 const publicAuth=(url:string)=>['/auth/login','/auth/primeiro-acesso/alterar-senha','/auth/recuperar-senha/solicitar','/auth/recuperar-senha/confirmar'].includes(url.split('?')[0]);
 export const api=axios.create({
@@ -42,6 +43,7 @@ api.interceptors.request.use(config=>{
 
 api.interceptors.response.use(response=>response,error=>{
   const url=String(error.config?.url||'');
+  if(error.response?.status===403&&error.response?.data?.codigo==='TERMOS_PENDENTES')window.dispatchEvent(new Event(TERMOS_EVENT));
   const isCredentialCheck=[
     '/auth/login','/auth/primeiro-acesso/alterar-senha','/auth/validar-gerente','/auth/recuperar-senha/solicitar','/auth/recuperar-senha/confirmar',
   ].some(endpoint=>url.includes(endpoint));

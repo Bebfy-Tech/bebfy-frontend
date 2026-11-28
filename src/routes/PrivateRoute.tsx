@@ -1,3 +1,4 @@
+import { TermosGate } from '../components/TermosGate';
 import React from 'react';
 import { hasModule } from '../services/moduleAccess';
 import type { NomeModulo } from '../services/saas';
@@ -25,7 +26,7 @@ export const PrivateRoute: React.FC<{saas?: boolean}> = ({saas=false}) => {
   if(!saas && tenant && empresa?.subdominio?.toLowerCase()!==tenant.toLowerCase()){
     return <Navigate to={tenantPath('',tenant)} replace />;
   }
-  return <Outlet />;
+  return <TermosGate><Outlet /></TermosGate>;
 };
 /** Blocks deep links and bookmarks when SaaS disables a tenant feature. */
 export const ModuleRoute: React.FC<{modulo: NomeModulo}> = ({modulo}) => {

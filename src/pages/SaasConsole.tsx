@@ -1,3 +1,5 @@
+import { SaasTermos } from './SaasTermos';
+import { FileText as TermosIcon } from 'lucide-react';
 import { SaasAvisos } from './SaasAvisos';
 import { Megaphone } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -21,7 +23,7 @@ import { MODULOS, saasApi, PENDENTES, DISPONIVEIS, PLANOS_PADRAO, moduloLiberado
 import { saasLoginPath } from '../services/tenantUrls';
 import type { CriarEmpresaSaas, EmpresaSaas, PlanoSaas, PlanoEntrada, StatusEmpresa, SaasModuloDescricao, SaasCobranca } from '../services/saas';
 
-type Section = 'avisos' | 'visao' | 'empresas' | 'financeiro' | 'suporte' | 'monitoramento' | 'auditoria' | 'planos' | 'modulos' | 'funcionarios';
+type Section = 'termos' | 'avisos' | 'visao' | 'empresas' | 'financeiro' | 'suporte' | 'monitoramento' | 'auditoria' | 'planos' | 'modulos' | 'funcionarios';
 
 
 const statusText: Record<StatusEmpresa,string> = { ATIVA: 'Ativa', EM_TESTE: 'Em teste', SUSPENSA: 'Suspensa', CANCELADA: 'Cancelada' };
@@ -276,6 +278,7 @@ export function SaasConsole() {
     {key:'empresas',icon:Building2,title:'Distribuidoras',desc:'Clientes e acessos'},
     {key:'financeiro',icon:Wallet,title:'Financeiro e cobranças',desc:'Recebimentos e bloqueios'},
     {key:'suporte',icon:Activity,title:'Central de suporte',desc:'Ordens e atendimento pelo WhatsApp'},
+    {key:'termos',icon:TermosIcon,title:'Termos de utilização',desc:'Versões e aceites'},
     {key:'avisos',icon:Megaphone,title:'Comunicados',desc:'Publicação de avisos'},
     {key:'monitoramento',icon:BarChart3,title:'Monitoramento',desc:'Atividade e uso dos clientes'},
     {key:'auditoria',icon:ShieldCheck,title:'Auditoria',desc:'Histórico administrativo'},
@@ -284,6 +287,7 @@ export function SaasConsole() {
     {key:'funcionarios',icon:Users,title:'Funcionários do SaaS',desc:'Equipe e permissões'},
   ] as {key:Section;icon:typeof Activity;title:string;desc:string}[]).filter(tab => {
     if(user?.cargo==='SUPER_ADMIN') return true;
+    if(tab.key==='termos')return false;
     const necessary:Partial<Record<Section,string>>={
       avisos:'EMPRESAS',empresas:'EMPRESAS',financeiro:'EMPRESAS',suporte:'SUPORTE',monitoramento:'EMPRESAS',auditoria:'FUNCIONARIOS',planos:'PLANOS',modulos:'MODULOS',funcionarios:'FUNCIONARIOS',
     };
@@ -324,6 +328,7 @@ export function SaasConsole() {
           {section==='funcionarios'&&<SaasFuncionarios current={user}/>}
           {section==='financeiro'&&<SaasFinanceiro onOpenCompany={id=>void openCompany(id)} initialCompanyId={supportCompanyId}/>}
           {section==='suporte'&&<SaasSuporte empresas={empresas} initialCompanyId={supportCompanyId} onOpenCompany={id=>void openCompany(id)} canOpenCompany={user?.cargo==="SUPER_ADMIN"||!!user?.permissoes.includes("EMPRESAS")}/>}
+          {section==='termos'&&user?.cargo==='SUPER_ADMIN'&&<SaasTermos/>}
           {section==='avisos'&&<SaasAvisos empresas={empresas}/>}
           {section==='monitoramento'&&<SaasMonitoramento onOpenCompany={id=>void openCompany(id)}/>}
           {section==='auditoria'&&<SaasAuditoria/>}
